@@ -127,29 +127,17 @@ html {
 	filter:drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.5));
 }
 
-#toggle-music {
+#open-game-settings {
     top: 48.9vw;
-    left: 14vw;
+    left: 15.6vw;
 }
-#toggle-music.deck-menu { 
-	top: 45.3vw;
-	left: 46.7vw;
-	z-index: 86;
-}
-
-#toggle-sfx {
-	top: 48.9vw;
-    left: 17.2vw;
-}
-#toggle-sfx.deck-menu {
-	top: 45.3vw;
-	left: 50.1vw;
-	z-index: 86;
+#open-game-settings.deck-menu { 
+	display: none !important;
 }
 
 #toggle-notifications {
 	top: 48.9vw;
-    left: 20vw;
+    left: 19.2vw;
 }
 #toggle-notifications.deck-menu {
 	display: none !important;
@@ -196,6 +184,9 @@ html {
 	font-weight:bold;
 	display: flex;
 	align-items: center;
+}
+#notification-bar > div[data-text]::after {
+	content: attr(data-text) !important;
 }
 
 #notif-me-first::after { content:"You will go first"; }
@@ -577,6 +568,37 @@ html {
 #end-screen button:nth-of-type(1) { left: 31%; }
 #end-screen button:nth-of-type(2) { left: 45%; }
 #end-screen button:nth-of-type(3) { left: 59%; }
+
+#end-btn-story-return {
+    position: absolute;
+    height: 3vw;
+    width: 16vw;
+    top: 87%;
+    left: 50% !important;
+    transform: translateX(-50%);
+    font-family: Arial Narrow, sans-serif;
+    font-size: 1.25vw;
+    color: goldenrod !important;
+    background-color: #4c390a66 !important;
+    border: .2vw solid #1d180b !important;
+    border-radius: 0.1vw;
+    box-shadow: 0 0 .5vw #6d5210 !important;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    box-sizing: border-box;
+    padding: 0 1vw;
+    transition: all 0.2s ease;
+    z-index: 50;
+}
+
+#end-btn-story-return:hover {
+    background-color: #634b0d99 !important;
+    box-shadow: 0 0 2vw #6d5210 !important;
+    color: #fff2cc !important;
+}
 
 /* --------------------- panels ---------------------------  */
 
@@ -1442,9 +1464,9 @@ main { background-image: url('img/boardtest8.png'); }
 	/*position: absolute;*/
 	position: relative;
 	
-	transition: margin-bottom 0.05s, margin-left .25s, margin-right .25s, transform 0.5s;
+	transition: margin-bottom 0.05s, margin-left 0.25s, margin-right 0.25s, transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
 	
-	z-index = 1;
+	z-index: 1;
 }
 
 .deck-card .card { position : absolute; }

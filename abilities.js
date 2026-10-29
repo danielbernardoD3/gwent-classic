@@ -40,6 +40,9 @@ var ability_dict = {
 		description: "Doubles the strength of all unit cards in that row. Limited to 1 per row. ",
 		audio: "horn",
 		placed: async card => {
+			if (card.holder === player_me && typeof Achievements !== "undefined") {
+				Achievements.recordHorn();
+			}
 			await card.animate("horn");
 		}
 	},
@@ -91,6 +94,12 @@ var ability_dict = {
 			
 			if (cards.length)
 			{
+				if (card.holder === player_me && typeof Achievements !== "undefined") {
+					const killedOpponentUnits = cards.some(u => u[0] && u[0].elem_parent && u[0].elem_parent.parentElement && u[0].elem_parent.parentElement.id === "field-op");
+					if (killedOpponentUnits) {
+						Achievements.recordScorchKill();
+					}
+				}
 				await Promise.all(cards.map( async u => await u[1].animate("scorch", true, false)) );
 				await Promise.all(cards.map( async u => await board.toGrave(u[1], u[0])) );
 			}
@@ -99,17 +108,35 @@ var ability_dict = {
 	scorch_c: {
 		name: "Scorch - Close Combat",
 		description: "Destroy your enemy's strongest Close Combat unit(s) if the combined strength of all his or her Close Combat units is 10 or more. ",
-		placed: async (card) => await board.getRow(card, "close", card.holder.opponent()).scorch()
+		placed: async (card) => {
+			const row = board.getRow(card, "close", card.holder.opponent());
+			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
+				Achievements.recordScorchKill();
+			}
+			await row.scorch();
+		}
 	},
 	scorch_r: {
 		name: "Scorch - Ranged",
 		description: "Destroy your enemy's strongest Ranged Combat unit(s) if the combined strength of all his or her Ranged Combat units is 10 or more. ",
-		placed: async (card) => await board.getRow(card, "ranged", card.holder.opponent()).scorch()
+		placed: async (card) => {
+			const row = board.getRow(card, "ranged", card.holder.opponent());
+			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
+				Achievements.recordScorchKill();
+			}
+			await row.scorch();
+		}
 	},
 	scorch_s: {
 		name: "Scorch - Siege",
 		description: "Destroys your enemy's strongest Siege Combat unit(s) if the combined strength of all his or her Siege Combat units is 10 or more. ",
-		placed: async (card) => await board.getRow(card, "siege", card.holder.opponent()).scorch()
+		placed: async (card) => {
+			const row = board.getRow(card, "siege", card.holder.opponent());
+			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
+				Achievements.recordScorchKill();
+			}
+			await row.scorch();
+		}
 	},
 	agile: {
 		name:"agile", 
@@ -124,6 +151,9 @@ var ability_dict = {
 			if (card['muster'])
 			{
 				cardName = card['muster'];
+			}
+			if (card.holder === player_me && cardName === "Roach" && typeof Achievements !== "undefined") {
+				Achievements.recordRoach();
 			}
 			let pred = c => c.name.startsWith(cardName);
 			let units = card.holder.hand.getCards(pred).map(x => [card.holder.hand, x])
@@ -158,16 +188,59 @@ var ability_dict = {
 			if (units.length <= 0)
 				return;
 			let wrapper = {card : null};
+			let peerRowType = null;
+			let localTargetEntry = null;
 			if (game.randomRespawn) {
 				const cards = grave.findCardsRandom(c => c.isUnit());
 				if (cards.length > 0)
 					wrapper.card = cards[0];
-			} else if (card.holder.controller instanceof ControllerAI)
-				wrapper.card =  card.holder.controller.medic(card, grave);
-			else
-				await ui.queueCarousel(card.holder.grave, 1, (c, i) => wrapper.card=c.cards[i], c => c.isUnit(), true);
+			} else if (card.holder.controller instanceof ControllerAI) {
+				wrapper.card = card.holder.controller.medic(card, grave);
+			} else if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
+				const peerCtrl = card.holder.controller;
+				let targetName = null;
+				if (Array.isArray(peerCtrl.nextMedicTargets) && peerCtrl.nextMedicTargets.length > 0) {
+					const entry = peerCtrl.nextMedicTargets.shift();
+					if (typeof entry === "string") {
+						targetName = entry;
+					} else if (entry && entry.name) {
+						targetName = entry.name;
+						peerRowType = entry.rowType || null;
+					}
+				} else if (peerCtrl.nextMedicTarget) {
+					targetName = peerCtrl.nextMedicTarget;
+					peerCtrl.nextMedicTarget = null;
+				}
+				if (targetName) {
+					wrapper.card = grave.cards.find(c => c.name === targetName && c.isUnit());
+				}
+				if (!wrapper.card) {
+					wrapper.card = units[0];
+				}
+			} else if (game.isAutoPlayingTimeout) {
+				wrapper.card = units[0];
+				if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me && wrapper.card) {
+					VersusMode.pendingMedicTarget = wrapper.card.name;
+					localTargetEntry = { name: wrapper.card.name, rowType: "close" };
+					if (!Array.isArray(VersusMode.pendingMedicTargets)) VersusMode.pendingMedicTargets = [];
+					VersusMode.pendingMedicTargets.push(localTargetEntry);
+				}
+			} else {
+				await ui.queueCarousel(card.holder.grave, 1, (c, i) => {
+					wrapper.card = c.cards[i];
+					if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me && wrapper.card) {
+						VersusMode.pendingMedicTarget = wrapper.card.name;
+						localTargetEntry = { name: wrapper.card.name, rowType: null };
+						if (!Array.isArray(VersusMode.pendingMedicTargets)) VersusMode.pendingMedicTargets = [];
+						VersusMode.pendingMedicTargets.push(localTargetEntry);
+					}
+				}, c => c.isUnit(), true);
+			}
 			if (wrapper.card)
 			{
+				if (card.holder === player_me && typeof Achievements !== "undefined") {
+					Achievements.recordMedic();
+				}
 				// move card visual to top of grave
 				const res = wrapper.card;
 				grave.removeCard(res);
@@ -176,10 +249,15 @@ var ability_dict = {
 				const isAgile = wrapper.card.row === "agile";
 				if (isAgile)
 				{
-					if (card.holder.controller instanceof ControllerAI)
+					if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer && peerRowType)
 					{
-						const close = board.getRow(res, "close", player_op);
-						const ranged = board.getRow(res, "ranged", player_op);
+						selectedRow = board.getRow(res, peerRowType, player_op);
+					}
+					else if (card.holder.controller instanceof ControllerAI || (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) || (typeof game !== "undefined" && game.isAutoPlayingTimeout))
+					{
+						const holder = card.holder || player_me;
+						const close = board.getRow(res, "close", holder);
+						const ranged = board.getRow(res, "ranged", holder);
 						const closeVirtual = close.getVirtualCopy();
 						const rangedVirtual = ranged.getVirtualCopy();
 
@@ -192,8 +270,11 @@ var ability_dict = {
 						const rangedDif = rangedVirtual.calcScore() - ranged.calcScore();
 						const rowName = closeDif > rangedDif ? "close" 
 							: closeDif < rangedDif ? "ranged"
-							: Math.random() < 0.5 ? "close" : "ranged";
-						selectedRow = board.getRow(res, rowName, player_op);
+							: "close";
+						selectedRow = board.getRow(res, rowName, holder);
+						if (localTargetEntry && typeof VersusMode !== "undefined") {
+							localTargetEntry.rowType = rowName;
+						}
 					}
 					else
 					{
@@ -201,6 +282,9 @@ var ability_dict = {
 						if (!selectedRow)
 						{
 							return;
+						}
+						if (localTargetEntry && typeof VersusMode !== "undefined") {
+							localTargetEntry.rowType = VersusMode.getRowTypeFromRow(selectedRow);
 						}
 					}
 
@@ -302,11 +386,11 @@ var ability_dict = {
 	emhyr_emperor: {
 		description: "Look at 3 random cards from your opponent's hand.",
 		activated: async card => {
-			if (card.holder.controller instanceof ControllerAI)
+			if (card.holder.controller instanceof ControllerAI || (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer))
 				return;
 			let container = new CardContainer();
 			container.cards = card.holder.opponent().hand.findCardsRandom(() => true, 3);
-			Carousel.curr.cancel();
+			Carousel.curr?.cancel();
 			await ui.viewCardsInContainer(container);
 		},
 		weight: card => {
@@ -321,7 +405,8 @@ var ability_dict = {
 		description: "Draw a card from your opponent's discard pile.",
 		activated: async card => {
 			let grave = board.getRow(card, "grave", card.holder.opponent());
-			if (grave.findCards(c => c.isUnit()).length === 0)
+			const validUnits = grave.findCards(c => c.isUnit());
+			if (validUnits.length === 0)
 				return;
 			if (card.holder.controller instanceof ControllerAI) {
 				let newCard = card.holder.controller.medic(card, grave);
@@ -329,9 +414,22 @@ var ability_dict = {
 				await board.toHand(newCard, grave);
 				return;
 			}
-			Carousel.curr.cancel();
+			if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
+				const lData = card.holder.controller.nextLeaderData || {};
+				let newCard = lData.targetName ? grave.cards.find(c => c.name === lData.targetName && c.isUnit()) : null;
+				if (!newCard) newCard = validUnits[0];
+				if (newCard) {
+					newCard.holder = card.holder;
+					await board.toHand(newCard, grave);
+				}
+				return;
+			}
+			Carousel.curr?.cancel();
 			await ui.queueCarousel(grave, 1, async (c,i) => {
 				let newCard = c.cards[i];
+				if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me && newCard) {
+					VersusMode.pendingLeaderData = { targetName: newCard.name };
+				}
 				newCard.holder = card.holder;
 				await board.toHand(newCard, grave);
 			}, c => c.isUnit(), true);
@@ -352,11 +450,21 @@ var ability_dict = {
 		description: "Restore a card from your discard pile to your hand.",
 		activated: async card => {
 			let newCard;
+			const validUnits = card.holder.grave.findCards(c => c.isUnit());
+			if (validUnits.length === 0) return;
 			if (card.holder.controller instanceof ControllerAI) {
-				newCard = card.holder.controller.medic(card, card.holder.grave)
+				newCard = card.holder.controller.medic(card, card.holder.grave);
+			} else if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
+				const lData = card.holder.controller.nextLeaderData || {};
+				newCard = lData.targetName ? card.holder.grave.cards.find(c => c.name === lData.targetName && c.isUnit()) : validUnits[0];
 			} else {
-				Carousel.curr.exit();
-				await ui.queueCarousel(card.holder.grave, 1, (c,i) => newCard = c.cards[i], c => c.isUnit(), false, false);
+				Carousel.curr?.exit();
+				await ui.queueCarousel(card.holder.grave, 1, (c,i) => {
+					newCard = c.cards[i];
+					if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me && newCard) {
+						VersusMode.pendingLeaderData = { targetName: newCard.name };
+					}
+				}, c => c.isUnit(), false, false);
 			}
 			if (newCard)
 				await board.toHand(newCard, card.holder.grave);
@@ -373,10 +481,32 @@ var ability_dict = {
 				await Promise.all(cards.map(async c => await board.toGrave(c, card.holder.hand)));
 				card.holder.deck.draw(card.holder.hand);
 				return;
-			} else
-				Carousel.curr.exit();
-			await ui.queueCarousel(hand, 2, (c,i) => board.toGrave(c.cards[i], c), () => true);
-			await ui.queueCarousel(deck, 1, (c,i) => board.toHand(c.cards[i], deck), () => true, true);
+			}
+			if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
+				const lData = card.holder.controller.nextLeaderData || {};
+				const discarded = Array.isArray(lData.discardedNames) ? lData.discardedNames : [];
+				for (const dName of discarded) {
+					const found = hand.cards.find(c => c.name === dName);
+					if (found) await board.toGrave(found, hand);
+				}
+				const drawn = lData.drawnName ? deck.cards.find(c => c.name === lData.drawnName) : deck.cards[0];
+				if (drawn) await board.toHand(drawn, deck);
+				return;
+			}
+			Carousel.curr?.exit();
+			const discardedNames = [];
+			let drawnName = null;
+			await ui.queueCarousel(hand, 2, async (c,i) => {
+				if (c.cards[i]) discardedNames.push(c.cards[i].name);
+				await board.toGrave(c.cards[i], c);
+			}, () => true);
+			await ui.queueCarousel(deck, 1, async (c,i) => {
+				if (c.cards[i]) drawnName = c.cards[i].name;
+				await board.toHand(c.cards[i], deck);
+			}, () => true, true);
+			if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me) {
+				VersusMode.pendingLeaderData = { discardedNames, drawnName };
+			}
 		},
 		weight: (card, ai) => {
 			let cards = ai.discardOrder(card).splice(0,2).filter(c => c.basePower < 7);
@@ -391,9 +521,20 @@ var ability_dict = {
 			let deck = board.getRow(card, "deck", card.holder);
 			if (card.holder.controller instanceof ControllerAI) {
 				await ability_dict["eredin_king"].helper(card).card.autoplay(card.holder.deck);
+			} else if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
+				const lData = card.holder.controller.nextLeaderData || {};
+				const wCard = lData.weatherName
+					? deck.cards.find(c => c.name === lData.weatherName)
+					: deck.cards.find(c => c.faction === "weather" || c.row === "weather");
+				if (wCard) await board.toWeather(wCard, deck);
 			} else {
-				Carousel.curr.cancel();
-				await ui.queueCarousel(deck, 1, (c,i) => board.toWeather(c.cards[i], deck), c => c.faction === "weather", true);
+				Carousel.curr?.cancel();
+				await ui.queueCarousel(deck, 1, async (c,i) => {
+					if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me && c.cards[i]) {
+						VersusMode.pendingLeaderData = { weatherName: c.cards[i].name };
+					}
+					await board.toWeather(c.cards[i], deck);
+				}, c => c.faction === "weather", true);
 			}
 		},
 		weight: (card, ai, max) => ability_dict["eredin_king"].helper(card).weight,
@@ -523,3 +664,39 @@ var ability_dict = {
 		placed: card => board.row.filter((c,i) => card.holder === player_me ^ i<3).forEach(r => r.effects.halfWeather = true)
 	}
 };
+
+// Automatically attach dynamic I18N getters for all abilities in ability_dict
+for (const [key, obj] of Object.entries(ability_dict)) {
+	const defaultName = obj.name;
+	const defaultDesc = obj.description;
+
+	if (defaultName !== undefined) {
+		Object.defineProperty(obj, "name", {
+			get() {
+				const i18nKey = "ability_" + key + "_name";
+				if (typeof I18N !== "undefined" && I18N.translations && I18N.translations.en && I18N.translations.en[i18nKey]) {
+					return I18N.t(i18nKey);
+				}
+				return defaultName;
+			},
+			configurable: true
+		});
+	}
+
+	if (defaultDesc !== undefined) {
+		Object.defineProperty(obj, "description", {
+			get() {
+				const i18nKey = "ability_" + key + "_desc";
+				if (typeof I18N !== "undefined" && I18N.translations && I18N.translations.en && I18N.translations.en[i18nKey]) {
+					return I18N.t(i18nKey);
+				}
+				return defaultDesc;
+			},
+			configurable: true
+		});
+	}
+}
+
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = ability_dict;
+}

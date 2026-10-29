@@ -10,9 +10,236 @@
 	<meta name="keywords" content="arun, sundaram, programmer, gwent, tw3, witcher, card, game, gamedev, play" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<link rel="stylesheet" type="text/css" href="style.css" />
+	<link rel="stylesheet" type="text/css" href="menu.css" />
+	<link rel="stylesheet" type="text/css" href="story.css" />
+	<link rel="stylesheet" type="text/css" href="versus.css" />
 </head>
 
 <body>
+
+<!-- MAIN MENU OVERLAY -->
+<section id="main-menu" class="main-menu-container">
+	<div class="menu-brand-header">
+		<h1 class="brand-title" data-i18n="game_title">GWENT</h1>
+		<div class="brand-divider"></div>
+		<p class="brand-subtitle" data-i18n="game_subtitle">THE WITCHER CARD GAME</p>
+	</div>
+
+	<!-- Bottom-Right 50% Panel with 30% black opacity -->
+	<div class="menu-panel-bottom-right">
+		
+		<!-- 1. Navigation View -->
+		<div id="menu-nav" class="menu-view active">
+			<button id="btn-story-continue" class="witcher-menu-btn hide" style="border-color: #ffd700;" onclick="StoryMode.continueCampaign()">
+				<span class="btn-icon">🐺</span>
+				<span class="btn-text" data-i18n="menu_continue_story">Continuar Jornada</span>
+			</button>
+			<button class="witcher-menu-btn story-mode-entry-btn" onclick="MenuController.openStoryMode()">
+				<span class="btn-icon">🗺️</span>
+				<span class="btn-text" data-i18n="menu_story_mode">Modo História</span>
+			</button>
+			<button class="witcher-menu-btn" onclick="MenuController.showView('play')">
+				<span class="btn-icon">⚔</span>
+				<span class="btn-text" data-i18n="menu_play">Play Gwent (Livre)</span>
+			</button>
+			<button class="witcher-menu-btn versus-mode-entry-btn" onclick="MenuController.openVersusMode()" style="border-color: #d4a34b;">
+				<span class="btn-icon">⚔️</span>
+				<span class="btn-text" data-i18n="menu_versus_mode">Modo Versus (PvP)</span>
+			</button>
+			<button class="witcher-menu-btn" onclick="MenuController.showView('achievements')">
+				<span class="btn-icon">🏆</span>
+				<span class="btn-text" data-i18n="menu_achievements">Achievements</span>
+			</button>
+			<button class="witcher-menu-btn" onclick="MenuController.showView('settings')">
+				<span class="btn-icon">⚙</span>
+				<span class="btn-text" data-i18n="menu_settings">Settings</span>
+			</button>
+			<button class="witcher-menu-btn" onclick="MenuController.showView('credits')">
+				<span class="btn-icon">📜</span>
+				<span class="btn-text" data-i18n="menu_credits">Credits</span>
+			</button>
+			<button class="witcher-menu-btn btn-danger" onclick="MenuController.quitGame()">
+				<span class="btn-icon">✕</span>
+				<span class="btn-text" data-i18n="menu_quit">Quit Game</span>
+			</button>
+		</div>
+
+		<!-- 2. Play Gwent - Difficulty View -->
+		<div id="menu-play" class="menu-view">
+			<h2 class="menu-view-title" data-i18n="menu_difficulty">Select Difficulty</h2>
+			<div class="diff-options">
+				<button class="witcher-menu-btn diff-choice" onclick="MenuController.startGame('easy')">
+					<div class="diff-header">
+						<span class="diff-stars">★☆☆</span>
+						<span class="btn-text" data-i18n="diff_easy">Easy</span>
+					</div>
+					<small class="diff-subtext" data-i18n="diff_easy_desc">Casual opponent with forgiving strategy</small>
+				</button>
+				<button class="witcher-menu-btn diff-choice" onclick="MenuController.startGame('medium')">
+					<div class="diff-header">
+						<span class="diff-stars">★★☆</span>
+						<span class="btn-text" data-i18n="diff_medium">Medium</span>
+					</div>
+					<small class="diff-subtext" data-i18n="diff_medium_desc">Standard Witcher 3 AI challenge</small>
+				</button>
+				<button class="witcher-menu-btn diff-choice" onclick="MenuController.startGame('hard')">
+					<div class="diff-header">
+						<span class="diff-stars">★★★</span>
+						<span class="btn-text" data-i18n="diff_hard">Hard</span>
+					</div>
+					<small class="diff-subtext" data-i18n="diff_hard_desc">Ruthless tactical intelligence & optimal plays</small>
+				</button>
+			</div>
+			<button class="witcher-menu-btn menu-nav-back" onclick="MenuController.showView('nav')">
+				<span data-i18n="btn_back">← Back</span>
+			</button>
+		</div>
+
+		<!-- 3. Settings View -->
+		<div id="menu-settings" class="menu-view">
+			<h2 class="menu-view-title" data-i18n="settings_title">SETTINGS</h2>
+			<div class="settings-scroll-container">
+				
+				<!-- Display Mode -->
+				<div class="setting-row">
+					<label data-i18n="settings_display">Display Mode</label>
+					<select id="setting-display-mode" class="witcher-select">
+						<option value="window" data-i18n="disp_window">Windowed</option>
+						<option value="borderless" data-i18n="disp_borderless">Borderless</option>
+						<option value="fullscreen" data-i18n="disp_fullscreen">Fullscreen</option>
+					</select>
+				</div>
+
+				<!-- Resolution -->
+				<div class="setting-row">
+					<label data-i18n="settings_resolution">Resolution</label>
+					<select id="setting-resolution" class="witcher-select">
+						<option value="1920x1080">1920 x 1080 (16:9)</option>
+						<option value="1600x900">1600 x 900 (16:9)</option>
+						<option value="1366x768">1366 x 768 (16:9)</option>
+						<option value="1280x720">1280 x 720 (16:9)</option>
+					</select>
+				</div>
+
+				<!-- Audio Toggles & Sliders -->
+				<div class="setting-row">
+					<label data-i18n="audio_music">Music</label>
+					<input type="checkbox" id="setting-music-toggle" class="witcher-checkbox" checked />
+				</div>
+				<div class="setting-row">
+					<label data-i18n="audio_music_volume">Music Volume</label>
+					<div class="volume-slider-box">
+						<input type="range" id="setting-music-volume" class="witcher-slider" min="0" max="100" value="60" />
+						<span id="music-volume-display" class="volume-num">60%</span>
+					</div>
+				</div>
+				<div class="setting-row">
+					<label data-i18n="audio_sfx">Sound Effects</label>
+					<input type="checkbox" id="setting-sfx-toggle" class="witcher-checkbox" checked />
+				</div>
+				<div class="setting-row">
+					<label data-i18n="audio_sfx_volume">Sound Effects Volume</label>
+					<div class="volume-slider-box">
+						<input type="range" id="setting-sfx-volume" class="witcher-slider" min="0" max="100" value="80" />
+						<span id="sfx-volume-display" class="volume-num">80%</span>
+					</div>
+				</div>
+
+				<!-- Jukebox -->
+				<div class="setting-row">
+					<label data-i18n="audio_jukebox">Jukebox Track</label>
+					<select id="setting-jukebox-track" class="witcher-select">
+						<option value="all" data-i18n="track_all">♦ All Tracks (Loop & Shuffle)</option>
+						<option value="0" data-i18n="track_gwent_main">1. How About a Round of Gwent</option>
+						<option value="1" data-i18n="track_plots">2. Plots and Intrigues</option>
+						<option value="2" data-i18n="track_northern">3. Northern Realms Theme</option>
+						<option value="3" data-i18n="track_nilfgaard">4. The Black Clads (Nilfgaard)</option>
+						<option value="4" data-i18n="track_witcher_forest">5. Kaer Morhen / Forest Ambience</option>
+						<option value="5" data-i18n="track_witcher_ocean">6. Skellige Winds & Ocean</option>
+					</select>
+				</div>
+
+				<!-- Language -->
+				<div class="setting-row">
+					<label data-i18n="settings_language">Language</label>
+					<select id="setting-language" class="witcher-select">
+						<option value="en" data-i18n="lang_en">English</option>
+						<option value="pt-BR" data-i18n="lang_pt">Português (Brasil)</option>
+						<option value="es" data-i18n="lang_es">Español</option>
+						<option value="pl" data-i18n="lang_pl">Polski</option>
+					</select>
+				</div>
+			</div>
+
+			<div class="settings-actions">
+				<button class="witcher-menu-btn" onclick="MenuController.saveSettings()">
+					<span data-i18n="btn_save">Save & Close</span>
+				</button>
+				<button class="witcher-menu-btn menu-nav-back" onclick="MenuController.showView('nav')">
+					<span data-i18n="btn_back">← Back</span>
+				</button>
+			</div>
+		</div>
+
+		<!-- 4. Credits View -->
+		<div id="menu-credits" class="menu-view">
+			<h2 class="menu-view-title" data-i18n="credits_title">CREDITS</h2>
+			<div class="credits-scroll-container">
+				
+				<div class="credit-card">
+					<h3 class="credit-name" data-i18n="credits_cdpr_title">CD Projekt Red</h3>
+					<div class="credit-role" data-i18n="credits_cdpr_role">Original Creator of Gwent & The Witcher 3: Wild Hunt</div>
+					<p class="credit-desc" data-i18n="credits_cdpr_desc">For envisioning the incredible world of Geralt of Rivia and creating the timeless mini-game that captivated millions of players worldwide.</p>
+				</div>
+
+				<div class="credit-card">
+					<h3 class="credit-name" data-i18n="credits_arun_title">Arun Sundaram</h3>
+					<div class="credit-role" data-i18n="credits_arun_role">Web Remake Author (arunsundaram.com)</div>
+					<p class="credit-desc" data-i18n="credits_arun_desc">For painstakingly implementing the full Gwent game logic, AI, card databases and animations for modern web browsers.</p>
+				</div>
+
+				<div class="credit-card highlight-card">
+					<h3 class="credit-name" data-i18n="credits_creator_title">Desktop Project Creator</h3>
+					<div class="credit-role" data-i18n="credits_creator_role">Desktop Edition, Native Launcher & Expansions</div>
+					<p class="credit-desc" data-i18n="credits_creator_desc">For taking this project further: reverse engineering the web bundle, building the native offline Windows executable, adding the offline Witcher 3 OST jukebox, creating the main menu, AI difficulty levels and multi-language support.</p>
+				</div>
+
+			</div>
+			<button class="witcher-menu-btn menu-nav-back" onclick="MenuController.showView('nav')">
+				<span data-i18n="btn_back">← Back</span>
+			</button>
+		</div>
+
+		<!-- 5. Achievements View -->
+		<div id="menu-achievements" class="menu-view">
+			<div class="achievements-header">
+				<h2 class="menu-view-title" data-i18n="achievements_title">ACHIEVEMENTS</h2>
+				<div id="achievements-summary" class="achievements-summary">0 / 31 (0%) Desbloqueadas</div>
+			</div>
+			
+			<div class="achievements-filter-bar">
+				<button class="ach-filter-btn active" data-filter="all" onclick="Achievements.setFilter('all')">
+					<span data-i18n="ach_filter_all">All</span>
+				</button>
+				<button class="ach-filter-btn" data-filter="unlocked" onclick="Achievements.setFilter('unlocked')">
+					<span data-i18n="ach_filter_unlocked">Unlocked</span>
+				</button>
+				<button class="ach-filter-btn" data-filter="locked" onclick="Achievements.setFilter('locked')">
+					<span data-i18n="ach_filter_locked">Locked</span>
+				</button>
+			</div>
+
+			<div id="achievements-list" class="achievements-scroll-container">
+				<!-- Dynamically generated -->
+			</div>
+
+			<button class="witcher-menu-btn menu-nav-back" onclick="MenuController.showView('nav')">
+				<span data-i18n="btn_back">← Back</span>
+			</button>
+		</div>
+
+	</div>
+</section>
 
 <div id="dimensions" style="position:fixed;width:100vw;height:calc(100vw * 1080 / 1920);"></div>
 
@@ -24,10 +251,10 @@
 
 	<section id="panel-left" class="panel">
 
-		<div id="exit-game" data-title="Exit game"></div>
+		<div id="exit-game" data-i18n-title="title_exit_game" data-title="Exit game"></div>
 	
 		<div id="leader-op" class="leader-box">
-			<div class="leader-container center" data-title="View leader"> 
+			<div class="leader-container center" data-i18n-title="title_view_leader" data-title="View leader"> 
 			</div>
 			<div class="leader-active">
 				<div></div>
@@ -39,17 +266,17 @@
 				<div><div></div></div>
 			</div>
 			
-			<div id="name-op" class="name">Opponent</div>
+			<div id="name-op" class="name" data-i18n="opponent_name">Opponent</div>
 			<div id="deck-name-op" class="deck-name"></div>
 			
-			<div id="hand-count-op" class="hand-count">6</div>
+			<div id="hand-count-op" class="hand-count">0</div>
 			
 			<div id="gem1-op" class="gem gem-on bg-contain"></div>
 			<div id="gem2-op" class="gem gem-on bg-contain"></div>
 			
 			<div id="score-total-op" class="score-total"><div class="center">0</div></div>
 			
-			<div id="passed-op">Passed</div>
+			<div id="passed-op" data-i18n="passed_label">Passed</div>
 			
 		</section>
 		
@@ -60,8 +287,8 @@
 			<div class="profile-img">
 				<div><div></div></div>
 			</div>
-			<div id="passed-me">Passed</div>
-			<div id="hand-count-me" class="hand-count">5</div>
+			<div id="passed-me" data-i18n="passed_label">Passed</div>
+			<div id="hand-count-me" class="hand-count">0</div>
 			
 			<div id="gem1-me" class="gem gem-on bg-contain"></div>
 			<div id="gem2-me" class="gem gem-on bg-contain"></div>
@@ -75,20 +302,21 @@
 		</section>
 		
 		<div id="leader-me" class="leader-box">
-			<div class="leader-container center" data-title="Play leader"></div>
+			<div class="leader-container center" data-i18n-title="title_play_leader" data-title="Play leader"></div>
 			<div class="leader-active">
 				<div></div>
 			</div>
 		</div>
 		
-		<div id="pass-button" class="center" data-title="Pass round">Pass</div>
+		<div id="pass-button" class="center" data-i18n-title="title_pass_round" data-title="Pass round" data-i18n="btn_pass">Pass</div>
+		<div id="forfeit-button" class="center" data-i18n-title="title_forfeit_game" data-title="Desistir da partida" data-i18n="btn_forfeit">Desistir</div>
 		
 	</section>
 	
 	<section id="panel-mid" class="panel">
 		<section id="field-op" class="field">
 			<div class="field-row" data-row="siege">
-				<div class="row-score center">12</div>
+				<div class="row-score center">0</div>
 				<div class="row-special card-container"></div>
 				<div class="row-cards card-container"></div>
 				<div class="row-weather"></div>
@@ -135,12 +363,12 @@
 	</section>
 	
 	<section id="panel-right" class="panel">
-		<div id="grave-op" class="grave cardpile" data-title="View discards">
+		<div id="grave-op" class="grave cardpile" data-i18n-title="title_view_discards" data-title="View discards">
 		</div>
 		<div id="deck-op" class="cardpile">
 		
 		</div>
-		<div id="grave-me" class="grave cardpile" data-title="View discards">
+		<div id="grave-me" class="grave cardpile" data-i18n-title="title_view_discards" data-title="View discards">
 		</div>
 		<div id="deck-me" class="cardpile">
 		</div>
@@ -202,28 +430,29 @@
 			<tbody>
 				<tr>
 					<th colspan="2"></th>
-					<th>Round 1</th>
-					<th>Round 2</th>
-					<th>Round 3</th>
+					<th data-i18n="round_1">Round 1</th>
+					<th data-i18n="round_2">Round 2</th>
+					<th data-i18n="round_3">Round 3</th>
 				</tr>
 				<tr>
-					<th colspan="2">Geralt</th>
+					<th colspan="2" data-i18n="player_name">Geralt</th>
 					<td>0</td>
 					<td>0</td>
 					<td>0</td>
 				</tr>
 				<tr>
-					<th colspan="2">Opponent</th>
+					<th colspan="2" data-i18n="opponent_name">Opponent</th>
 					<td>0</td>
 					<td>0</td>
 					<td>0</td>
 				</tr>
 			</tbody>
 		</table>
-		<p class="hide">The battle cannot end in a draw. You can play a rematch using the same decks or surrender.</p>
-		<button>Customize</button>
-		<button>Rematch</button>
-		<button>New Game</button>
+		<p class="hide" data-i18n="end_draw_desc">The battle cannot end in a draw. You can play a rematch using the same decks or surrender.</p>
+		<button id="end-btn-customize" data-i18n="btn_customize">Customize</button>
+		<button id="end-btn-rematch" data-i18n="btn_rematch">Rematch</button>
+		<button id="end-btn-new-game" data-i18n="btn_new_game">New Game</button>
+		<button id="end-btn-story-return" class="hide" style="display: none;">Retornar ao Mapa</button>
 	</section>
 	
 	<section id="deck-selector">
@@ -233,73 +462,862 @@
 
 </main>
 
-<section id="deck-customization">
-	<div id="faction-title" class="center">
-		<h1></h1>
-	</div>
-	<p id="faction-description"></p>
-	
-	<label id="upload-deck" class="deck-options">
-		<input type="file" id="add-file" value="Import" style="display:none;"/>
-		Upload Deck
-	</label>
-	
-	<a id="change-faction" class="deck-options">Change Faction</a>
-	
-	<a id="download-deck" class="deck-options">Download Deck</a>
-	<a id="download-json" style="display:none;"></a>
-	
-	<h2 id="card-bank-title" class="card-contianer-title">Card Collection</h2>
-	<h2 id="card-deck-title" class="card-contianer-title">Cards in Deck</h2>
-	<div id="card-bank" class="card-array">
-	</div>
-	<div id="card-deck" class="card-array">
-	</div>
-	<div id="card-leader">
-		<p>Leader</p>
-		<div></div>
-	</div>
-	<div id="deck-stats">
-		<p>Total cards in deck</p>
-		<p>0</p>
-		<p>Number of Unit Cards</p>
-		<p>0</p>
-		<p>Special Cards</p>
-		<p>0/10</p>
-		<p>Total Unit Card Strength</p>
-		<p>0</p>
-		<p>Hero Cards</p>
-		<p>0</p>
-	</div>
-	<button id="start-game">Start game</button>
-	<div id="opponent-preview" class="center">
-		<div>
-			<p>Oponent's Deck</p>
+<section id="deck-customization" class="hide">
+	<!-- Top Bar: Navigation & Utility Actions -->
+	<header class="deck-top-bar">
+		<div class="deck-top-left">
+			<button id="btn-back-to-menu" class="witcher-btn-compact" data-i18n="btn_main_menu">
+				<span class="btn-icon">❮</span>
+				<span class="btn-text" data-i18n="btn_main_menu">Menu Principal</span>
+			</button>
+			<button id="btn-story-back-to-map" class="witcher-btn-compact hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar baralho e voltar ao Mapa da História">
+				<span class="btn-icon">🗺️</span>
+				<span class="btn-text">Voltar ao Mapa</span>
+			</button>
+			<button id="btn-versus-top-back" class="witcher-btn-compact hide" style="display:none;" onclick="VersusMode.closeDeckBuilderForVersus()" title="Confirmar baralho e voltar ao Lobby do Versus">
+				<span class="btn-icon">❮</span>
+				<span class="btn-text">Voltar ao Lobby</span>
+			</button>
 		</div>
-		<div class="center">
-			<button id="op-preview-open" class="hide" data-title="View opponent"></button>
-			<div id="op-preview-faction" class="hide"></div>
-			<label id="op-preview-leader" for="add-opponent" data-title="Upload opponent">
-				<input type="file" id="add-opponent" style="display:none;"/>
-				<p>Random</p>
-			</label>
-			<button id="op-preview-clear" class="hide" data-title="Clear opponent"></button>
+
+		<!-- Faction Banner & Lore Description -->
+		<div class="deck-faction-center">
+			<div id="faction-title" class="center">
+				<h1></h1>
+			</div>
+			<p id="faction-description"></p>
+			
+			<!-- Primary Deck Action Bar -->
+			<div class="deck-header-actions">
+				<button id="change-faction" class="witcher-btn-compact" data-i18n="btn_change_faction">
+					<span class="btn-icon">🛡</span>
+					<span class="btn-text" data-i18n="btn_change_faction">Mudar Facção</span>
+				</button>
+				<label id="upload-deck" class="witcher-btn-compact" for="add-file">
+					<input type="file" id="add-file" value="Import" style="display:none;"/>
+					<span class="btn-icon">📥</span>
+					<span class="btn-text" data-i18n="btn_upload_deck">Carregar Baralho</span>
+				</label>
+				<button id="download-deck" class="witcher-btn-compact" data-i18n="btn_download_deck">
+					<span class="btn-icon">💾</span>
+					<span class="btn-text" data-i18n="btn_download_deck">Salvar Baralho</span>
+				</button>
+				<a id="download-json" style="display:none;"></a>
+			</div>
 		</div>
+
+		<div class="deck-top-right">
+			<button id="btn-deck-settings" class="witcher-btn-compact" data-i18n="menu_settings" onclick="MenuController.openSettingsOverlay('deck')">
+				<span class="btn-icon">⚙</span>
+				<span class="btn-text" data-i18n="menu_settings">Configurações</span>
+			</button>
+		</div>
+	</header>
+
+	<!-- Main Workspace Grid: Left (Bank), Center (Leader, Stats, Opponent, Start), Right (Deck) -->
+	<div class="deck-workspace">
+		
+		<!-- LEFT COLUMN: Card Collection -->
+		<div class="deck-column deck-column-bank">
+			<div class="deck-col-header">
+				<div class="deck-col-title-wrap">
+					<h2 id="card-bank-title" class="card-container-title" data-i18n="card_collection">Coleção de Cartas</h2>
+					<span id="bank-card-counter" class="deck-counter-badge" title="Total disponível">0</span>
+				</div>
+				<!-- Filter Tabs for Bank -->
+				<div class="deck-filter-tabs" id="bank-filter-tabs">
+					<button class="deck-filter-btn active" data-filter="all" data-title="Todas as Cartas" title="Todas as Cartas">
+						<span class="filter-icon">🃏</span>
+					</button>
+					<button class="deck-filter-btn" data-filter="close" data-title="Corpo a Corpo" title="Corpo a Corpo">
+						<img src="img/icons/card_row_close.png" alt="Corpo a Corpo" />
+					</button>
+					<button class="deck-filter-btn" data-filter="ranged" data-title="Longa Distância" title="Longa Distância">
+						<img src="img/icons/card_row_ranged.png" alt="Longa Distância" />
+					</button>
+					<button class="deck-filter-btn" data-filter="siege" data-title="Cerco" title="Cerco">
+						<img src="img/icons/card_row_siege.png" alt="Cerco" />
+					</button>
+					<button class="deck-filter-btn" data-filter="special" data-title="Especiais & Clima" title="Especiais & Clima">
+						<img src="img/icons/deck_stats_special.png" alt="Especiais" />
+					</button>
+					<button class="deck-filter-btn" data-filter="hero" data-title="Heróis" title="Heróis">
+						<img src="img/icons/deck_stats_hero.png" alt="Heróis" />
+					</button>
+				</div>
+			</div>
+			<div id="card-bank" class="card-array"></div>
+		</div>
+
+		<!-- CENTER COLUMN: Leader, Stats, Opponent Picker, Start Button -->
+		<div class="deck-column deck-column-center">
+			
+			<!-- Leader Box -->
+			<div id="card-leader" class="witcher-leader-box" title="Clique para trocar o Líder">
+				<p data-i18n="leader_label">Leader</p>
+				<div></div>
+			</div>
+
+			<!-- Deck Stats -->
+			<div class="deck-stats-header">
+				<p data-i18n="deck_stats_header">Resumo do Baralho</p>
+			</div>
+			<div id="deck-stats" class="witcher-deck-stats">
+				<p data-i18n="deck_total_cards">Total cards in deck</p>
+				<p>0</p>
+				<p data-i18n="deck_unit_cards">Number of Unit Cards</p>
+				<p>0</p>
+				<p data-i18n="deck_special_cards">Special Cards</p>
+				<p>0/10</p>
+				<p data-i18n="deck_strength">Total Unit Card Strength</p>
+				<p>0</p>
+				<p data-i18n="deck_hero_cards">Hero Cards</p>
+				<p>0</p>
+			</div>
+
+			<!-- Opponent Selector Component -->
+			<div id="opponent-preview" class="witcher-op-selector">
+				<div class="op-selector-header">
+					<p data-i18n="op_deck">Opponent's Deck</p>
+				</div>
+				<div id="op-preview-card" class="op-preview-card-btn" onclick="DeckMaker.openOpponentModal()" title="Clique para escolher o adversário">
+					<div id="op-preview-faction" class="op-faction-crest">🎲</div>
+					<div class="op-info">
+						<div id="op-preview-title" class="op-title" data-i18n="random_label">Aleatório</div>
+						<small id="op-preview-subtitle" class="op-subtitle" data-i18n="opponent_random_desc">Facção e líder aleatórios</small>
+					</div>
+					<span class="op-change-icon">⚙</span>
+				</div>
+				<div class="op-actions-row">
+					<button id="op-preview-open" class="hide" data-i18n-title="title_view_opponent" data-title="View opponent"></button>
+					<button id="op-preview-clear" class="hide" data-i18n-title="title_clear_opponent" data-title="Clear opponent"></button>
+				</div>
+				<!-- Hidden file input for custom deck upload from modal -->
+				<label id="op-preview-leader" for="add-opponent" style="display:none;">
+					<input type="file" id="add-opponent" style="display:none;"/>
+					<p data-i18n="random_label">Random</p>
+				</label>
+			</div>
+
+			<!-- Start Game CTA Button (Oculto no Modo História) -->
+			<button id="start-game" class="witcher-btn-start" data-i18n="btn_start_game">
+				<span class="btn-sword">⚔</span>
+				<span class="btn-text" data-i18n="btn_start_game">Começar Jogo</span>
+				<span class="btn-sword">⚔</span>
+			</button>
+
+			<!-- Story Mode Return to Map CTA Button (Exclusivo do Modo História) -->
+			<button id="btn-story-deck-confirm" class="witcher-btn-start story-btn-confirm hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar alterações do baralho e retornar ao Mapa da História">
+				<span class="btn-sword">🗺️</span>
+				<span class="btn-text">Salvar e Voltar ao Mapa</span>
+				<span class="btn-sword">🗺️</span>
+			</button>
+
+			<!-- Versus Mode Return to Lobby CTA Button -->
+			<button id="btn-versus-deck-confirm" class="witcher-btn-start story-btn-confirm hide" style="display:none;" onclick="VersusMode.closeDeckBuilderForVersus()" title="Confirmar baralho e retornar à Sala de Preparação">
+				<span class="btn-sword">⚔️</span>
+				<span class="btn-text">Confirmar e Voltar ao Lobby</span>
+				<span class="btn-sword">⚔️</span>
+			</button>
+
+		</div>
+
+		<!-- RIGHT COLUMN: Cards in Deck -->
+		<div class="deck-column deck-column-deck">
+			<div class="deck-col-header">
+				<div class="deck-col-title-wrap">
+					<h2 id="card-deck-title" class="card-container-title" data-i18n="cards_in_deck">Cartas no Baralho</h2>
+					<span id="deck-card-counter" class="deck-counter-badge" title="Total no baralho">0</span>
+				</div>
+				<!-- Filter Tabs for Deck -->
+				<div class="deck-filter-tabs" id="deck-filter-tabs">
+					<button class="deck-filter-btn active" data-filter="all" data-title="Todas as Cartas" title="Todas as Cartas">
+						<span class="filter-icon">🃏</span>
+					</button>
+					<button class="deck-filter-btn" data-filter="close" data-title="Corpo a Corpo" title="Corpo a Corpo">
+						<img src="img/icons/card_row_close.png" alt="Corpo a Corpo" />
+					</button>
+					<button class="deck-filter-btn" data-filter="ranged" data-title="Longa Distância" title="Longa Distância">
+						<img src="img/icons/card_row_ranged.png" alt="Longa Distância" />
+					</button>
+					<button class="deck-filter-btn" data-filter="siege" data-title="Cerco" title="Cerco">
+						<img src="img/icons/card_row_siege.png" alt="Cerco" />
+					</button>
+					<button class="deck-filter-btn" data-filter="special" data-title="Especiais & Clima" title="Especiais & Clima">
+						<img src="img/icons/deck_stats_special.png" alt="Especiais" />
+					</button>
+					<button class="deck-filter-btn" data-filter="hero" data-title="Heróis" title="Heróis">
+						<img src="img/icons/deck_stats_hero.png" alt="Heróis" />
+					</button>
+				</div>
+			</div>
+			<div id="card-deck" class="card-array"></div>
+		</div>
+
 	</div>
 </section>
 
-<div data-title="Toggle music" id="toggle-music" class="center deck-menu settings-button"><img src="svg/music.svg"></img></div>
-<div data-title="Toggle sound effects" id="toggle-sfx" class="center deck-menu settings-button"><img src="svg/sfx.svg"></img></div>
-<div data-title="Toggle game messages" id="toggle-notifications" class="center deck-menu settings-button"><img src="svg/notification.svg"></img></div>
+<!-- Modal de Seleção de Baralho Adversário -->
+<div id="opponent-modal" class="witcher-modal hide">
+	<div class="witcher-modal-backdrop" onclick="DeckMaker.closeOpponentModal()"></div>
+	<div class="witcher-modal-content opponent-modal-content">
+		<div class="witcher-modal-header">
+			<h2 class="witcher-modal-title" data-i18n="select_opponent_title">ESCOLHER BARALHO ADVERSÁRIO</h2>
+			<button class="witcher-modal-close" onclick="DeckMaker.closeOpponentModal()">✕</button>
+		</div>
+		<p class="witcher-modal-desc" data-i18n="select_opponent_desc">Escolha qual facção você deseja enfrentar na partida:</p>
+		
+		<div class="opponent-options-grid">
+			<!-- Option: Random -->
+			<div class="opponent-option-card active" data-opponent="random" onclick="DeckMaker.setOpponentFaction('random')">
+				<div class="op-card-icon random-dice">🎲</div>
+				<div class="op-card-text">
+					<h3 data-i18n="random_label">Aleatório</h3>
+					<p data-i18n="opponent_random_desc">Facção e líder escolhidos ao acaso</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<!-- Option: Northern Realms -->
+			<div class="opponent-option-card" data-opponent="realms" onclick="DeckMaker.setOpponentFaction('realms')">
+				<img class="op-card-crest" src="img/icons/deck_shield_realms.png" alt="Realms" />
+				<div class="op-card-text">
+					<h3>Reinos do Norte</h3>
+					<p>Especialistas em cerco, espiões e compras de cartas</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<!-- Option: Nilfgaard -->
+			<div class="opponent-option-card" data-opponent="nilfgaard" onclick="DeckMaker.setOpponentFaction('nilfgaard')">
+				<img class="op-card-crest" src="img/icons/deck_shield_nilfgaard.png" alt="Nilfgaard" />
+				<div class="op-card-text">
+					<h3>Império Nilfgaardiano</h3>
+					<p>Espiões implacáveis, médicos e controle tático</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<!-- Option: Monsters -->
+			<div class="opponent-option-card" data-opponent="monsters" onclick="DeckMaker.setOpponentFaction('monsters')">
+				<img class="op-card-crest" src="img/icons/deck_shield_monsters.png" alt="Monsters" />
+				<div class="op-card-text">
+					<h3>Monstros</h3>
+					<p>Força bruta avassaladora e aglomeração de criaturas</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<!-- Option: Scoia'tael -->
+			<div class="opponent-option-card" data-opponent="scoiatael" onclick="DeckMaker.setOpponentFaction('scoiatael')">
+				<img class="op-card-crest" src="img/icons/deck_shield_scoiatael.png" alt="Scoia'tael" />
+				<div class="op-card-text">
+					<h3>Scoia'tael</h3>
+					<p>Guerrilheiros ágeis, médicos e escolha do primeiro turno</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<!-- Option: Skellige -->
+			<div class="opponent-option-card" data-opponent="skellige" onclick="DeckMaker.setOpponentFaction('skellige')">
+				<img class="op-card-crest" src="img/icons/deck_shield_skellige.png" alt="Skellige" />
+				<div class="op-card-text">
+					<h3>Skellige</h3>
+					<p>Berserkers, tempestades marinhas e ressurreição heroica</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+		</div>
+
+		<div class="opponent-modal-footer">
+			<label class="witcher-btn-compact" for="add-opponent" style="cursor: pointer;" title="Carregar arquivo JSON com baralho customizado">
+				<span data-i18n="btn_import_json">📁 Importar JSON</span>
+			</label>
+			<button class="witcher-btn-header primary" onclick="DeckMaker.closeOpponentModal()" data-i18n="btn_confirm">
+				Confirmar
+			</button>
+		</div>
+	</div>
+</div>
+
+<!-- Modal Global de Configurações / Settings Modal -->
+<div id="settings-modal-overlay" class="witcher-modal hide">
+	<div class="witcher-modal-backdrop" onclick="MenuController.closeSettingsOverlay()"></div>
+	<div class="witcher-modal-content settings-modal-content">
+		<div class="witcher-modal-header">
+			<h2 class="witcher-modal-title" data-i18n="settings_title">CONFIGURAÇÕES</h2>
+			<button class="witcher-modal-close" onclick="MenuController.closeSettingsOverlay()">✕</button>
+		</div>
+		
+		<div class="settings-scroll-container">
+			<!-- Display Mode -->
+			<div class="setting-row">
+				<label data-i18n="settings_display">Display Mode</label>
+				<select id="setting-display-mode-overlay" class="witcher-select">
+					<option value="window" data-i18n="disp_window">Windowed</option>
+					<option value="borderless" data-i18n="disp_borderless">Borderless</option>
+					<option value="fullscreen" data-i18n="disp_fullscreen">Fullscreen</option>
+				</select>
+			</div>
+
+			<!-- Resolution -->
+			<div class="setting-row">
+				<label data-i18n="settings_resolution">Resolution</label>
+				<select id="setting-resolution-overlay" class="witcher-select">
+					<option value="1920x1080">1920 x 1080 (16:9)</option>
+					<option value="1600x900">1600 x 900 (16:9)</option>
+					<option value="1366x768">1366 x 768 (16:9)</option>
+					<option value="1280x720">1280 x 720 (16:9)</option>
+				</select>
+			</div>
+
+			<!-- Audio Toggles & Sliders -->
+			<div class="setting-row">
+				<label data-i18n="audio_music">Music</label>
+				<input type="checkbox" id="setting-music-toggle-overlay" class="witcher-checkbox" checked />
+			</div>
+			<div class="setting-row">
+				<label data-i18n="audio_music_volume">Music Volume</label>
+				<div class="volume-slider-box">
+					<input type="range" id="setting-music-volume-overlay" class="witcher-slider" min="0" max="100" value="60" />
+					<span id="music-volume-display-overlay" class="volume-num">60%</span>
+				</div>
+			</div>
+			<div class="setting-row">
+				<label data-i18n="audio_sfx">Sound Effects</label>
+				<input type="checkbox" id="setting-sfx-toggle-overlay" class="witcher-checkbox" checked />
+			</div>
+			<div class="setting-row">
+				<label data-i18n="audio_sfx_volume">Sound Effects Volume</label>
+				<div class="volume-slider-box">
+					<input type="range" id="setting-sfx-volume-overlay" class="witcher-slider" min="0" max="100" value="80" />
+					<span id="sfx-volume-display-overlay" class="volume-num">80%</span>
+				</div>
+			</div>
+
+			<!-- Jukebox -->
+			<div class="setting-row">
+				<label data-i18n="audio_jukebox">Jukebox Track</label>
+				<select id="setting-jukebox-track-overlay" class="witcher-select">
+					<option value="all" data-i18n="track_all">♦ All Tracks (Loop & Shuffle)</option>
+					<option value="0" data-i18n="track_gwent_main">1. How About a Round of Gwent</option>
+					<option value="1" data-i18n="track_plots">2. Plots and Intrigues</option>
+					<option value="2" data-i18n="track_northern">3. Northern Realms Theme</option>
+					<option value="3" data-i18n="track_nilfgaard">4. The Black Clads (Nilfgaard)</option>
+					<option value="4" data-i18n="track_witcher_forest">5. Kaer Morhen / Forest Ambience</option>
+					<option value="5" data-i18n="track_witcher_ocean">6. Skellige Winds & Ocean</option>
+				</select>
+			</div>
+
+			<!-- Language -->
+			<div class="setting-row">
+				<label data-i18n="settings_language">Language</label>
+				<select id="setting-language-overlay" class="witcher-select">
+					<option value="en" data-i18n="lang_en">English</option>
+					<option value="pt-BR" data-i18n="lang_pt">Português (Brasil)</option>
+					<option value="es" data-i18n="lang_es">Español</option>
+					<option value="pl" data-i18n="lang_pl">Polski</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="settings-modal-footer">
+			<button class="witcher-menu-btn" onclick="MenuController.closeSettingsOverlay()">
+				<span data-i18n="btn_save">Save & Close</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<div data-i18n-title="menu_settings" data-title="Configurações" id="open-game-settings" class="center settings-button" onclick="MenuController.openSettingsOverlay('game')"><img src="svg/settings.svg" alt="Configurações"></img></div>
+
+<div data-i18n-title="title_toggle_notif" data-title="Toggle game messages" id="toggle-notifications" class="center settings-button"><img src="svg/notification.svg"></img></div>
+
+<!-- STORY MODE: NEW CAMPAIGN SETUP MODAL -->
+<div id="story-setup-view" class="story-modal hide">
+	<div class="story-setup-container">
+		<button class="story-modal-close-btn" onclick="document.getElementById('story-setup-view').classList.add('hide'); MenuController.returnToMainMenu();">✕</button>
+		<h2 class="story-modal-title">NOVA JORNADA NO CONTINENTE</h2>
+		<p class="story-modal-subtitle">Escolha seu nome, nível de desafio e baralho inicial de 22 cartas</p>
+		<div class="story-modal-divider"></div>
+
+		<!-- Name & Difficulty Row -->
+		<div class="story-setup-row">
+			<div>
+				<label style="display:block; margin-bottom: 6px; font-weight: bold; color: #c5a059;">Nome do Bruxo / Jogador:</label>
+				<input type="text" id="story-player-name-input" class="story-setup-input" value="Geralt de Rívia" maxlength="28" />
+			</div>
+			<div>
+				<label style="display:block; margin-bottom: 6px; font-weight: bold; color: #c5a059;">Dificuldade da Campanha:</label>
+				<select id="story-diff-select" class="witcher-select" style="width: 240px;">
+					<option value="easy">Fácil (★☆☆ - Mais tolerante)</option>
+					<option value="medium" selected>Médio (★★☆ - Desafio Padrão)</option>
+					<option value="hard">Difícil (★★★ - IA Estrategista)</option>
+					<option value="master">Mestre de Gwent (★★★★ - IA Implacável)</option>
+				</select>
+			</div>
+		</div>
+
+		<!-- Faction Selector -->
+		<label style="display:block; margin: 18px 0 8px 0; font-weight: bold; color: #ffd700;">Escolha a Facção Inicial (22 Cartas Iniciais + 1 Líder):</label>
+		<div class="story-faction-select-grid">
+			<div class="story-faction-opt active" data-faction="realms">
+				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_realms.png');"></div>
+				<strong>Reinos do Norte</strong>
+				<small style="display:block; font-size:0.75rem; color:#aaa;">Poder de Cerco e Espiões</small>
+			</div>
+			<div class="story-faction-opt" data-faction="nilfgaard">
+				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_nilfgaard.png');"></div>
+				<strong>Nilfgaard</strong>
+				<small style="display:block; font-size:0.75rem; color:#aaa;">Espiões e Médicos</small>
+			</div>
+			<div class="story-faction-opt" data-faction="monsters">
+				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_monsters.png');"></div>
+				<strong>Monstros</strong>
+				<small style="display:block; font-size:0.75rem; color:#aaa;">Enxame e Força Bruta</small>
+			</div>
+			<div class="story-faction-opt" data-faction="scoiatael">
+				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_scoiatael.png');"></div>
+				<strong>Scoia'tael</strong>
+				<small style="display:block; font-size:0.75rem; color:#aaa;">Agilidade e Emboscadas</small>
+			</div>
+			<div class="story-faction-opt" data-faction="skellige">
+				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_skellige.png');"></div>
+				<strong>Skellige</strong>
+				<small style="display:block; font-size:0.75rem; color:#aaa;">Berserkers e Mardroeme</small>
+			</div>
+		</div>
+
+		<!-- Starter Deck Preview -->
+		<div class="story-preview-split">
+			<div style="text-align: center;">
+				<span style="font-size:0.8rem; color:#ffd700; text-transform:uppercase;">Líder Inicial</span>
+				<div id="story-preview-leader" class="story-preview-leader-card"></div>
+				<strong id="story-preview-leader-name" style="font-size:0.85rem; color:#fff; display:block; margin-top:6px;">Foltest</strong>
+			</div>
+			<div>
+				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+					<span style="font-size:0.85rem; font-weight:bold; color:#ffd700;">Baralho Inicial Padrão (22 Cartas):</span>
+					<span style="font-size:0.8rem; color:#c5a059;">🪙 Coroas Iniciais: 2.000</span>
+				</div>
+				<div id="story-preview-cards-list" class="story-preview-cards-list"></div>
+			</div>
+		</div>
+
+		<div style="display: flex; justify-content: flex-end; gap: 14px;">
+			<button class="witcher-menu-btn" style="width: 140px;" onclick="document.getElementById('story-setup-view').classList.add('hide'); MenuController.returnToMainMenu();">Voltar</button>
+			<button class="witcher-menu-btn" style="width: 280px; border-color: #ffd700;" onclick="StoryMode.confirmStartCampaign()">Iniciar Jornada (2.000 Coroas) ⚔</button>
+		</div>
+	</div>
+</div>
+
+<!-- STORY MODE: CONTINENT MAP SCREEN -->
+<section id="story-map-screen" class="hide">
+	<!-- Top HUD Bar -->
+	<header class="story-hud-bar">
+		<div class="story-hud-left">
+			<div class="story-player-badge">
+				<div class="story-wolf-icon"></div>
+				<div class="story-player-info">
+					<span id="story-hud-player-name" class="story-hud-player-title">Geralt de Rívia</span>
+					<span id="story-hud-location-name" class="story-hud-location">Pomar Branco · Taverna</span>
+				</div>
+			</div>
+			<!-- Trophies Container -->
+			<div id="story-hud-trophies-container" class="story-trophies-container" title="Troféus Regionais de Campeão"></div>
+		</div>
+
+		<div class="story-hud-right">
+			<!-- Crowns Balance -->
+			<div class="story-crowns-box" title="Suas Coroas (Dinheiro de The Witcher)">
+				<span class="crowns-icon">🪙</span>
+				<span id="story-hud-crowns-val" class="crowns-text">2.000</span>
+				<span style="font-size:0.8rem; color:#c5a059;">Coroas</span>
+			</div>
+
+			<!-- Compendium Summary -->
+			<button class="story-hud-btn" onclick="StoryMode.openCompendiumModal('all', 'all')" title="Abrir Compêndio de Cartas do Continente">
+				<span>📖</span>
+				<span>Coleção:</span>
+				<strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong>
+			</button>
+
+			<!-- Deck Builder -->
+			<button class="story-hud-btn" onclick="StoryMode.openCampaignDeckBuilder()" title="Organizar seu baralho com as cartas colecionadas">
+				<span>🃏</span>
+				<span>Organizar Baralho</span>
+			</button>
+
+			<!-- Return to Menu -->
+			<button class="story-hud-btn btn-close" onclick="StoryMode.closeMapToMenu()" title="Salvar e voltar ao Menu Principal">
+				<span>✕</span>
+				<span>Menu</span>
+			</button>
+		</div>
+	</header>
+
+	<!-- Map Viewport -->
+	<div id="story-map-viewport">
+		<div id="story-map-canvas">
+			<img id="story-map-image" src="img/story/continent_map.jpg" alt="Mapa do Continente" />
+			<svg id="story-map-svg-roads"></svg>
+			<div id="story-map-nodes-layer"></div>
+		</div>
+	</div>
+
+	<!-- Floating Camera Controls -->
+	<div class="story-map-controls">
+		<button class="story-map-control-btn" onclick="StoryMode.zoomMap(0.25)" title="Aproximar Zoom (ou use Roda do Mouse)">+</button>
+		<button class="story-map-control-btn" onclick="StoryMode.zoomMap(-0.25)" title="Afastar Zoom (ou use Roda do Mouse)">−</button>
+		<button class="story-map-control-btn" onclick="StoryMode.focusCurrentNode()" title="Centralizar na Localização Atual do Geralt">🐺</button>
+		<button class="story-map-control-btn" onclick="StoryMode.resetMapToContinent()" title="Ver Continente Inteiro">🗺️</button>
+	</div>
+
+	<!-- Map Layer Filters (Toggle visibility of Shops, Tournaments, Locked nodes) -->
+	<div class="story-map-filters">
+		<span class="story-filter-title">Filtros:</span>
+		<button id="story-filter-shops" class="story-filter-btn active" onclick="StoryMode.toggleFilter('shops')" title="Exibir/Ocultar Lojas no Mapa">
+			<span class="story-filter-icon">💰</span>
+			<span class="story-filter-label">Lojas</span>
+		</button>
+		<button id="story-filter-tourneys" class="story-filter-btn active" onclick="StoryMode.toggleFilter('tourneys')" title="Exibir/Ocultar Torneios no Mapa">
+			<span class="story-filter-icon">🏆</span>
+			<span class="story-filter-label">Torneios</span>
+		</button>
+		<button id="story-filter-locked" class="story-filter-btn active" onclick="StoryMode.toggleFilter('locked')" title="Exibir/Ocultar Locais Bloqueados no Mapa">
+			<span class="story-filter-icon">🔒</span>
+			<span class="story-filter-label">Bloqueados</span>
+		</button>
+	</div>
+</section>
+
+<!-- STORY MODE: BATTLE / QUEST CONTRACT MODAL -->
+<div id="story-battle-modal" class="story-modal hide">
+	<div class="story-parchment-frame">
+		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
+		<h2 id="story-battle-title" class="story-modal-title">Taverna de Pomar Branco</h2>
+		<p id="story-battle-region" class="story-modal-subtitle">Pomar Branco · Desafio de Gwent</p>
+		<div class="story-modal-divider"></div>
+
+		<div class="story-battle-details-grid">
+			<div class="story-op-card-box">
+				<div id="story-battle-op-avatar" class="story-battle-op-avatar"></div>
+				<strong id="story-battle-op-name" style="font-size:1.1rem; color:#fff;">Elsa</strong>
+				<span id="story-battle-op-faction" class="story-faction-badge monsters">Monstros</span>
+			</div>
+
+			<div>
+				<div id="story-battle-lore" class="story-battle-lore-box">
+					Descrição do oponente e lore da região...
+				</div>
+
+				<table class="story-rewards-table">
+					<tr>
+						<td><span style="color:#c5a059;">Recompensa (1ª Vitória):</span></td>
+						<td style="text-align: right;"><strong id="story-battle-reward-first" style="color:#ffd700;">+200 Coroas</strong></td>
+					</tr>
+					<tr>
+						<td><span style="color:#aaa;">Vitória Subsequente (Replay):</span></td>
+						<td style="text-align: right;"><strong id="story-battle-reward-replay" style="color:#ffd700;">+50 Coroas</strong></td>
+					</tr>
+					<tr>
+						<td><span style="color:#e74c3c;">Penalidade por Derrota:</span></td>
+						<td style="text-align: right;"><strong id="story-battle-loss-penalty" style="color:#ff6b6b;">-50 Coroas</strong></td>
+					</tr>
+				</table>
+
+				<!-- Card Drop Preview Box -->
+				<div id="story-battle-card-drop-box"></div>
+			</div>
+		</div>
+
+		<div style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 14px;">
+			<button class="witcher-menu-btn" style="width: 130px;" onclick="StoryMode.closeAllModals()">Voltar</button>
+			<button id="story-battle-start-btn" class="witcher-menu-btn" style="width: 240px; border-color: #ffd700;">⚔ Jogar Gwent</button>
+		</div>
+	</div>
+</div>
+
+<!-- STORY MODE: TOURNAMENT MODAL -->
+<div id="story-tournament-modal" class="story-modal hide">
+	<div class="story-parchment-frame">
+		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
+		<h2 id="story-tourney-title" class="story-modal-title">Torneio de Pomar Branco</h2>
+		<p class="story-modal-subtitle">Disputa Regional Oficial · Três Batalhas Consecutivas</p>
+		<div class="story-modal-divider"></div>
+
+		<div class="story-tourney-overview">
+			<div class="story-tourney-prizes-box">
+				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+					<span style="color:#c5a059;">Taxa de Inscrição:</span>
+					<strong id="story-tourney-fee" style="color:#ff6b6b;">400 Coroas</strong>
+				</div>
+				<div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+					<span style="color:#c5a059;">Grande Prêmio:</span>
+					<strong id="story-tourney-prize" style="color:#ffd700;">1.200 Coroas</strong>
+				</div>
+				<div id="story-tourney-grand-card" style="display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 4px;"></div>
+			</div>
+
+			<div style="display: flex; flex-direction: column; justify-content: space-between;">
+				<div id="story-tourney-lore" class="story-battle-lore-box">
+					Informações e regras do torneio regional...
+				</div>
+				<div id="story-tourney-trophy-preview"></div>
+			</div>
+		</div>
+
+		<h3 style="font-size: 1.05rem; color: #ffd700; margin: 0 0 10px 0;">Batalhas do Torneio:</h3>
+		<div id="story-tourney-rounds-list" class="story-tourney-rounds-box"></div>
+
+		<div style="display: flex; justify-content: flex-end; gap: 14px; margin-top: 16px;">
+			<button class="witcher-menu-btn" style="width: 130px;" onclick="StoryMode.closeAllModals()">Voltar</button>
+			<button id="story-tourney-enter-btn" class="witcher-menu-btn" style="width: 320px; border-color: #ffd700;">Pagar Inscrição & Entrar no Torneio</button>
+		</div>
+	</div>
+</div>
+
+<!-- STORY MODE: REGIONAL MERCHANT SHOP MODAL -->
+<div id="story-shop-modal" class="story-modal hide">
+	<div class="story-parchment-frame">
+		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
+		<h2 id="story-shop-title" class="story-modal-title">Mercador de Valetorta</h2>
+		<p id="story-shop-region" class="story-modal-subtitle">Velen · Mercado Livre</p>
+		<div class="story-modal-divider"></div>
+
+		<div class="story-shop-header">
+			<em id="story-shop-greeting" style="color: #e0d0b0;">"Saudações, viajante..."</em>
+			<div class="story-crowns-box">
+				<span class="crowns-icon">🪙</span>
+				<span id="story-shop-player-crowns" class="crowns-text">2.000</span>
+				<span style="font-size:0.8rem; color:#c5a059;">Coroas</span>
+			</div>
+		</div>
+
+		<div id="story-shop-items-grid" class="story-shop-grid"></div>
+
+		<div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+			<button class="witcher-menu-btn" style="width: 140px;" onclick="StoryMode.closeAllModals()">Sair da Loja</button>
+		</div>
+	</div>
+</div>
+
+<!-- STORY MODE: COMPENDIUM / CARD COLLECTION MODAL -->
+<div id="story-compendium-modal" class="story-modal hide">
+	<div class="story-parchment-frame" style="max-width: 900px;">
+		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
+		<h2 class="story-modal-title">COMPÊNDIO DE CARTAS DO CONTINENTE</h2>
+		<p class="story-modal-subtitle">Guia Miraculoso do Colecionador de Gwent</p>
+		<div class="story-modal-divider"></div>
+
+		<!-- Progress Bar -->
+		<div class="story-comp-progress-box">
+			<div style="display: flex; justify-content: space-between; align-items: center;">
+				<span style="color:#ffd700; font-weight:bold;">Meta: Colecionar Todas as 216 Cartas</span>
+				<strong id="story-comp-total-text" style="color:#ffd700; font-size: 1.1rem;">22 / 216 Cartas (10%)</strong>
+			</div>
+			<div class="story-comp-progress-bar">
+				<div id="story-comp-progress-fill" class="story-comp-progress-fill" style="width: 10%;"></div>
+			</div>
+		</div>
+
+		<!-- Status Tabs -->
+		<div id="story-comp-status-tabs" class="story-comp-tabs-row">
+			<button class="witcher-tab-btn active" data-filter="all">Todas as Cartas</button>
+			<button class="witcher-tab-btn" data-filter="owned">Coletadas</button>
+			<button class="witcher-tab-btn" data-filter="missing">Faltantes</button>
+		</div>
+
+		<!-- Faction Tabs -->
+		<div id="story-comp-faction-tabs" class="story-comp-tabs-row" style="margin-bottom: 14px;">
+			<button class="witcher-tab-btn active" data-filter="all">Todas as Facções</button>
+			<button class="witcher-tab-btn" data-filter="realms">Reinos do Norte</button>
+			<button class="witcher-tab-btn" data-filter="nilfgaard">Nilfgaard</button>
+			<button class="witcher-tab-btn" data-filter="monsters">Monstros</button>
+			<button class="witcher-tab-btn" data-filter="scoiatael">Scoia'tael</button>
+			<button class="witcher-tab-btn" data-filter="skellige">Skellige</button>
+			<button class="witcher-tab-btn" data-filter="neutral">Neutras & Especiais</button>
+		</div>
+
+		<div id="story-comp-cards-grid" class="story-comp-cards-grid"></div>
+
+		<div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+			<button class="witcher-menu-btn" style="width: 140px;" onclick="StoryMode.closeAllModals()">Fechar</button>
+		</div>
+	</div>
+</div>
+
+<!-- STORY MODE: VICTORY / DEFEAT FANFARE MODAL -->
+<div id="story-outcome-modal" class="story-modal hide">
+	<div class="story-parchment-frame" style="max-width: 580px;">
+		<div class="story-outcome-content">
+			<h2 id="story-outcome-title" class="story-modal-title">VITÓRIA NO GWENT!</h2>
+			<div class="story-modal-divider"></div>
+			
+			<div id="story-outcome-crowns" class="story-outcome-crowns-badge">+200 Coroas</div>
+			
+			<div id="story-outcome-card-box" class="hide" style="margin: 16px 0;"></div>
+			
+			<div id="story-outcome-trophy-box" class="hide" style="margin: 16px 0;"></div>
+
+			<div style="margin-top: 24px;">
+				<button id="story-outcome-action-btn" class="witcher-menu-btn" style="width: 320px; border-color: #ffd700; margin: 0 auto;">Continuar Jornada</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Gamepad / Controller Feedback & Authentic Witcher 3 Bottom HUD -->
+<div id="gamepad-toast" class="hide">
+	<span class="pad-toast-icon">🎮</span>
+	<span id="gamepad-toast-text">Controller Connected</span>
+</div>
+
+<div id="gamepad-hud">
+	<div id="pad-hud-prompts"></div>
+</div>
+
+<!-- VERSUS MODE: P2P LOBBY MODAL -->
+<div id="versus-lobby-modal" class="hide">
+	<div class="versus-frame">
+		<button class="versus-close-btn" onclick="VersusMode.closeLobby()" title="Fechar Lobby">✕</button>
+		
+		<div class="versus-header">
+			<h2 class="versus-title">MODO VERSUS (PvP)</h2>
+			<p class="versus-subtitle">Duelo de Cartas Peer-to-Peer sem Servidor</p>
+			<div class="versus-divider"></div>
+		</div>
+
+		<!-- Configuração de Nickname do Jogador antes de conectar -->
+		<div id="versus-nickname-bar" class="versus-nickname-bar">
+			<label for="versus-input-player-name" class="versus-nickname-label">
+				<span>👤</span>
+				<span>Seu Nickname:</span>
+			</label>
+			<div class="versus-nickname-input-wrap">
+				<input type="text" id="versus-input-player-name" class="versus-nickname-input" placeholder="Digite seu apelido..." maxlength="22" autocomplete="off" spellcheck="false" />
+				<span id="versus-nickname-saved" class="versus-nickname-saved">✓ Salvo</span>
+			</div>
+		</div>
+
+		<!-- Abas: Criar Sala vs Entrar -->
+		<div class="versus-tabs">
+			<button id="tab-versus-host" class="versus-tab-btn active">
+				<span>⚔</span>
+				<span>Criar Sala (Host)</span>
+			</button>
+			<button id="tab-versus-join" class="versus-tab-btn">
+				<span>🔗</span>
+				<span>Entrar com Código</span>
+			</button>
+		</div>
+
+		<!-- Painéis Iniciais -->
+		<div id="versus-initial-panels">
+			<!-- Painel 1: Criar Sala -->
+			<div id="panel-versus-host" class="versus-panel active">
+				<div class="versus-host-box">
+					<div class="versus-code-label">Seu Código de Sala:</div>
+					<div class="versus-code-wrapper">
+						<span id="versus-host-code" class="versus-code-display">GW-....</span>
+						<button id="btn-versus-copy" class="versus-copy-btn" onclick="VersusMode.copyRoomCode()" title="Copiar código para a área de transferência">
+							<span>📋</span>
+							<span>Copiar Código</span>
+						</button>
+					</div>
+					<div class="versus-status-pulse">
+						<span class="versus-pulse-icon">🐺</span>
+						<span id="versus-host-status">Aguardando oponente conectar...</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Painel 2: Entrar com Código -->
+			<div id="panel-versus-join" class="versus-panel">
+				<div class="versus-join-box">
+					<div class="versus-code-label">Digite o Código da Sala:</div>
+					<input type="text" id="versus-input-room-code" class="versus-input-code" placeholder="EX: GW-7482" maxlength="10" autocomplete="off" spellcheck="false" />
+					<br/>
+					<button class="versus-join-btn" onclick="VersusMode.joinRoom()">Conectar à Sala</button>
+					<div id="versus-join-error" class="versus-join-error"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Painel 3: Sala de Espera / Preparação Pré-Jogo -->
+		<div id="versus-prematch-panel">
+			<div class="versus-matchup-grid">
+				<!-- Jogador Local -->
+				<div id="versus-p1-card" class="versus-player-card">
+					<div class="versus-player-badge">Você</div>
+					<div id="versus-p1-name" class="versus-player-name">Geralt</div>
+					<div id="versus-p1-crest" class="versus-player-crest"></div>
+					<div id="versus-p1-faction" class="versus-player-faction">Reinos do Norte</div>
+					<div id="versus-p1-status" class="versus-player-status">Preparando...</div>
+				</div>
+
+				<div class="versus-vs-separator">VS</div>
+
+				<!-- Jogador Remoto -->
+				<div id="versus-p2-card" class="versus-player-card">
+					<div class="versus-player-badge">Adversário</div>
+					<div id="versus-p2-name" class="versus-player-name">Convidado</div>
+					<div id="versus-p2-crest" class="versus-player-crest"></div>
+					<div id="versus-p2-faction" class="versus-player-faction">Nilfgaard</div>
+					<div id="versus-p2-status" class="versus-player-status">Conectando...</div>
+				</div>
+			</div>
+
+			<div class="versus-prematch-actions">
+				<button class="versus-btn-leave-room" onclick="VersusMode.leaveRoomToInitialLobby()" title="Desconectar desta sala e voltar ao lobby inicial">
+					<span>↩</span>
+					<span>Sair da Sala</span>
+				</button>
+				<button class="versus-btn-deck" onclick="VersusMode.openDeckBuilderForVersus()" title="Escolha a facção e organize seu baralho">
+					<span>🃏</span>
+					<span>Organizar Baralho</span>
+				</button>
+				<button id="btn-versus-ready" class="versus-btn-ready" onclick="VersusMode.toggleReady()">
+					<span>⚔</span>
+					<span>PRONTO</span>
+				</button>
+				<button id="btn-versus-start-match" class="versus-btn-start-match hide" onclick="VersusMode.onStartMatchClick()" title="Iniciar a Batalha">
+					<span>⚔️</span>
+					<span>INICIAR PARTIDA</span>
+					<span>⚔️</span>
+				</button>
+			</div>
+			<div id="versus-ready-hint" class="versus-ready-hint">Aguardando ambos os jogadores confirmarem PRONTO...</div>
+		</div>
+
+	</div>
+</div>
+
+<!-- VERSUS MODE: ALERT / DISCONNECT MODAL -->
+<div id="versus-alert-modal" class="hide">
+	<div class="versus-alert-box">
+		<h3 class="versus-alert-title">Adversário Desconectado</h3>
+		<p class="versus-alert-desc">A conexão direta P2P com o adversário foi encerrada ou perdida.</p>
+		<button class="witcher-menu-btn" style="width: 220px; margin: 0 auto;" onclick="VersusMode.exitVersusToMenu()">Voltar ao Menu</button>
+	</div>
+</div>
 
 <script type="text/javascript" src="common.js"></script>
 <script type="text/javascript" src="cards.js"></script>
 <script type="text/javascript" src="decks.js"></script>
 <script type="text/javascript" src="abilities.js"></script>
 <script type="text/javascript" src="factions.js"></script>
-<script src="https://www.youtube.com/iframe_api"></script>
-<script type="text/javascript" src="gwent.js"></script>
+<script type="text/javascript" src="story_data.js"></script>
+<script type="text/javascript" src="story.js"></script>
+<script type="text/javascript" src="i18n.js"></script>
+<script type="text/javascript" src="achievements.js"></script>
+<script type="text/javascript" src="gwent.js?v=3"></script>
+<script type="text/javascript" src="peerjs.min.js"></script>
+<script type="text/javascript" src="versus.js?v=3"></script>
+<script type="text/javascript" src="menu.js?v=3"></script>
+<script type="text/javascript" src="gamepad.js?v=3"></script>
 </body>
 
 </html>
+
 

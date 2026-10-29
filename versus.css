@@ -1,0 +1,991 @@
+/* ==========================================================================
+   GWENT CLASSIC: VERSUS MODE (MODO VERSUS / PvP) STYLES
+   Design Witcher 3 autêntico, responsivo, elegante e focado em QoL
+   ========================================================================== */
+
+/* 1. Modal Overlay do Lobby */
+#versus-lobby-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background: radial-gradient(circle at center, rgba(18, 14, 10, 0.94) 0%, rgba(8, 6, 5, 0.98) 100%);
+	z-index: 25000 !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	user-select: none;
+	backdrop-filter: blur(4px);
+	animation: versusFadeIn 0.25s ease-out;
+}
+
+#versus-lobby-modal.hide {
+	display: none !important;
+}
+
+@keyframes versusFadeIn {
+	from { opacity: 0; transform: scale(0.98); }
+	to { opacity: 1; transform: scale(1); }
+}
+
+/* 2. Container da Caixa de Diálogo (Moldura de Pergaminho/Madeira) */
+.versus-frame {
+	position: relative;
+	width: 90vw;
+	max-width: 860px;
+	max-height: 94vh;
+	overflow-y: auto;
+	background: linear-gradient(180deg, #1f1812 0%, #14100c 100%);
+	border: 2px solid #a67c33;
+	border-radius: 8px;
+	box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 15px rgba(166, 124, 51, 0.25);
+	padding: 2.2rem 2.8rem;
+	box-sizing: border-box;
+	color: #ded6cc;
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+}
+
+.versus-close-btn {
+	position: absolute;
+	top: 18px;
+	right: 20px;
+	background: transparent;
+	border: 1px solid rgba(166, 124, 51, 0.4);
+	color: #c5a059;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	cursor: pointer;
+	font-size: 1.1rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s;
+}
+
+.versus-close-btn:hover {
+	border-color: #ffd700;
+	color: #fff;
+	background: rgba(166, 124, 51, 0.2);
+	transform: scale(1.1);
+}
+
+.versus-header {
+	text-align: center;
+	margin-bottom: 1.8rem;
+}
+
+.versus-title {
+	font-size: 2.2rem;
+	color: #ffd700;
+	margin: 0;
+	letter-spacing: 2px;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 12px rgba(255, 215, 0, 0.35);
+}
+
+.versus-subtitle {
+	font-size: 0.95rem;
+	color: #a8947c;
+	margin: 6px 0 0 0;
+	font-style: italic;
+	letter-spacing: 0.5px;
+}
+
+.versus-divider {
+	height: 2px;
+	background: linear-gradient(90deg, transparent, #c5a059 25%, #ffd700 50%, #c5a059 75%, transparent);
+	margin: 1rem auto 1.2rem auto;
+	width: 80%;
+}
+
+/* 2.5 Barra de Configuração de Nickname do Jogador */
+.versus-nickname-bar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.9rem;
+	background: rgba(15, 12, 9, 0.72);
+	border: 1px solid rgba(197, 160, 89, 0.4);
+	border-radius: 6px;
+	padding: 0.65rem 1.2rem;
+	margin: 0 auto 1.4rem auto;
+	max-width: 540px;
+	box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7);
+}
+
+.versus-nickname-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	font-size: 0.95rem;
+	color: #d4a34b;
+	font-weight: 700;
+	letter-spacing: 0.5px;
+	white-space: nowrap;
+}
+
+.versus-nickname-input-wrap {
+	position: relative;
+	display: flex;
+	align-items: center;
+	flex: 1;
+	max-width: 280px;
+}
+
+.versus-nickname-input {
+	width: 100%;
+	background: #0b0806;
+	border: 1px solid #8a682d;
+	border-radius: 4px;
+	color: #fff2cc;
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	font-size: 1rem;
+	font-weight: 600;
+	padding: 0.45rem 0.8rem;
+	outline: none;
+	transition: all 0.2s ease;
+	letter-spacing: 0.5px;
+}
+
+.versus-nickname-input:focus {
+	border-color: #ffd700;
+	box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+	background: #120d09;
+}
+
+.versus-nickname-input:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.versus-nickname-saved {
+	position: absolute;
+	right: 8px;
+	font-size: 0.75rem;
+	color: #2ecc71;
+	background: rgba(15, 35, 20, 0.92);
+	border: 1px solid rgba(46, 204, 113, 0.5);
+	padding: 2px 6px;
+	border-radius: 4px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.25s ease;
+}
+
+.versus-nickname-saved.show {
+	opacity: 1;
+}
+
+/* 3. Abas Principais: Criar Sala vs Entrar */
+.versus-tabs {
+	display: flex;
+	justify-content: center;
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+
+.versus-tab-btn {
+	background: rgba(25, 20, 15, 0.8);
+	border: 1px solid #7a5c28;
+	color: #c5a059;
+	padding: 0.75rem 2rem;
+	font-size: 1.1rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-family: inherit;
+	letter-spacing: 1px;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.versus-tab-btn:hover {
+	border-color: #ffd700;
+	color: #fff;
+	background: rgba(50, 40, 30, 0.9);
+}
+
+.versus-tab-btn.active {
+	background: linear-gradient(180deg, #421212 0%, #260a0a 100%);
+	border-color: #ffd700;
+	color: #ffd700;
+	box-shadow: 0 0 15px rgba(255, 215, 0, 0.25);
+}
+
+/* 4. Painel Criar Sala */
+.versus-panel {
+	display: none;
+	animation: versusFadeIn 0.2s ease-out;
+}
+
+.versus-panel.active {
+	display: block;
+}
+
+.versus-host-box {
+	text-align: center;
+	padding: 1.5rem;
+	background: rgba(15, 12, 9, 0.6);
+	border: 1px solid rgba(166, 124, 51, 0.3);
+	border-radius: 6px;
+}
+
+.versus-code-label {
+	font-size: 0.95rem;
+	color: #ded6cc;
+	margin-bottom: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+}
+
+.versus-code-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	margin: 1.2rem 0;
+}
+
+.versus-code-display {
+	font-family: 'Cinzel', monospace, serif;
+	font-size: 2.6rem;
+	font-weight: 700;
+	letter-spacing: 6px;
+	color: #ffd700;
+	background: #0d0a08;
+	padding: 0.6rem 2rem;
+	border: 2px solid #d4a34b;
+	border-radius: 6px;
+	box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9), 0 0 20px rgba(212, 163, 75, 0.3);
+}
+
+.versus-copy-btn {
+	background: linear-gradient(180deg, #2b2217 0%, #1a140d 100%);
+	border: 1px solid #c5973b;
+	color: #ffd700;
+	padding: 0.85rem 1.4rem;
+	border-radius: 4px;
+	font-size: 1rem;
+	cursor: pointer;
+	font-family: inherit;
+	transition: all 0.2s;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.versus-copy-btn:hover {
+	background: linear-gradient(180deg, #3d3020 0%, #291e13 100%);
+	border-color: #ffd700;
+	box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+	transform: scale(1.02);
+}
+
+.versus-copy-btn.copied {
+	border-color: #2ecc71;
+	color: #2ecc71;
+	background: rgba(46, 204, 113, 0.15);
+}
+
+.versus-status-pulse {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.8rem;
+	margin-top: 1.5rem;
+	color: #d4a34b;
+	font-size: 1.05rem;
+}
+
+.versus-pulse-icon {
+	animation: versusPulse 1.6s infinite ease-in-out;
+}
+
+@keyframes versusPulse {
+	0%, 100% { transform: scale(1); opacity: 0.6; }
+	50% { transform: scale(1.3); opacity: 1; filter: drop-shadow(0 0 8px #ffd700); }
+}
+
+/* 5. Painel Entrar em Sala */
+.versus-join-box {
+	text-align: center;
+	padding: 1.8rem;
+	background: rgba(15, 12, 9, 0.6);
+	border: 1px solid rgba(166, 124, 51, 0.3);
+	border-radius: 6px;
+	max-width: 520px;
+	margin: 0 auto;
+}
+
+.versus-input-code {
+	font-family: 'Cinzel', monospace, serif;
+	font-size: 1.8rem;
+	text-align: center;
+	letter-spacing: 4px;
+	text-transform: uppercase;
+	color: #ffd700;
+	background: #0a0806;
+	border: 2px solid #7a5c28;
+	border-radius: 6px;
+	padding: 0.8rem 1.5rem;
+	width: 100%;
+	max-width: 340px;
+	box-sizing: border-box;
+	margin-bottom: 1.4rem;
+	outline: none;
+	transition: all 0.2s;
+}
+
+.versus-input-code:focus {
+	border-color: #ffd700;
+	box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+.versus-join-btn {
+	background: linear-gradient(180deg, #6c1a1a 0%, #3d0d0d 100%);
+	border: 2px solid #d4a34b;
+	color: #fff1cc;
+	font-size: 1.15rem;
+	font-weight: 700;
+	letter-spacing: 1.5px;
+	padding: 0.9rem 2.5rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-family: inherit;
+	text-transform: uppercase;
+	box-shadow: 0 0 15px rgba(212, 163, 75, 0.3);
+	transition: all 0.2s;
+}
+
+.versus-join-btn:hover {
+	background: linear-gradient(180deg, #8a2222 0%, #4d1111 100%);
+	border-color: #ffd700;
+	box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+	transform: scale(1.02);
+}
+
+.versus-join-error {
+	color: #ff6b6b;
+	font-size: 0.9rem;
+	margin-top: 1rem;
+	min-height: 1.2rem;
+}
+
+/* 6. Painel da Sala de Preparação (Pre-Match Lobby) */
+#versus-prematch-panel {
+	display: none;
+	animation: versusFadeIn 0.3s ease-out;
+}
+
+#versus-prematch-panel.active {
+	display: block;
+}
+
+.versus-matchup-grid {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: center;
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+
+.versus-player-card {
+	background: rgba(12, 10, 8, 0.7);
+	border: 1px solid #7a5c28;
+	border-radius: 6px;
+	padding: 1.4rem;
+	text-align: center;
+	position: relative;
+	transition: all 0.25s;
+}
+
+.versus-player-card.ready {
+	border-color: #2ecc71;
+	box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
+}
+
+.versus-player-badge {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	color: #a8947c;
+	margin-bottom: 0.4rem;
+}
+
+.versus-player-name {
+	font-size: 1.4rem;
+	color: #fff;
+	margin: 0 0 0.8rem 0;
+	font-weight: 700;
+}
+
+.versus-player-crest {
+	width: 64px;
+	height: 64px;
+	margin: 0 auto 0.8rem auto;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
+	filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));
+}
+
+.versus-player-faction {
+	font-size: 1.05rem;
+	color: #ffd700;
+	margin-bottom: 0.4rem;
+}
+
+.versus-player-status {
+	display: inline-block;
+	font-size: 0.85rem;
+	padding: 0.3rem 0.8rem;
+	border-radius: 12px;
+	background: rgba(255, 215, 0, 0.15);
+	color: #ffd700;
+	border: 1px solid rgba(255, 215, 0, 0.3);
+	margin-top: 0.6rem;
+}
+
+.versus-player-status.is-ready {
+	background: rgba(46, 204, 113, 0.2);
+	color: #2ecc71;
+	border-color: #2ecc71;
+}
+
+.versus-vs-separator {
+	text-align: center;
+	font-size: 2.2rem;
+	font-weight: 900;
+	color: #ffd700;
+	text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+.versus-prematch-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 1.1rem;
+	margin-top: 1.5rem;
+}
+
+.versus-btn-leave-room {
+	background: rgba(35, 16, 16, 0.88);
+	border: 1px solid #964545;
+	color: #e6b8b8;
+	padding: 0.85rem 1.4rem;
+	font-size: 0.98rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-family: inherit;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.versus-btn-leave-room:hover {
+	border-color: #ff6b6b;
+	color: #ffffff;
+	background: rgba(65, 22, 22, 0.95);
+	box-shadow: 0 0 12px rgba(255, 107, 107, 0.35);
+}
+
+.versus-btn-deck {
+	background: rgba(30, 24, 18, 0.9);
+	border: 1px solid #c5973b;
+	color: #ded6cc;
+	padding: 0.85rem 1.8rem;
+	font-size: 1.05rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-family: inherit;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.versus-btn-deck:hover {
+	border-color: #ffd700;
+	color: #fff;
+	background: rgba(45, 36, 27, 0.95);
+}
+
+.versus-btn-ready {
+	background: linear-gradient(180deg, #1d3e26 0%, #0c1c11 100%);
+	border: 2px solid #5aa368;
+	color: #fff1cc;
+	font-size: 1.15rem;
+	font-weight: 700;
+	letter-spacing: 1.5px;
+	padding: 0.9rem 2.8rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-family: inherit;
+	text-transform: uppercase;
+	box-shadow: 0 0 15px rgba(90, 163, 104, 0.4);
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.versus-btn-ready:hover {
+	background: linear-gradient(180deg, #285735 0%, #132a1b 100%);
+	border-color: #8ce69e;
+	box-shadow: 0 0 25px rgba(140, 230, 158, 0.7);
+	transform: scale(1.02);
+}
+
+.versus-btn-ready.ready-active {
+	background: linear-gradient(180deg, #6c1a1a 0%, #3d0d0d 100%);
+	border-color: #ffd700;
+	color: #ffd700;
+}
+
+.versus-btn-start-match {
+	background: linear-gradient(180deg, #99701d 0%, #523a0c 100%);
+	border: 2px solid #ffd700;
+	color: #fff8e7;
+	font-size: 1.25rem;
+	font-weight: 700;
+	letter-spacing: 2px;
+	padding: 0.95rem 3.2rem;
+	border-radius: 4px;
+	cursor: pointer;
+	font-family: inherit;
+	text-transform: uppercase;
+	box-shadow: 0 0 25px rgba(255, 215, 0, 0.5), inset 0 0 15px rgba(255, 230, 150, 0.3);
+	transition: all 0.25s cubic-bezier(0.2, 0, 0.2, 1);
+	display: flex;
+	align-items: center;
+	gap: 0.8rem;
+	animation: versusStartPulse 1.4s infinite alternate;
+}
+
+@keyframes versusStartPulse {
+	0% {
+		box-shadow: 0 0 15px rgba(255, 215, 0, 0.4), inset 0 0 10px rgba(255, 230, 150, 0.2);
+		transform: scale(1);
+	}
+	100% {
+		box-shadow: 0 0 35px rgba(255, 215, 0, 0.9), inset 0 0 20px rgba(255, 230, 150, 0.6);
+		transform: scale(1.04);
+	}
+}
+
+.versus-btn-start-match:hover {
+	background: linear-gradient(180deg, #b88626 0%, #6e4e10 100%);
+	border-color: #ffffff;
+	color: #ffffff;
+	box-shadow: 0 0 45px rgba(255, 215, 0, 1);
+}
+
+.versus-btn-start-match.hide {
+	display: none !important;
+}
+
+.versus-ready-hint {
+	width: 100%;
+	text-align: center;
+	font-size: 1.05rem;
+	color: #c5a059;
+	margin-top: 1.4rem;
+	font-style: italic;
+	letter-spacing: 0.5px;
+	transition: all 0.3s ease;
+}
+
+.versus-ready-hint.all-ready {
+	color: #8ce69e;
+	font-weight: bold;
+	text-shadow: 0 0 10px rgba(140, 230, 158, 0.5);
+}
+
+/* 7. Banner de Turno e Cronômetro no Tabuleiro (In-Game HUD & Timers) */
+#versus-turn-hud {
+	position: fixed;
+	top: 1.1vh;
+	left: 52.7%;
+	transform: translateX(-50%);
+	z-index: 95;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	min-width: 310px;
+	padding: 0.45rem 1.35rem 0.55rem 1.35rem;
+	border-radius: 22px;
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	font-size: 0.95rem;
+	letter-spacing: 0.8px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.82);
+	transition: all 0.25s ease;
+	pointer-events: none;
+	overflow: hidden;
+	backdrop-filter: blur(4px);
+}
+
+.hud-turn-content {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.9rem;
+	width: 100%;
+}
+
+.hud-turn-icon {
+	font-size: 1.05rem;
+}
+
+.hud-turn-text {
+	flex: 1;
+	text-align: center;
+	white-space: nowrap;
+	font-weight: 700;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.hud-turn-timer {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-family: 'Cinzel', monospace, serif;
+	font-size: 0.95rem;
+	font-weight: 800;
+	padding: 0.15rem 0.65rem;
+	border-radius: 12px;
+	background: rgba(0, 0, 0, 0.55);
+	border: 1px solid rgba(255, 215, 0, 0.35);
+	color: #fff2cc;
+	letter-spacing: 1px;
+	box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8);
+}
+
+.hud-turn-timer.urgent {
+	background: rgba(140, 18, 18, 0.88);
+	border-color: #ff6b6b;
+	color: #ffffff;
+	animation: timerUrgentPulse 0.6s infinite alternate;
+}
+
+@keyframes timerUrgentPulse {
+	from { transform: scale(1); box-shadow: 0 0 6px rgba(255, 80, 80, 0.5); }
+	to { transform: scale(1.08); box-shadow: 0 0 16px rgba(255, 50, 50, 0.95); }
+}
+
+.hud-turn-progress {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 3px;
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.hud-turn-progress-bar {
+	height: 100%;
+	background: linear-gradient(90deg, #d4a34b, #ffd700);
+	transition: width 0.95s linear;
+}
+
+#versus-turn-hud.my-turn .hud-turn-progress-bar {
+	background: linear-gradient(90deg, #3ca352, #8ce69e);
+}
+
+#versus-turn-hud.timer-urgent .hud-turn-progress-bar {
+	background: linear-gradient(90deg, #c0392b, #ff6b6b);
+}
+
+#versus-turn-hud.my-turn {
+	background: linear-gradient(90deg, rgba(16, 44, 22, 0.94) 0%, rgba(10, 28, 14, 0.96) 100%);
+	border: 1px solid #5aa368;
+	color: #98f5ab;
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 16px rgba(90, 163, 104, 0.45);
+}
+
+#versus-turn-hud.op-turn {
+	background: linear-gradient(90deg, rgba(38, 28, 14, 0.94) 0%, rgba(22, 16, 8, 0.96) 100%);
+	border: 1px solid #d4a34b;
+	color: #ffd700;
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 15px rgba(212, 163, 75, 0.35);
+}
+
+#versus-turn-hud.mulligan-phase {
+	background: linear-gradient(90deg, rgba(45, 32, 14, 0.95) 0%, rgba(26, 18, 8, 0.97) 100%);
+	border: 1px solid #f0c45a;
+	color: #ffe599;
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.85), 0 0 18px rgba(240, 196, 90, 0.45);
+}
+
+#versus-turn-hud.passed {
+	background: linear-gradient(90deg, rgba(18, 28, 42, 0.94) 0%, rgba(10, 16, 26, 0.96) 100%);
+	border: 1px solid #4a75a0;
+	color: #9ec5e8;
+	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8), 0 0 15px rgba(74, 117, 160, 0.4);
+}
+
+#versus-turn-hud.timer-urgent {
+	border-color: #ff5555 !important;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9), 0 0 20px rgba(255, 65, 65, 0.65) !important;
+}
+
+#versus-turn-hud.hide {
+	display: none !important;
+}
+
+/* Badge do temporizador de 30s dentro do título do Carousel de troca inicial */
+.mulligan-timer-badge {
+	display: inline-block;
+	margin-left: 0.9vw;
+	padding: 0.1vw 0.7vw;
+	border-radius: 0.4vw;
+	background: rgba(30, 22, 10, 0.92);
+	border: 1px solid #d4a34b;
+	color: #ffd700;
+	font-size: 1.45vw;
+	font-weight: bold;
+	vertical-align: middle;
+	box-shadow: 0 0 10px rgba(212, 163, 75, 0.4);
+}
+
+.mulligan-timer-badge.urgent {
+	background: rgba(130, 16, 16, 0.92);
+	border-color: #ff6b6b;
+	color: #ffffff;
+	animation: timerUrgentPulse 0.6s infinite alternate;
+}
+
+/* 8. Modal de Desconexão / Fim de Partida */
+#versus-alert-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background: rgba(0, 0, 0, 0.85);
+	z-index: 30000 !important;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#versus-alert-modal.hide {
+	display: none !important;
+}
+
+.versus-alert-box {
+	background: #14100c;
+	border: 2px solid #a67c33;
+	border-radius: 6px;
+	padding: 2rem 3rem;
+	text-align: center;
+	max-width: 480px;
+	color: #ded6cc;
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	box-shadow: 0 0 30px rgba(0, 0, 0, 0.9);
+}
+
+.versus-alert-title {
+	font-size: 1.6rem;
+	color: #ffd700;
+	margin: 0 0 1rem 0;
+}
+
+.versus-alert-desc {
+	font-size: 1rem;
+	color: #a8947c;
+	margin-bottom: 1.8rem;
+	line-height: 1.4;
+}
+
+/* ==========================================================================
+   Customização de Baralho no Modo Versus (versus-deck-mode)
+   ========================================================================== */
+#deck-customization.versus-deck-mode #start-game {
+	display: none !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+#deck-customization.versus-deck-mode #opponent-preview {
+	display: none !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+#deck-customization.versus-deck-mode #btn-back-to-menu,
+#deck-customization.versus-deck-mode #btn-story-back-to-map,
+#deck-customization.versus-deck-mode #btn-story-deck-confirm {
+	display: none !important;
+}
+
+#deck-customization.versus-deck-mode #btn-versus-top-back {
+	display: inline-flex !important;
+}
+
+#deck-customization.versus-deck-mode #btn-versus-deck-confirm {
+	display: flex !important;
+}
+
+#deck-customization:not(.versus-deck-mode) #btn-versus-top-back,
+#deck-customization:not(.versus-deck-mode) #btn-versus-deck-confirm {
+	display: none !important;
+}
+
+/* ==========================================================================
+   9. OTIMIZAÇÃO GERAL DO HUD DE PARTIDA (BOTÕES, ENGRENAGEM E ESTATÍSTICAS)
+   ========================================================================== */
+
+/* Garante que Desistir e Sair possam ser clicados mesmo durante o turno do oponente */
+#exit-game,
+#forfeit-button {
+	pointer-events: auto !important;
+}
+
+/* Botão Passar otimizado */
+#pass-button {
+	position: absolute !important;
+	top: 78.2% !important;
+	left: 60.5% !important;
+	width: 25% !important;
+	height: 4.2% !important;
+	font-family: 'WitcherTitle', 'Cinzel', Arial Narrow, sans-serif;
+	font-size: 1.45vw !important;
+	font-weight: bold;
+	letter-spacing: 0.06vw;
+	color: #f4d06f;
+	border: 0.12vw solid #c5973b !important;
+	border-radius: 0.35vw !important;
+	background: linear-gradient(180deg, rgba(34, 26, 16, 0.95) 0%, rgba(16, 12, 8, 0.96) 100%) !important;
+	box-shadow: 0 0.2vw 0.6vw rgba(0, 0, 0, 0.8), inset 0 0 0.4vw rgba(212, 163, 75, 0.2);
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+#pass-button:hover {
+	border-color: #ffd700 !important;
+	color: #ffffff !important;
+	background: linear-gradient(180deg, rgba(58, 44, 24, 0.98) 0%, rgba(28, 20, 12, 0.98) 100%) !important;
+	box-shadow: 0 0 0.9vw rgba(255, 215, 0, 0.55);
+	transform: scale(1.03);
+}
+
+/* Botão Desistir (Surrender) abaixo do botão Passar */
+#forfeit-button {
+	position: absolute !important;
+	top: 83.4% !important;
+	left: 60.5% !important;
+	width: 25% !important;
+	height: 3.6% !important;
+	font-family: 'WitcherTitle', 'Cinzel', Arial Narrow, sans-serif;
+	font-size: 1.12vw !important;
+	font-weight: bold;
+	letter-spacing: 0.05vw;
+	color: #e69d9d;
+	border: 0.1vw solid #8c3b3b;
+	border-radius: 0.35vw;
+	background: linear-gradient(180deg, rgba(46, 16, 16, 0.92) 0%, rgba(24, 8, 8, 0.95) 100%);
+	box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.8);
+	transition: all 0.2s ease;
+	cursor: pointer;
+	z-index: 15;
+}
+
+#forfeit-button:hover {
+	border-color: #ff6b6b;
+	color: #ffffff;
+	background: linear-gradient(180deg, rgba(82, 22, 22, 0.96) 0%, rgba(44, 12, 12, 0.98) 100%);
+	box-shadow: 0 0 0.8vw rgba(255, 90, 90, 0.6);
+	transform: scale(1.03);
+}
+
+#forfeit-button[data-title]:hover::after {
+	bottom: -2.2vw;
+	left: -0.45vw;
+}
+
+/* Engrenagem de Configurações e Botão de Notificações no Tabuleiro */
+#open-game-settings {
+	top: 48.9vw;
+	left: 15.6vw;
+	cursor: pointer;
+	z-index: 80;
+	transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+#open-game-settings:hover {
+	transform: rotate(35deg) scale(1.1);
+}
+
+#toggle-notifications {
+	top: 48.9vw;
+	left: 19.2vw;
+	cursor: pointer;
+	z-index: 80;
+	transition: transform 0.2s ease;
+}
+
+#toggle-notifications:hover {
+	transform: scale(1.1);
+}
+
+/* Oculta botões flutuantes do tabuleiro quando no Menu Principal, Deck Builder ou Mapa */
+#main-menu:not(.hide) ~ #open-game-settings,
+#main-menu:not(.hide) ~ #toggle-notifications,
+#deck-customization:not(.hide) ~ #open-game-settings,
+#deck-customization:not(.hide) ~ #toggle-notifications,
+#story-map-screen:not(.hide) ~ #open-game-settings,
+#story-map-screen:not(.hide) ~ #toggle-notifications,
+#open-game-settings.deck-menu,
+#toggle-notifications.deck-menu {
+	display: none !important;
+}
+
+/* Modal de Configurações sempre acima de qualquer tela do jogo */
+#settings-modal-overlay {
+	z-index: 35000 !important;
+}
+
+/* Melhorias visuais dos painéis de estatísticas dos jogadores (#stats-op e #stats-me) */
+.stats {
+	border: 1px solid rgba(197, 151, 59, 0.28);
+	border-left: none;
+	border-radius: 0 0.45vw 0.45vw 0;
+	background: linear-gradient(90deg, rgba(16, 13, 10, 0.82) 0%, rgba(24, 19, 14, 0.72) 100%) !important;
+	box-shadow: 0 0.25vw 0.8vw rgba(0, 0, 0, 0.65);
+	transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.stats.current-turn {
+	border-color: rgba(255, 215, 0, 0.75);
+	box-shadow: -2.5vw 0 1.2vw 0.15vw goldenrod, 0 0 1vw rgba(255, 215, 0, 0.3) !important;
+}
+
+.stats .name {
+	text-overflow: ellipsis;
+	color: #ffe8a3;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+	letter-spacing: 0.02vw;
+}
+
+.stats .deck-name {
+	text-overflow: ellipsis;
+	color: #cbb592;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.stats .hand-count {
+	color: #fff2cc;
+	text-shadow: 0 1px 4px #000000, 0 0 6px rgba(0, 0, 0, 0.9);
+}
+
+#end-btn-rematch.highlight {
+	border-color: #2ecc71 !important;
+	color: #8ce69e !important;
+	box-shadow: 0 0 1.5vw rgba(46, 204, 113, 0.8) !important;
+}
+
+

@@ -6,7 +6,10 @@ const DURATION_CARD_PLACEMENT = 1000;
 
 const DUR_FADE_STEP = 10;
 
-const CLICK_EVENT_SFX = () => AudioManager.playSFX('ui_card');
+const CLICK_EVENT_SFX = () => {
+	const s = Math.random() > 0.5 ? 'witcher_hover' : 'witcher_hover2';
+	AudioManager.playSFX(s);
+};
 
 const addMouseEnterSFXBySelector = selector => {
 	[...document.querySelectorAll(selector)].forEach(e =>
@@ -46,13 +49,44 @@ class ControllerAI {
 			}
 			await player.passRound();
 		} else {
-			let rand = randomInt(weightTotal);
-			for (var i=0; i < weights.length; ++i) {
-				rand -= weights[i].weight;
-				if (rand < 0)
-					break;
+			const diff = (typeof Settings !== "undefined" && Settings.difficulty) 
+				? Settings.difficulty.value 
+				: (localStorage.getItem("gc-difficulty") || "medium");
+
+			if (diff === "hard") {
+				// Hard: Sort actions by calculated weight descending and pick optimal move
+				weights.sort((a,b) => b.weight - a.weight);
+				let chosen = (weights.length > 1 && Math.random() < 0.12 && weights[1].weight > 0) ? weights[1] : weights[0];
+				await chosen.action();
+			} else if (diff === "easy") {
+				// Easy: Relaxed strategy with 35% chance to play casually/suboptimally
+				if (Math.random() < 0.35 && weights.length > 1) {
+					let playWeights = weights.filter(w => w.weight > 0);
+					if (playWeights.length > 0) {
+						let randIdx = randomInt(playWeights.length);
+						await playWeights[randIdx].action();
+					} else {
+						await weights[0].action();
+					}
+				} else {
+					let rand = randomInt(weightTotal);
+					for (var i=0; i < weights.length; ++i) {
+						rand -= weights[i].weight;
+						if (rand < 0)
+							break;
+					}
+					await weights[i].action();
+				}
+			} else {
+				// Medium: Original weighted random logic
+				let rand = randomInt(weightTotal);
+				for (var i=0; i < weights.length; ++i) {
+					rand -= weights[i].weight;
+					if (rand < 0)
+						break;
+				}
+				await weights[i].action();
 			}
-			await weights[i].action();
 		}
 	}
 	
@@ -477,8 +511,17 @@ class Player {
 
 		this.reset();
 		
-		this.name = name;
-		document.getElementById("name-" + this.tag).innerHTML = name;
+		const defaultMeName = (typeof I18N !== "undefined") ? I18N.t("player_name") : "Geralt";
+		const defaultOpName = (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Opponent";
+		const savedCustomName = (this.tag === "me" && typeof localStorage !== "undefined") ? localStorage.getItem("gc-player-name") : null;
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			this.name = name || ((this.tag === "me") ? (savedCustomName || defaultMeName) : defaultOpName);
+		} else if (this.tag === "me") {
+			this.name = (name && name !== "Player 1" && name !== "Geralt") ? name : (savedCustomName || defaultMeName);
+		} else {
+			this.name = (name && name !== "Player 2" && name !== "Opponent" && name !== "Adversário") ? name : defaultOpName;
+		}
+		document.getElementById("name-" + this.tag).innerHTML = this.name;
 		
 		document.getElementById("deck-name-" +this.tag).innerHTML = factions[deck.faction].name;
 		document.getElementById("stats-" + this.tag).getElementsByClassName("profile-img")[0].children[0].children[0];
@@ -515,6 +558,9 @@ class Player {
 		this.total += n;
 		document.getElementById("score-total-" + this.tag).children[0].innerHTML = this.total;
 		board.updateLeader();
+		if (this === player_me && typeof Achievements !== "undefined") {
+			Achievements.checkScore(this.total);
+		}
 	}
 	
 	// Puts the player in the winning state
@@ -540,8 +586,13 @@ class Player {
 		if (this === player_me) {
 			document.getElementById("pass-button").classList.remove("noclick");
 		}
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.startTurnTimer(this === player_me);
+		}
 		
 		if (this.controller instanceof ControllerAI) {
+			await this.controller.startTurn(this);
+		} else if (typeof ControllerPeer !== "undefined" && this.controller instanceof ControllerPeer) {
 			await this.controller.startTurn(this);
 		}
 	}
@@ -550,6 +601,9 @@ class Player {
 	passRound(){
 		this.setPassed(true);
 		EventManager.roundPassed.dispatch(this, game.roundCount);
+		if (this === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.onLocalPass();
+		}
 		this.endTurn();
 	}
 	
@@ -574,11 +628,29 @@ class Player {
 		await sleep(1000);
 		ui.hidePreview(card);
 		await action();
+		if (this === player_me) {
+			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				VersusMode.onLocalCardPlayed(card);
+			}
+			if (card.abilities && card.abilities.includes("spy")) {
+				if (typeof Achievements !== "undefined") {
+					Achievements.recordSpyPlayed();
+				}
+			}
+			if (card.name === "Roach" || (card.muster && card.muster === "Roach")) {
+				if (typeof Achievements !== "undefined") {
+					Achievements.recordRoach();
+				}
+			}
+		}
 		this.endTurn();
 	}
 	
 	// Handles end of turn visuals and behavior the notifies the game
 	endTurn(){
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopTurnTimer();
+		}
 		if (!this.passed && !this.canPlay())
 			this.setPassed(true);
 		if (this === player_me){
@@ -608,10 +680,22 @@ class Player {
 	
 	// Use a leader's Activate ability, then disable the leader
 	async activateLeader() {
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopTurnTimer();
+			VersusMode.pendingLeaderData = {};
+		}
 		ui.showPreviewVisuals(this.leader);
 		await sleep(1500);
 		ui.hidePreview(this.leader);
 		await this.leader.activated[0](this.leader, this);
+		if (this === player_me) {
+			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				VersusMode.onLocalLeader(VersusMode.pendingLeaderData || {});
+			}
+			if (typeof Achievements !== "undefined") {
+				Achievements.recordLeaderUsed();
+			}
+		}
 		this.disableLeader();
 		this.endTurn();
 	}
@@ -805,6 +889,7 @@ class CardContainer {
 			while(this.elem.firstChild)
 				this.elem.removeChild(this.elem.firstChild);
 		this.cards = [];
+		this.resize();
 	}
 	
 }
@@ -879,6 +964,19 @@ class Deck extends CardContainer {
 			this.addCardElement();
 		}
 		this.resize();
+	}
+
+	reorderCards(nameList) {
+		if (!nameList || !Array.isArray(nameList)) return;
+		const reordered = [];
+		const pool = [...this.cards];
+		for (const name of nameList) {
+			const idx = pool.findIndex(c => c.name === name);
+			if (idx !== -1) {
+				reordered.push(pool.splice(idx, 1)[0]);
+			}
+		}
+		this.cards = reordered.concat(pool);
 	}
 	
 	// Override
@@ -1011,6 +1109,9 @@ class Row extends CardContainer {
 			let index = this.addCardSorted(card);
 			this.addCardElement(card, index);
 			this.resize();
+			if (card && card.isHero && card.isHero()) {
+				animateHeroSpark(card.elem);
+			}
 			await this.playPlacementAudio(card);
 		}
 		this.updateState(card, true);
@@ -1055,7 +1156,7 @@ class Row extends CardContainer {
 			return await AudioManager.playSFX(key, DURATION_CARD_PLACEMENT, true);
 		}
 	}
-	
+
 	// Override
 	removeCard(card) {
 		card = isNumber(card) ? card === -1 ? this.special : this.cards[card] : card;
@@ -1244,7 +1345,9 @@ class Weather extends CardContainer {
 		AudioManager.playSFX(card.audio);
 		card.elem.classList.add("noclick");
 		if (card.name === "Clear Weather"){
-			// TODO Sunlight animation
+			if (card.holder === player_me && typeof Achievements !== "undefined") {
+				Achievements.recordClearWeather();
+			}
 			await sleep(500);
 			this.clearWeather();
 		} else {
@@ -1353,14 +1456,54 @@ class Board {
 		if (isString(dest))
 			dest = this.getRow(card, dest);
 		await translateTo(card, source ? source : null, dest);
-		await dest.addCard(source ? source.removeCard(card) : card);
+		let movedCard = source ? source.removeCard(card) : card;
+		// Seamless handoff: clear in-flight transform and trigger landing punch
+		if (card && card.elem) {
+			card.elem.style.transition = "none";
+			card.elem.style.transform = "";
+			card.elem.style.zIndex = "";
+			card.elem.style.boxShadow = "";
+			card.elem.style.filter = "";
+			card.elem.style.pointerEvents = "";
+			card.elem.style.marginLeft = "";
+			card.elem.style.marginRight = "";
+		}
+		await dest.addCard(movedCard);
+		if (card && card.elem) {
+			card.elem.classList.add("card-placed-anim");
+			setTimeout(() => {
+				if (card.elem) {
+					card.elem.classList.remove("card-placed-anim");
+					card.elem.style.transition = "";
+				}
+			}, 250);
+		}
 	}
 	
 	// Sends and translates a card from the source to a row name associated with the passed player
 	async addCardToRow(card, row_name, player, source) {
 		let row = this.getRow(card, row_name, player);
 		await translateTo(card, source, row);
+		if (card && card.elem) {
+			card.elem.style.transition = "none";
+			card.elem.style.transform = "";
+			card.elem.style.zIndex = "";
+			card.elem.style.boxShadow = "";
+			card.elem.style.filter = "";
+			card.elem.style.pointerEvents = "";
+			card.elem.style.marginLeft = "";
+			card.elem.style.marginRight = "";
+		}
 		await row.addCard(card);
+		if (card && card.elem) {
+			card.elem.classList.add("card-placed-anim");
+			setTimeout(() => {
+				if (card.elem) {
+					card.elem.classList.remove("card-placed-anim");
+					card.elem.style.transition = "";
+				}
+			}, 250);
+		}
 	}
 	
 	// Returns the CardCard associated with the row name that the card would be sent to
@@ -1484,6 +1627,7 @@ class Game {
 	
 	// Sets initializes player abilities, player hands and redraw
 	async startGame() {
+		this.playerMeSpiesPlayed = 0;
 		EventManager.gameOpened.dispatch();
 		this.initPlayers(player_me, player_op);
 		this.setState(GameState.PLAYING);
@@ -1505,23 +1649,47 @@ class Game {
 	async coinToss(){
 		if (this.firstPlayer)
 			return;
-		this.firstPlayer = (Math.random() < 0.5) ? player_me : player_op;
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			this.firstPlayer = VersusMode.isFirstTurn ? player_me : player_op;
+		} else {
+			this.firstPlayer = (Math.random() < 0.5) ? player_me : player_op;
+		}
 		await ui.notification(this.firstPlayer.tag + "-coin", 1200);
 	}
 	
 	// Allows the player to swap out up to two cards from their iniitial hand
 	async initialRedraw(){
-		for (let i=0; i< 2; i++)
-			player_op.controller.redraw();
-		await ui.queueCarousel(player_me.hand, 2, async (c, i) => { 
-			AudioManager.playSFX('redraw');
-			await player_me.deck.swap(c, c.cards[i]);
-		}, c => true, false, true, "Choose up to 2 cards to redraw.");
-		ui.enablePlayer(false);
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.startMulliganTimer();
+			await ui.queueCarousel(player_me.hand, 2, async (c, i) => { 
+				AudioManager.playSFX('redraw');
+				await player_me.deck.swap(c, c.cards[i]);
+			}, c => true, false, true, (typeof I18N !== "undefined") ? I18N.t("redraw_title") : "Choose up to 2 cards to redraw.");
+			VersusMode.stopMulliganTimer();
+			ui.enablePlayer(false);
+			VersusMode.onLocalMulliganDone();
+			await VersusMode.waitForRemoteMulligan();
+		} else {
+			for (let i=0; i< 2; i++)
+				player_op.controller.redraw();
+			if (typeof VersusMode !== "undefined") {
+				VersusMode.startMulliganTimer();
+			}
+			await ui.queueCarousel(player_me.hand, 2, async (c, i) => { 
+				AudioManager.playSFX('redraw');
+				await player_me.deck.swap(c, c.cards[i]);
+			}, c => true, false, true, (typeof I18N !== "undefined") ? I18N.t("redraw_title") : "Choose up to 2 cards to redraw.");
+			if (typeof VersusMode !== "undefined") {
+				VersusMode.stopMulliganTimer();
+				VersusMode.hideTurnHUD();
+			}
+			ui.enablePlayer(false);
+		}
 	}
 	
 	// Initiates a new round of the game
 	async startRound(){
+		this.playerMeHornsInRound = 0;
 		this.firstPlayer = this.currPlayer;
 		this.roundCount++;
 		EventManager.roundStarted.dispatch(this.roundCount, this.currPlayer);
@@ -1529,16 +1697,37 @@ class Game {
 			AudioManager.playSFX("round1_start");
 		await this.runEffects(this.roundStart);
 		
-		if ( !player_me.canPlay() )
-			player_me.setPassed(true);
-		if ( !player_op.canPlay() )
-			player_op.setPassed(true);
-		
-		if (player_op.passed && player_me.passed)
-			return this.endRound();
-		
-		if (this.currPlayer.passed)
-			this.currPlayer = this.currPlayer.opponent();
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			if (VersusMode.isHost) {
+				if ( !player_me.canPlay() )
+					player_me.setPassed(true);
+				if ( !player_op.canPlay() )
+					player_op.setPassed(true);
+				
+				if (player_op.passed && player_me.passed)
+					return this.endRound();
+				
+				if (this.currPlayer.passed)
+					this.currPlayer = this.currPlayer.opponent();
+			} else {
+				if ( !player_me.canPlay() && !player_op.canPlay() ) {
+					player_me.setPassed(true);
+					player_op.setPassed(true);
+					return this.endRound();
+				}
+			}
+		} else {
+			if ( !player_me.canPlay() )
+				player_me.setPassed(true);
+			if ( !player_op.canPlay() )
+				player_op.setPassed(true);
+			
+			if (player_op.passed && player_me.passed)
+				return this.endRound();
+			
+			if (this.currPlayer.passed)
+				this.currPlayer = this.currPlayer.opponent();
+		}
 		
 		await ui.notification("round-start", 1200);
 		AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
@@ -1550,6 +1739,9 @@ class Game {
 	async startTurn() {
 		await this.runEffects(this.turnStart);
 		ui.enablePlayer(this.currPlayer === player_me);
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive && VersusMode.isHost) {
+			VersusMode.broadcastTurnSync();
+		}
 		this.currPlayer.startTurn();
 	}
 	
@@ -1576,11 +1768,55 @@ class Game {
 	
 	// Ends the round and may end the game. Determines final scores and the round winner.
 	async endRound() {
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopTurnTimer();
+		}
 		let dif = player_me.total - player_op.total;
 		if (dif === 0) {
-			let nilf_me = player_me.deck.faction === "nilfgaard", nilf_op = player_op.deck.faction === "nilfgaard";
+			let nilf_me = player_me.deck && player_me.deck.faction === "nilfgaard";
+			let nilf_op = player_op.deck && player_op.deck.faction === "nilfgaard";
 			dif = nilf_me ^ nilf_op ? nilf_me ? 1 : -1 : 0;
 		}
+
+		let syncedResult = null;
+		let nextStarter = null;
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			if (VersusMode.isHost) {
+				const hostScore = player_me.total;
+				const guestScore = player_op.total;
+				const outcome = dif > 0 ? "host" : (dif < 0 ? "guest" : "draw");
+				const hostHealth = player_me.health - (dif <= 0 ? 1 : 0);
+				const guestHealth = player_op.health - (dif >= 0 ? 1 : 0);
+
+				nextStarter = (dif > 0) ? "host" : ((dif < 0) ? "guest" : (this.firstPlayer === player_me ? "host" : "guest"));
+
+				VersusMode.sendPacket("ROUND_RESULT", {
+					roundCount: this.roundCount,
+					outcome: outcome,
+					nextStarter: nextStarter,
+					hostDif: dif,
+					hostScore: hostScore,
+					guestScore: guestScore,
+					hostHealth: Math.max(0, hostHealth),
+					guestHealth: Math.max(0, guestHealth)
+				});
+			} else {
+				syncedResult = await VersusMode.waitForHostRoundResult(this.roundCount);
+				if (syncedResult) {
+					if (syncedResult.outcome === "guest") {
+						dif = 1;
+					} else if (syncedResult.outcome === "host") {
+						dif = -1;
+					} else {
+						dif = 0;
+					}
+					nextStarter = syncedResult.nextStarter;
+					player_me.total = syncedResult.guestScore;
+					player_op.total = syncedResult.hostScore;
+				}
+			}
+		}
+
 		let winner = dif > 0 ? player_me : dif < 0 ? player_op : null;
 		let verdict = {winner: winner, score_me: player_me.total, score_op: player_op.total}
 		this.roundHistory.push(verdict);
@@ -1589,12 +1825,30 @@ class Game {
 		
 		player_me.endRound( dif > 0);
 		player_op.endRound( dif < 0);
+
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			if (!VersusMode.isHost && syncedResult) {
+				if (syncedResult.guestHealth !== undefined) player_me.health = syncedResult.guestHealth;
+				if (syncedResult.hostHealth !== undefined) player_op.health = syncedResult.hostHealth;
+			}
+			VersusMode.syncGemsUI();
+		}
 		
 		let notificationKey = "";
 		if (dif > 0)
 		{
 			AudioManager.playSFX("round_win");
 			notificationKey = "win-round";
+			if (typeof Achievements !== "undefined") {
+				const hasWeather = (typeof weather !== "undefined") && (
+					weather.cards.length > 0 ||
+					weather.types.rain.count > 0 ||
+					weather.types.fog.count > 0 ||
+					weather.types.frost.count > 0
+				);
+				const myCardsCount = board.row[3].cards.length + board.row[4].cards.length + board.row[5].cards.length;
+				Achievements.recordRoundWin(myCardsCount, hasWeather);
+			}
 		}	
 		else if (dif < 0)
 		{
@@ -1617,17 +1871,61 @@ class Game {
 			this.endGame();
 		else
 		{
-			this.currPlayer = dif < 0 ? player_op : dif > 0 ? player_me : this.firstPlayer;
+			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				if (VersusMode.isHost) {
+					this.currPlayer = (nextStarter === "host") ? player_me : player_op;
+				} else {
+					if (nextStarter) {
+						this.currPlayer = (nextStarter === "guest") ? player_me : player_op;
+					} else {
+						this.currPlayer = dif < 0 ? player_op : dif > 0 ? player_me : this.firstPlayer;
+					}
+				}
+			} else {
+				this.currPlayer = dif < 0 ? player_op : dif > 0 ? player_me : this.firstPlayer;
+			}
 			this.startRound();
 		}
 	}
 	
 	// Sets up and displays the end-game screen
 	async endGame() {
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopAllTimers();
+			VersusMode.hideTurnHUD();
+		}
 		let endScreen = document.getElementById("end-screen");
 		let rows = endScreen.getElementsByTagName("tr");
-		rows[1].children[0].innerHTML = player_me.name;
-		rows[2].children[0].innerHTML = player_op.name;
+		rows[1].children[0].innerHTML = (player_me && player_me.name) ? player_me.name : ((typeof I18N !== "undefined") ? I18N.t("player_name") : "Geralt");
+		rows[2].children[0].innerHTML = (player_op && player_op.name) ? player_op.name : ((typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Opponent");
+
+		if (typeof I18N !== "undefined") {
+			if (rows[0] && rows[0].children.length >= 4) {
+				rows[0].children[1].innerHTML = I18N.t("round_1");
+				rows[0].children[2].innerHTML = I18N.t("round_2");
+				rows[0].children[3].innerHTML = I18N.t("round_3");
+			}
+			const drawTextElem = endScreen.getElementsByTagName("p")[0];
+			if (drawTextElem) drawTextElem.innerHTML = I18N.t("end_draw_desc");
+			const buttons = endScreen.getElementsByTagName("button");
+			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				if (buttons[0]) buttons[0].innerHTML = I18N.t("btn_return_lobby") || "Voltar à Sala";
+				if (buttons[1]) {
+					buttons[1].innerHTML = I18N.t("btn_rematch") || "Revanche";
+					buttons[1].disabled = false;
+					buttons[1].classList.remove("highlight");
+				}
+				if (buttons[2]) buttons[2].innerHTML = I18N.t("btn_main_menu") || "Menu Principal";
+			} else {
+				if (buttons[0]) buttons[0].innerHTML = I18N.t("btn_customize");
+				if (buttons[1]) {
+					buttons[1].innerHTML = I18N.t("btn_rematch");
+					buttons[1].disabled = false;
+					buttons[1].classList.remove("highlight");
+				}
+				if (buttons[2]) buttons[2].innerHTML = I18N.t("btn_new_game");
+			}
+		}
 		
 		for (let i=1; i<4; ++i) {
 			let round = this.roundHistory[i-1];
@@ -1646,23 +1944,99 @@ class Game {
 		} else if (player_op.health === 0){
 			AudioManager.playSFX("game_win");
 			endScreen.children[0].classList.add("end-win");
+			if (typeof Achievements !== "undefined") {
+				const faction = (player_me && player_me.deck) ? player_me.deck.faction : null;
+				const lostARound = this.roundHistory.some(r => r && r.winner === player_op);
+				const deckCardCount = (player_me && player_me.deck_data && player_me.deck_data.cards) ? 
+					player_me.deck_data.cards.reduce((sum, c) => sum + (c.count || 1), 0) : 0;
+				Achievements.recordWin(faction, lostARound, deckCardCount);
+			}
+			if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) {
+				StoryMode.onMatchEnded(true);
+			}
 		} else {
 			AudioManager.playSFX("game_lose");
 			endScreen.children[0].classList.add("end-lose");
+			if (typeof Achievements !== "undefined") {
+				const wonARound = this.roundHistory.some(r => r && r.winner === player_me);
+				Achievements.recordLoss(wonARound);
+			}
+			if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) {
+				StoryMode.onMatchEnded(false);
+			}
 		}
 		
+		const isStory = (typeof StoryMode !== "undefined" && StoryMode.activeMatch);
+		const storyReturnBtn = document.getElementById("end-btn-story-return");
+
+		if (isStory) {
+			if (this.customize_elem) this.customize_elem.style.display = "none";
+			if (this.rematch_elem) this.rematch_elem.style.display = "none";
+			if (this.newGame_elem) this.newGame_elem.style.display = "none";
+			if (storyReturnBtn) {
+				storyReturnBtn.classList.remove("hide");
+				storyReturnBtn.style.display = "block";
+				storyReturnBtn.onclick = () => {
+					StoryMode.returnFromMatchToMap();
+				};
+			}
+		} else {
+			if (this.customize_elem) this.customize_elem.style.display = "";
+			if (this.rematch_elem) this.rematch_elem.style.display = "";
+			if (this.newGame_elem) this.newGame_elem.style.display = "";
+			if (storyReturnBtn) {
+				storyReturnBtn.classList.add("hide");
+				storyReturnBtn.style.display = "none";
+			}
+		}
+
 		fadeIn(endScreen, 300);
 		ui.enablePlayer(true);
 		this.setState(GameState.END_SCREEN);
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.onGameEnded();
+		}
 	}
 
 	exitGame()
 	{
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.promptForfeit();
+			return;
+		}
+		const isStory = (typeof StoryMode !== "undefined" && StoryMode.activeMatch);
 		AudioManager.playSFX('warning');
+		const restoreBoardInteraction = () => {
+			if (this.state === GameState.PLAYING && (this.currPlayer === player_me || (typeof Carousel !== "undefined" && Carousel.curr))) {
+				ui.enablePlayer(true);
+			}
+		};
+		if (isStory) {
+			ui.popup(
+				"Continuar Partida", restoreBoardInteraction,
+				"Retornar ao Mapa", ()=>{
+					if (typeof VersusMode !== "undefined") {
+						VersusMode.stopAllTimers();
+						VersusMode.hideTurnHUD();
+					}
+					StoryMode.returnFromMatchToMap();
+				},
+				"Abandonar Partida?", 
+				"Deseja sair do confronto e retornar ao Mapa da Campanha? A partida será considerada uma derrota."
+			);
+			return;
+		}
 		ui.popup(
-			"Resume", ()=>{},
-			"Exit", ()=>this.returnToCustomization(),
-			"Quit curent game?" , "This will return you to the deck customization menu."
+			(typeof I18N !== "undefined") ? I18N.t("exit_popup_resume") : "Resume", restoreBoardInteraction,
+			(typeof I18N !== "undefined") ? I18N.t("exit_popup_exit") : "Exit", ()=>{
+				if (typeof VersusMode !== "undefined") {
+					VersusMode.stopAllTimers();
+					VersusMode.hideTurnHUD();
+				}
+				this.returnToCustomization();
+			},
+			(typeof I18N !== "undefined") ? I18N.t("exit_popup_title") : "Quit curent game?", 
+			(typeof I18N !== "undefined") ? I18N.t("exit_popup_desc") : "This will return you to the deck customization menu."
 		); 
 	}
 	
@@ -1671,8 +2045,16 @@ class Game {
 		this.reset();
 		player_me.reset();
 		player_op.reset();
-		EventManager.customizationOpened.dispatch();
 		this.endScreen.classList.add("hide");
+		if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) {
+			StoryMode.returnFromMatchToMap();
+			return;
+		}
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.returnToPreMatchLobby();
+			return;
+		}
+		EventManager.customizationOpened.dispatch();
 		document.getElementById("deck-customization").classList.remove("hide");
 		AudioManager.playSFX('menu_opening');
 		this.setState(GameState.CUSTOMIZE);
@@ -1680,15 +2062,37 @@ class Game {
 
 	newOpponentGame()
 	{
+		if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) {
+			StoryMode.returnFromMatchToMap();
+			return;
+		}
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.exitVersusToMenu();
+			return;
+		}
 		this.reset();
 		player_me.reset();
-		player_op = new Player('op', 'Player 2', dm.constructOpponentDeck(false));
+		player_op = new Player('op', (typeof I18N !== "undefined") ? I18N.t("opponent_name") : 'Player 2', dm.constructOpponentDeck(false));
 		this.endScreen.classList.add("hide");
 		this.startGame();
 	}
 	
-	// Restarts the last game with the dame decks
+	// Restarts the last game with the same decks
 	rematchGame(){
+		if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) {
+			const nodeId = StoryMode.activeMatch.nodeId;
+			const roundIdx = StoryMode.activeMatch.roundIndex || 0;
+			this.reset();
+			player_me.reset();
+			player_op.reset();
+			this.endScreen.classList.add("hide");
+			StoryMode.startMatch(nodeId, roundIdx);
+			return;
+		}
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.requestRematch();
+			return;
+		}
 		this.reset();
 		player_me.reset();
 		player_op.reset();
@@ -1741,23 +2145,34 @@ class Card {
 			}
 		}
 		
-		if (this.row === "leader")
-			this.desc_name = "Leader Ability";
-		else if (this.abilities.length > 0)
-			this.desc_name = ability_dict[this.abilities[this.abilities.length-1]].name;
-		else if (this.row==="agile")
-			this.desc_name = "agile";
-		else if (this.hero)
-			this.desc_name = "hero";
-		else
-			this.desc_name = "";
+		Object.defineProperty(this, 'desc_name', {
+			get() {
+				if (this.row === "leader")
+					return (typeof I18N !== "undefined") ? I18N.t("ability_leader_name") : "Leader Ability";
+				else if (this.abilities.length > 0)
+					return ability_dict[this.abilities[this.abilities.length-1]].name;
+				else if (this.row === "agile")
+					return (typeof I18N !== "undefined") ? I18N.t("ability_agile_name") : "Agile";
+				else if (this.hero)
+					return (typeof I18N !== "undefined") ? I18N.t("ability_hero_name") : "Hero";
+				else
+					return "";
+			},
+			configurable: true
+		});
 		
-		this.desc = this.row ==="agile" ? ability_dict["agile"].description : "";
-		for (let i=this.abilities.length-1; i>=0; --i) {
-			this.desc += ability_dict[this.abilities[i]].description;
-		}
-		if (this.hero)
-			this.desc += ability_dict["hero"].description;
+		Object.defineProperty(this, 'desc', {
+			get() {
+				let d = this.row === "agile" ? ability_dict["agile"].description : "";
+				for (let i = this.abilities.length - 1; i >= 0; --i) {
+					d += ability_dict[this.abilities[i]].description;
+				}
+				if (this.hero)
+					d += ability_dict["hero"].description;
+				return d;
+			},
+			configurable: true
+		});
 		
 		this.elem = this.createCardElem(this);
 	}
@@ -1926,12 +2341,136 @@ class Card {
 	}
 }
 
+class MusicManager {
+	static tracks = [
+		'music/gwent_main.mp3',
+		'music/plots_and_intrigues.mp3',
+		'music/northern_realms.mp3',
+		'music/the_black_clads.mp3',
+		'music/witcher_forest.mp3',
+		'music/witcher_ocean.mp3'
+	];
+	static currTrackIndex = 0;
+	static audio = null;
+	static isPlaying = false;
+	static initialized = false;
+	static selectedMode = 'all';
+	static volume = 0.6;
+
+	static init() {
+		if (MusicManager.initialized) return;
+		MusicManager.initialized = true;
+
+		const saved = localStorage.getItem("gc-jukebox-track") || "all";
+		MusicManager.selectedMode = saved;
+		if (saved !== "all") {
+			MusicManager.currTrackIndex = parseInt(saved, 10) || 0;
+		}
+
+		const savedVol = localStorage.getItem("gc-music-volume");
+		MusicManager.volume = (savedVol !== null) ? (parseFloat(savedVol) / 100) : 0.6;
+
+		MusicManager.audio = new Audio(MusicManager.tracks[MusicManager.currTrackIndex]);
+		MusicManager.audio.volume = MusicManager.volume;
+
+		MusicManager.audio.addEventListener('ended', () => {
+			if (MusicManager.selectedMode === "all") {
+				MusicManager.nextTrack();
+			} else {
+				MusicManager.audio.currentTime = 0;
+				if (MusicManager.isPlaying) MusicManager.audio.play().catch(e => console.log(e));
+			}
+		});
+
+		MusicManager.audio.addEventListener('error', (e) => {
+			console.warn("Track failed to load, moving to next:", MusicManager.tracks[MusicManager.currTrackIndex]);
+			MusicManager.nextTrack();
+		});
+	}
+
+	static setVolume(percent) {
+		MusicManager.init();
+		const vol = Math.max(0, Math.min(1, parseFloat(percent) / 100));
+		MusicManager.volume = vol;
+		if (MusicManager.audio) {
+			MusicManager.audio.volume = vol;
+		}
+		localStorage.setItem("gc-music-volume", percent);
+	}
+
+	static setTrack(trackId) {
+		MusicManager.init();
+		MusicManager.selectedMode = trackId;
+		if (trackId === "all") {
+			MusicManager.nextTrack();
+		} else {
+			const idx = parseInt(trackId, 10) || 0;
+			MusicManager.currTrackIndex = idx;
+			if (MusicManager.audio) {
+				MusicManager.audio.src = MusicManager.tracks[idx];
+				MusicManager.audio.volume = MusicManager.volume;
+				if (MusicManager.isPlaying) {
+					MusicManager.audio.play().catch(e => console.log(e));
+				}
+			}
+		}
+	}
+
+	static nextTrack() {
+		MusicManager.currTrackIndex = (MusicManager.currTrackIndex + 1) % MusicManager.tracks.length;
+		if (MusicManager.audio) {
+			MusicManager.audio.src = MusicManager.tracks[MusicManager.currTrackIndex];
+			MusicManager.audio.volume = MusicManager.volume;
+			if (MusicManager.isPlaying) {
+				MusicManager.audio.play().catch(e => console.log(e));
+			}
+		}
+	}
+
+	static play() {
+		MusicManager.init();
+		MusicManager.isPlaying = true;
+		MusicManager.audio.volume = MusicManager.volume;
+		MusicManager.audio.play().catch(e => {
+			console.log("Autoplay waiting for user gesture:", e);
+		});
+	}
+
+	static pause() {
+		MusicManager.isPlaying = false;
+		if (MusicManager.audio) {
+			MusicManager.audio.pause();
+		}
+	}
+
+	static toggle() {
+		MusicManager.init();
+		if (MusicManager.isPlaying && !MusicManager.audio.paused) {
+			MusicManager.pause();
+			return false;
+		} else {
+			MusicManager.play();
+			return true;
+		}
+	}
+}
+
 // Handles notifications and client interration with menus
 class UI {
 	constructor() {
 		this.carousels = [];
 		this.notif_elem = document.getElementById("notification-bar");
 		document.getElementById('exit-game').addEventListener('click', ()=>game.exitGame(), false);
+		const forfeitBtn = document.getElementById("forfeit-button");
+		if (forfeitBtn) {
+			forfeitBtn.addEventListener("click", () => {
+				if (typeof VersusMode !== "undefined") {
+					VersusMode.promptForfeit();
+				} else {
+					game.exitGame();
+				}
+			}, false);
+		}
 		this.preview = document.getElementsByClassName("card-preview")[0];
 		this.previewCard = null;
 		this.lastRow = null;
@@ -1943,27 +2482,38 @@ class UI {
 		document.getElementById("click-background").addEventListener("click", () => ui.cancel(), false);
 		this.youtube;
 		this.ytActive;
+		this.openSettings_elem = document.getElementById("open-game-settings");
+		if (this.openSettings_elem) {
+			this.toggleSettings.push(this.openSettings_elem);
+		}
 		this.toggleMusic_elem = document.getElementById("toggle-music");
-		this.toggleSettings.push(this.toggleMusic_elem);
-		this.toggleMusic_elem.classList.add("fade");
-		this.toggleMusic_elem.addEventListener("click", () => this.toggleMusic(), false);
+		if (this.toggleMusic_elem) {
+			this.toggleSettings.push(this.toggleMusic_elem);
+			this.toggleMusic_elem.classList.add("fade");
+			this.toggleMusic_elem.addEventListener("click", () => this.toggleMusic(), false);
+		}
 		this.toggleNotifications_elem = document.getElementById("toggle-notifications");
-		this.toggleSettings.push(this.toggleNotifications_elem);
-		this.toggleNotifications_elem.addEventListener("click", () => this.toggleNotifications(), false);
-		if (!Settings.notifications.isEnabled())
-			this.toggleNotifications_elem.classList.add("fade");
+		if (this.toggleNotifications_elem) {
+			this.toggleSettings.push(this.toggleNotifications_elem);
+			this.toggleNotifications_elem.addEventListener("click", () => this.toggleNotifications(), false);
+			if (!Settings.notifications.isEnabled())
+				this.toggleNotifications_elem.classList.add("fade");
+		}
 		this.toggleSFX_elem = document.getElementById("toggle-sfx");
-		this.toggleSettings.push(this.toggleSFX_elem);
-		this.toggleSFX_elem.addEventListener('click', () => this.toggleSFX())
-		if (!Settings.soundEffects.isEnabled())
-			this.toggleSFX_elem.classList.add("fade");
+		if (this.toggleSFX_elem) {
+			this.toggleSettings.push(this.toggleSFX_elem);
+			this.toggleSFX_elem.addEventListener('click', () => this.toggleSFX());
+			if (!Settings.soundEffects.isEnabled())
+				this.toggleSFX_elem.classList.add("fade");
+		}
 
-		EventManager.gameOpened.bind(()=>this.toggleSettings.forEach(e=>e.classList.remove('deck-menu')));
-		EventManager.customizationOpened.bind(()=>this.toggleSettings.forEach(e=>e.classList.add('deck-menu')));
+		EventManager.gameOpened.bind(()=>this.toggleSettings.forEach(e=>e && e.classList.remove('deck-menu')));
+		EventManager.customizationOpened.bind(()=>this.toggleSettings.forEach(e=>e && e.classList.add('deck-menu')));
 
 		[	'.settings-button',
 			'.deck-options',
 			'#pass-button',
+			'#forfeit-button',
 			'#end-screen>button',
 			'#op-preview-leader',
 			'#opponent-preview button'
@@ -1976,45 +2526,34 @@ class UI {
 		if (enable) main.remove("noclick"); else main.add("noclick");
 	}
 	
-	// Initializes the youtube background music object
+	// Initializes the offline background music object
 	initYouTube(){
-		this.youtube = new YT.Player('youtube', {
-			videoId: "UE9fPWy1_o4",
-			playerVars:  { "autoplay" : 1, "controls" : 0, "loop" : 1, "playlist" : "UE9fPWy1_o4", "rel" : 0, "version" : 3, "modestbranding" : 1 },
-			events: { 'onStateChange': initButton }
-		});
+		MusicManager.init();
+		this.ytActive = true;
 		
-		function initButton(){
-			if (ui.ytActive !== undefined)
-				return;
-			ui.ytActive = true;
-			ui.youtube.playVideo();
-			let timer = setInterval( () => {
-				if (ui.youtube.getPlayerState() !== YT.PlayerState.PLAYING)
-					ui.youtube.playVideo();
-				else {
-					clearInterval(timer);
-					ui.toggleMusic_elem.classList.remove("fade");
-					if (!Settings.music.isEnabled())
-					{
-						setTimeout(()=>ui.toggleMusic(), 10);
-					}
+		const enabled = Settings.music.isEnabled();
+		if (enabled) {
+			if (this.toggleMusic_elem) this.toggleMusic_elem.classList.remove("fade");
+			MusicManager.play();
+			document.addEventListener('click', () => {
+				if (Settings.music.isEnabled() && (!MusicManager.audio || MusicManager.audio.paused)) {
+					MusicManager.play();
 				}
-			}, 500);
+			}, { once: true });
+		} else {
+			if (this.toggleMusic_elem) this.toggleMusic_elem.classList.add("fade");
 		}
 	}
 	
 	// Called when client toggles the music
 	toggleMusic(){
-		const isPlaying = this.youtube?.getPlayerState() === YT.PlayerState.PLAYING;
-		if (isPlaying) {
-			this.youtube?.pauseVideo();
-			this.toggleMusic_elem.classList.add("fade");
+		const playing = MusicManager.toggle();
+		if (playing) {
+			if (this.toggleMusic_elem) this.toggleMusic_elem.classList.remove("fade");
 		} else {
-			this.youtube?.playVideo();
-			this.toggleMusic_elem.classList.remove("fade");
+			if (this.toggleMusic_elem) this.toggleMusic_elem.classList.add("fade");
 		}
-		Settings.music.setEnabled(!isPlaying);
+		Settings.music.setEnabled(playing);
 	}
 
 	toggleNotifications() {
@@ -2022,11 +2561,11 @@ class UI {
 		const useNotificaitons = Settings.notifications.isEnabled();
 		if (useNotificaitons)
 		{
-			this.toggleNotifications_elem.classList.remove("fade");
+			if (this.toggleNotifications_elem) this.toggleNotifications_elem.classList.remove("fade");
 		}
 		else
 		{
-			this.toggleNotifications_elem.classList.add("fade");
+			if (this.toggleNotifications_elem) this.toggleNotifications_elem.classList.add("fade");
 		}
 	}
 
@@ -2035,24 +2574,23 @@ class UI {
 		const useSFX = Settings.soundEffects.isEnabled();
 		if (useSFX)
 		{
-			this.toggleSFX_elem.classList.remove("fade");
+			if (this.toggleSFX_elem) this.toggleSFX_elem.classList.remove("fade");
 		}
 		else
 		{
-			this.toggleSFX_elem.classList.add("fade");
+			if (this.toggleSFX_elem) this.toggleSFX_elem.classList.add("fade");
 		}
 	}
 	
 	// Enables or disables backgorund music 
 	setYouTubeEnabled(enable){
-		if (this.ytActive === enable)
-			return;
-		if (enable && !this.mute)
-			ui.youtube.playVideo();
-		else
-			ui.youtube.pauseVideo();
+		if (enable) {
+			if (Settings.music.isEnabled()) MusicManager.play();
+		} else {
+			MusicManager.pause();
+		}
 		this.ytActive = enable;
-}
+	}
 	
 	// Called when the player selects a selectable card
 	async selectCard(card) {
@@ -2066,6 +2604,16 @@ class UI {
 		} else if (pCard.name === "Decoy") {
 			this.hidePreview(card);
 			this.enablePlayer(false);
+			if (pCard.holder === player_me && typeof Achievements !== "undefined") {
+				Achievements.recordDecoy();
+			}
+			if (pCard.holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				const rowType = (typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : "close";
+				VersusMode.onLocalCardPlayed(pCard, {
+					decoyTargetName: card.name,
+					rowType: rowType
+				});
+			}
 			board.toHand(card, row);
 			await board.moveTo(pCard, row, pCard.holder.hand);
 			pCard.holder.endTurn();
@@ -2097,6 +2645,16 @@ class UI {
 			return;
 		} else {
 			await board.moveTo(card, row, card.holder.hand);
+		}
+		if (holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			const rowType = (card.name === "Scorch") ? "scorch" : (card.row === "weather" ? "weather" : ((typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : card.row));
+			VersusMode.onLocalCardPlayed(card, {
+				rowType: rowType,
+				medicTargetName: VersusMode.pendingMedicTarget || null,
+				medicTargets: VersusMode.pendingMedicTargets || []
+			});
+			VersusMode.pendingMedicTarget = null;
+			VersusMode.pendingMedicTargets = [];
 		}
 		holder.endTurn();
 	}
@@ -2184,7 +2742,14 @@ class UI {
 			duration = 1200;
 		const fadeSpeed = 150;
 		duration = Math.max(400, duration - 2*fadeSpeed);
+		const key = "notif_" + name.replace(/-/g, "_");
+		const text = (typeof I18N !== "undefined") ? I18N.t(key) : "";
 		this.notif_elem.children[0].id = "notif-" + name;
+		if (text && text !== key) {
+			this.notif_elem.children[0].setAttribute("data-text", text);
+		} else {
+			this.notif_elem.children[0].removeAttribute("data-text");
+		}
 		await fadeIn(this.notif_elem, fadeSpeed);
 		await sleep(duration);
 		await fadeOut(this.notif_elem, fadeSpeed);
@@ -2209,13 +2774,30 @@ class UI {
 	// Suspends gameplay until the Carousel is closed. Automatically picks random card if activated for AI player
 	async queueCarousel(container, count, action, predicate, bSort, bQuit, title){
 		if (game.currPlayer === player_op) {
-			if (player_op.controller instanceof ControllerAI)
+			if (player_op.controller instanceof ControllerAI) {
 				for (let i=0; i<count; ++i){
 					let cards = container.cards.reduce((a,c,i) => !predicate || predicate(c) ? a.concat([i]) : a, []);
 					if (cards.length === 0)
 						break;
 					await action(container, cards[randomInt(cards.length)]);
 				}
+			} else if (typeof ControllerPeer !== "undefined" && player_op.controller instanceof ControllerPeer) {
+				const peerCtrl = player_op.controller;
+				for (let i=0; i<count; ++i){
+					let targetIdx = -1;
+					if (peerCtrl.nextMedicTarget) {
+						targetIdx = container.cards.findIndex(c => c.name === peerCtrl.nextMedicTarget);
+						peerCtrl.nextMedicTarget = null;
+					}
+					if (targetIdx === -1) {
+						const valid = container.cards.reduce((a,c,i) => !predicate || predicate(c) ? a.concat([i]) : a, []);
+						if (valid.length > 0) targetIdx = valid[0];
+					}
+					if (targetIdx !== -1) {
+						await action(container, targetIdx);
+					}
+				}
+			}
 			return;
 		}
 		let carousel = new Carousel(container, count, action, predicate, bSort, bQuit, title);
@@ -2322,6 +2904,9 @@ class UI {
 	// used to handle row selection when resetoring agile units via medics
 	async waitForRowSelection(card)
 	{
+		if (game.isAutoPlayingTimeout) {
+			return board.getRow(card, "close", card ? card.holder : player_me);
+		}
 		game.placedEffectsActive = true;
 		ui.setSelectable(null, false);
 		ui.showPreview(card, false);
@@ -2335,11 +2920,14 @@ class UI {
 		};
 		EventManager.rowSelected.bind(rowSelect);
 		EventManager.previewCancelled.bind(rowSelect);
-		await sleepUntil(() => bRowSelected === true);
+		await sleepUntil(() => bRowSelected === true || game.isAutoPlayingTimeout);
 		EventManager.rowSelected.unbind(rowSelect);
 		EventManager.previewCancelled.unbind(rowSelect);
 		ui.hidePreview();
 		game.placedEffectsActive = false;
+		if (!selectedRow && game.isAutoPlayingTimeout) {
+			selectedRow = board.getRow(card, "close", card ? card.holder : player_me);
+		}
 		return selectedRow;
 	}
 }
@@ -2559,14 +3147,24 @@ class DeckMaker {
 		this.leader_elem = document.getElementById("card-leader");
 		this.leader_elem.children[1].addEventListener("click", () => this.selectLeader(), false);
 		this.leader_elem.children[1].addEventListener('mouseenter', CLICK_EVENT_SFX);
-		this.loadFactionDeck(Settings.lastFaction.get(), true);
 
+		this.bankFilter = "all";
+		this.deckFilter = "all";
+		this.initFilterTabs();
+
+		this.selectedOpponentFaction = localStorage.getItem("gc-opponent-faction") || "random";
 		this.opponentData = Settings.opponentDeckCustom.get();
 		this.updatedCustomOpponent();
-		document.getElementById('op-preview-clear').addEventListener('click', () => this.clearOpponentDeck());
-		document.getElementById('op-preview-open').addEventListener('click', ()=>this.viewOponentCards());
-		document.getElementById("add-opponent").addEventListener("change", () => this.uploadOpponentDeck(), false);
 
+		const opCardBtn = document.getElementById("op-preview-card");
+		if (opCardBtn) {
+			opCardBtn.addEventListener("click", () => this.openOpponentModal(), false);
+			opCardBtn.addEventListener("mouseenter", CLICK_EVENT_SFX, false);
+		}
+
+		document.getElementById('op-preview-clear').addEventListener('click', () => this.clearOpponentDeck());
+		document.getElementById('op-preview-open').addEventListener('click', () => this.viewOponentCards());
+		document.getElementById("add-opponent").addEventListener("change", () => this.uploadOpponentDeck(), false);
 
 		this.change_elem = document.getElementById("change-faction");
 		this.change_elem.addEventListener("click", () => this.selectFaction(), false);
@@ -2575,6 +3173,110 @@ class DeckMaker {
 		document.getElementById("add-file").addEventListener("change", () => this.uploadPlayerDeck(), false);
 		document.getElementById("start-game").addEventListener("click", () => this.startNewGame(), false);
 		document.getElementById("start-game").addEventListener("mouseenter", CLICK_EVENT_SFX, false);
+
+		const backMenuBtn = document.getElementById("btn-back-to-menu");
+		if (backMenuBtn) {
+			backMenuBtn.addEventListener("click", () => {
+				if (typeof MenuController !== "undefined") MenuController.returnToMainMenu();
+			});
+		}
+
+		window.dm = this;
+		DeckMaker.openOpponentModal = () => this.openOpponentModal();
+		DeckMaker.closeOpponentModal = () => this.closeOpponentModal();
+		DeckMaker.setOpponentFaction = (f) => this.setOpponentFaction(f);
+
+		this.loadFactionDeck(Settings.lastFaction.get(), true);
+	}
+
+	initFilterTabs() {
+		const setupTabs = (containerId, onSelect) => {
+			const container = document.getElementById(containerId);
+			if (!container) return;
+			const tabs = container.querySelectorAll(".deck-filter-btn");
+			tabs.forEach(btn => {
+				btn.addEventListener("click", () => {
+					tabs.forEach(t => t.classList.remove("active"));
+					btn.classList.add("active");
+					const filter = btn.dataset.filter || "all";
+					onSelect(filter);
+					if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+						AudioManager.playSFX("witcher_switch");
+					}
+					this.update();
+				});
+				btn.addEventListener("mouseenter", () => {
+					if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+						AudioManager.playSFX("witcher_hover");
+					}
+				});
+			});
+		};
+
+		setupTabs("bank-filter-tabs", f => { this.bankFilter = f; });
+		setupTabs("deck-filter-tabs", f => { this.deckFilter = f; });
+	}
+
+	matchesFilter(card, filter) {
+		if (!filter || filter === "all") return true;
+		if (filter === "close") {
+			return card.row === "close" || card.row === "agile";
+		}
+		if (filter === "ranged") {
+			return card.row === "ranged" || card.row === "agile";
+		}
+		if (filter === "siege") {
+			return card.row === "siege";
+		}
+		if (filter === "special") {
+			return card.deck === "special" || card.deck === "weather" || card.row === "" || !card.strength;
+		}
+		if (filter === "hero") {
+			return card.ability && card.ability.split(" ").includes("hero");
+		}
+		return true;
+	}
+
+	openOpponentModal() {
+		const modal = document.getElementById("opponent-modal");
+		if (modal) {
+			modal.classList.remove("hide");
+			const current = this.selectedOpponentFaction || "random";
+			modal.querySelectorAll(".opponent-option-card").forEach(card => {
+				if (card.dataset.opponent === current) {
+					card.classList.add("active");
+				} else {
+					card.classList.remove("active");
+				}
+			});
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_tab_open");
+			}
+		}
+	}
+
+	closeOpponentModal() {
+		const modal = document.getElementById("opponent-modal");
+		if (modal) {
+			modal.classList.add("hide");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_back");
+			}
+		}
+	}
+
+	setOpponentFaction(faction) {
+		this.selectedOpponentFaction = faction;
+		localStorage.setItem("gc-opponent-faction", faction);
+		if (faction !== "custom") {
+			Settings.opponentDeckCustom.clear();
+			this.opponentData = null;
+		}
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_confirm");
+		}
+		this.updatedCustomOpponent();
+		this.closeOpponentModal();
 	}
 
 	loadFactionDeck(faction, force = false)
@@ -2624,13 +3326,19 @@ class DeckMaker {
 	
 	// Sets current leader and updates UI
 	setLeader(index){
-		this.leader = this.leaders.filter( l => l.index == index)[0];
-		this.leader_elem.children[1].style.backgroundImage = largeURL(this.leader.card.deck + "_" + this.leader.card.filename);
+		this.leader = (this.leaders && this.leaders.find( l => l.index == index)) || (this.leaders && this.leaders[0]);
+		if (this.leader && this.leader.card) {
+			this.leader_elem.children[1].style.backgroundImage = largeURL(this.leader.card.deck + "_" + this.leader.card.filename);
+		}
 	}
 	
 	// Constructs a bank of cards that can be used by the faction's deck.
 	// If a deck is provided, will not add cards to bank that are already in the deck.
 	makeBank(faction, deck) {
+		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) {
+			StoryMode.buildCampaignBank(this);
+			return;
+		}
 		this.clear();
 		let cards = card_dict.map((c,i) => ({card:c, index:i})).filter(
 		p => [faction, "neutral", "weather", "special"].includes(p.card.deck) && p.card.row !== "leader");
@@ -2677,8 +3385,12 @@ class DeckMaker {
 	
 	// Updates the card preview elements when any changes are made to the deck
 	update(){
+		let bankTotal = 0;
 		for (let x of this.bank) {
-			if (x.count)
+			bankTotal += x.count;
+			let card_data = card_dict[x.index];
+			let matches = this.matchesFilter(card_data, this.bankFilter || "all");
+			if (x.count && matches)
 				x.elem.classList.remove("hide");
 			else
 				x.elem.classList.add("hide");
@@ -2686,21 +3398,32 @@ class DeckMaker {
 		let total = 0, units = 0, special = 0, strength = 0, hero = 0;
 		for (let x of this.deck) {
 			let card_data = card_dict[x.index];
-			if (x.count)
+			let matches = this.matchesFilter(card_data, this.deckFilter || "all");
+			if (x.count && matches)
 				x.elem.classList.remove("hide");
 			else
 				x.elem.classList.add("hide");
-			total += x.count;
-			if (card_data.deck === "special" || card_data.deck === "weather") {
-				special += x.count;
-				continue;
+
+			if (x.count) {
+				total += x.count;
+				if (card_data.deck === "special" || card_data.deck === "weather") {
+					special += x.count;
+					continue;
+				}
+				units += x.count;
+				strength += card_data.strength * x.count;
+				if (card_data.ability && card_data.ability.split(" ").includes("hero"))
+					hero += x.count;
 			}
-			units += x.count;
-			strength += card_data.strength * x.count;
-			if (card_data.ability.split(" ").includes("hero"))
-				hero += x.count;
 		}
 		this.stats = {total: total, units: units, special: special, strength: strength, hero: hero};
+
+		const bankBadge = document.getElementById("bank-card-counter");
+		if (bankBadge) bankBadge.textContent = bankTotal;
+
+		const deckBadge = document.getElementById("deck-card-counter");
+		if (deckBadge) deckBadge.textContent = total;
+
 		this.updateFauxCard(this.bank_elem);
 		this.updateFauxCard(this.deck_elem);
 		this.updateStats();
@@ -2730,12 +3453,12 @@ class DeckMaker {
 	updateStats(){
 		let stats = document.getElementById("deck-stats");
 		stats.children[1].innerHTML = this.stats.total;
-		stats.children[3].innerHTML = this.stats.units +(this.stats.units < 22 ? "/22" : "");
+		stats.children[3].innerHTML = this.stats.units +(this.stats.units < 15 ? "/15" : "");
 		stats.children[5].innerHTML = this.stats.special + "/10";
 		stats.children[7].innerHTML = this.stats.strength;
 		stats.children[9].innerHTML = this.stats.hero;
 		
-		stats.children[3].style.color = this.stats.units < 22 ? "red" : "";
+		stats.children[3].style.color = this.stats.units < 15 ? "red" : "";
 		stats.children[5].style.color = (this.stats.special > 10) ? "red" : "";
 	}
 	
@@ -2764,7 +3487,13 @@ class DeckMaker {
 	selectFaction() {
 		let container = new CardContainer();
 		container.cards = Object.keys(factions).map( f => {
-			return {abilities: [f], filename: f, desc_name: factions[f].name, desc: factions[f].description, faction: "faction"};
+			return {
+				abilities: [f], 
+				filename: f, 
+				get desc_name() { return factions[f].name; }, 
+				get desc() { return factions[f].description; }, 
+				faction: "faction"
+			};
 		});
 		let index = container.cards.reduce((a,c,i) => c.filename === this.faction ? i : a, 0);
 		ui.queueCarousel(container, 1, (c,i) => {
@@ -2817,11 +3546,15 @@ class DeckMaker {
 	
 	// Verifies current deck, creates the players and their decks, then starts a new game
 	startNewGame(){
+		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) {
+			console.warn("Iniciar partida comum bloqueado no Modo História.");
+			return;
+		}
 		let warning = "";
-		if (this.stats.units < 22)
-			warning += "Your deck must have at least 22 unit cards. \n";
+		if (this.stats.units < 15)
+			warning += ((typeof I18N !== "undefined") ? I18N.t("warn_min_units") : "Your deck must have at least 15 unit cards.") + "\n";
 		if (this.stats.special > 10)
-			warning += "Your deck must have no more than 10 special cards. \n";
+			warning += ((typeof I18N !== "undefined") ? I18N.t("warn_max_specials") : "Your deck must have no more than 10 special cards.") + "\n";
 		if (warning != "")
 		{
 			AudioManager.playSFX("warning");
@@ -2835,8 +3568,8 @@ class DeckMaker {
 		};
 		const op_deck = this.constructOpponentDeck(true);
 		
-		player_me = new Player(0, "Player 1", me_deck);
-		player_op = new Player(1, "Player 2", op_deck);
+		player_me = new Player(0, (typeof I18N !== "undefined") ? I18N.t("player_name") : "Geralt", me_deck);
+		player_op = new Player(1, (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Opponent", op_deck);
 		
 		this.elem.classList.add("hide");
 		game.startGame();
@@ -2845,20 +3578,40 @@ class DeckMaker {
 	constructOpponentDeck(useCustom = true)
 	{
 		let op_deck;
-		if (!useCustom || isEmpty(dm.opponentData))
-		{
-			op_deck = JSON.parse( premade_deck[randomInt(Object.keys(premade_deck).length)] );
-			op_deck.cards = op_deck.cards.map(c => ({index:c[0], count:c[1]}) );
-			const leaders = card_dict.filter(c => c.row === "leader" && c.deck === op_deck.faction);
-			op_deck.leader = leaders[randomInt(leaders.length)];
-		}
-		else
+		const factionChoice = this.selectedOpponentFaction || "random";
+
+		// 1. If custom deck is active
+		if (useCustom && !isEmpty(this.opponentData))
 		{
 			op_deck = {};
-			op_deck.cards = dm.opponentData.cards;
-			op_deck.leader = card_dict[dm.opponentData.leader];
+			op_deck.cards = this.opponentData.cards;
+			op_deck.leader = card_dict[this.opponentData.leader];
 			op_deck.faction = op_deck.leader.deck;
+			return op_deck;
 		}
+
+		// 2. If a specific faction was chosen
+		if (factionChoice !== "random" && typeof factions !== "undefined" && factions[factionChoice])
+		{
+			const factionDecks = premade_deck
+				.map(d => JSON.parse(d))
+				.filter(d => d.faction === factionChoice);
+			
+			if (factionDecks.length > 0)
+			{
+				op_deck = factionDecks[randomInt(factionDecks.length)];
+				op_deck.cards = op_deck.cards.map(c => ({index: c[0], count: c[1]}));
+				const leaders = card_dict.filter(c => c.row === "leader" && c.deck === op_deck.faction);
+				op_deck.leader = leaders[randomInt(leaders.length)];
+				return op_deck;
+			}
+		}
+
+		// 3. Fallback: completely random
+		op_deck = JSON.parse( premade_deck[randomInt(Object.keys(premade_deck).length)] );
+		op_deck.cards = op_deck.cards.map(c => ({index:c[0], count:c[1]}) );
+		const leaders = card_dict.filter(c => c.row === "leader" && c.deck === op_deck.faction);
+		op_deck.leader = leaders[randomInt(leaders.length)];
 		return op_deck;
 	}
 	
@@ -2895,7 +3648,7 @@ class DeckMaker {
 					callback(deck);
 				
 			} catch (e) {
-				alert("Uploaded deck is not formatted correctly!");
+				alert((typeof I18N !== "undefined") ? I18N.t("err_deck_format") : "Uploaded deck is not formatted correctly!");
 			}
 			finally
 			{
@@ -2924,7 +3677,7 @@ class DeckMaker {
 			return deck;
 		} catch (e) {
 			AudioManager.playSFX('warning');
-			alert("Uploaded deck is not parsable!");
+			alert((typeof I18N !== "undefined") ? I18N.t("err_deck_parse") : "Uploaded deck is not parsable!");
 			return;
 		}
 	}
@@ -2966,7 +3719,7 @@ class DeckMaker {
 				return null;
 			}
 			AudioManager.playSFX('warning');
-			if (confirm(warning + "\n\n\Continue importing deck?"))
+			if (confirm(warning + "\n\n" + ((typeof I18N !== "undefined") ? I18N.t("confirm_import_deck") : "Continue importing deck?")))
 			{
 				return null;
 			}
@@ -3003,25 +3756,61 @@ class DeckMaker {
 	async clearOpponentDeck()
 	{
 		Settings.opponentDeckCustom.clear();
-		this.opponentData = Settings.opponentDeckCustom.get();
+		this.opponentData = null;
+		this.selectedOpponentFaction = "random";
+		localStorage.setItem("gc-opponent-faction", "random");
 		this.updatedCustomOpponent();
 	}
 
 	updatedCustomOpponent()
 	{
 		const factionElem = document.getElementById('op-preview-faction');
+		const titleElem = document.getElementById('op-preview-title');
+		const subtitleElem = document.getElementById('op-preview-subtitle');
 		const leaderElem = document.getElementById('op-preview-leader');
-		const buttons = ['op-preview-clear', 'op-preview-open'].map(id=>document.getElementById(id));
-		if (isEmpty(this.opponentData))
+		const buttons = ['op-preview-clear', 'op-preview-open'].map(id => document.getElementById(id));
+		
+		const current = this.selectedOpponentFaction || "random";
+
+		if (!isEmpty(this.opponentData))
 		{
-			leaderElem.children[1].innerHTML = "Random";
-			[factionElem, ...buttons].forEach(e=>e.classList.add('hide'));
+			if (factionElem) {
+				factionElem.style.backgroundImage = iconURL('deck_shield_' + this.opponentData.faction);
+				factionElem.innerHTML = '';
+				factionElem.classList.remove('hide');
+			}
+			if (titleElem) titleElem.textContent = card_dict[this.opponentData.leader].name;
+			if (subtitleElem) subtitleElem.textContent = (typeof I18N !== "undefined") ? I18N.t("custom_deck_label") : "Baralho Customizado";
+			buttons.forEach(e => { if (e) e.classList.remove('hide'); });
 		}
-		else
+		else if (current === "random")
 		{
-			factionElem.style.setProperty('background-image', iconURL('deck_shield_' + this.opponentData.faction));
-			leaderElem.children[1].innerHTML = card_dict[this.opponentData.leader].name;
-			[factionElem, ...buttons].forEach(e=>e.classList.remove('hide'));
+			if (factionElem) {
+				factionElem.style.backgroundImage = 'none';
+				factionElem.innerHTML = '🎲';
+				factionElem.classList.remove('hide');
+			}
+			if (titleElem) titleElem.textContent = (typeof I18N !== "undefined") ? I18N.t("random_label") : "Aleatório";
+			if (subtitleElem) subtitleElem.textContent = (typeof I18N !== "undefined") ? I18N.t("opponent_random_desc") : "Facção e líder aleatórios";
+			buttons.forEach(e => { if (e) e.classList.add('hide'); });
+		}
+		else if (typeof factions !== "undefined" && factions[current])
+		{
+			if (factionElem) {
+				factionElem.style.backgroundImage = iconURL('deck_shield_' + current);
+				factionElem.innerHTML = '';
+				factionElem.classList.remove('hide');
+			}
+			if (titleElem) titleElem.textContent = factions[current].name;
+			if (subtitleElem) subtitleElem.textContent = (typeof I18N !== "undefined") ? I18N.t("op_deck") : "Baralho Adversário";
+			const clearBtn = document.getElementById('op-preview-clear');
+			if (clearBtn) clearBtn.classList.remove('hide');
+			const openBtn = document.getElementById('op-preview-open');
+			if (openBtn) openBtn.classList.add('hide');
+		}
+
+		if (leaderElem && leaderElem.children && leaderElem.children[1]) {
+			leaderElem.children[1].innerHTML = titleElem ? titleElem.textContent : "Random";
 		}
 	}
 
@@ -3034,22 +3823,45 @@ class DeckMaker {
 		const container = new CardContainer();
 		//container.cards = [leader, ...Card.this.opponentData.cards];
 		container.cards = Card.getCardsFromIdCounts([leader, ...this.opponentData.cards]);
-		ui.queueCarousel(container, 1, ()=>{}, ()=>true, false, true, "Oponent's deck");
+		ui.queueCarousel(container, 1, ()=>{}, ()=>true, false, true, (typeof I18N !== "undefined") ? I18N.t("view_opponent_deck_title") : "Oponent's deck");
 	}
 }
 
 class AudioManager
 {
 	static source = {};
+	static volume = 0.8;
 
 	static init()
 	{
+		const saved = localStorage.getItem("gc-sfx-volume");
+		if (saved !== null) {
+			AudioManager.volume = Math.max(0, Math.min(1, parseFloat(saved) / 100));
+		}
 		[
 			'turn_me', 'turn_op', "ui_card", 'ui_card_bank', 'open', 'draw',
 			'clear', 'fog', 'frost', 'rain', 
 			'horn', 'spy', 'medic', 'morale', 'scorch', 'bond', 'decoy', "mardroeme",
-			'hero', 'common_close', 'common_ranged', 'common_siege'
-		].forEach(s => AudioManager.source[s] = getAudio(s));
+			'hero', 'common_close', 'common_ranged', 'common_siege',
+			'witcher_click', 'witcher_hover', 'witcher_hover2', 'witcher_confirm',
+			'witcher_switch', 'witcher_back', 'witcher_tab_open', 'witcher_slash',
+			'witcher_toggle_on', 'witcher_toggle_off'
+		].forEach(s => {
+			const a = getAudio(s);
+			a.volume = AudioManager.volume;
+			AudioManager.source[s] = a;
+		});
+	}
+
+	static setVolume(percent)
+	{
+		AudioManager.volume = Math.max(0, Math.min(1, parseFloat(percent) / 100));
+		localStorage.setItem("gc-sfx-volume", percent);
+		for (let k in AudioManager.source) {
+			if (AudioManager.source[k] instanceof Audio) {
+				AudioManager.source[k].volume = AudioManager.volume;
+			}
+		}
 	}
 
 	static async play(key, waitTime = -1, forceWait = false)
@@ -3061,17 +3873,17 @@ class AudioManager
 				return;
 			if (audio instanceof Audio)
 			{
-				const isPlaying = audio.currentTime > 0 && !audio.paused && !audio.ended 
-				if (isPlaying)
+				let soundToPlay = audio;
+				if (audio.currentTime > 0 && !audio.paused && !audio.ended)
 				{
-					audio.pause();
-					audio.currentTime = 0;
+					soundToPlay = audio.cloneNode();
+					soundToPlay.volume = AudioManager.volume;
 				}
-				if (waitTime === -1 || (!forceWait && waitTime >= audio.duration * 1000))
-					return await asyncAudio(audio);
+				if (waitTime === -1 || (!forceWait && waitTime >= (soundToPlay.duration || 0) * 1000))
+					return await asyncAudio(soundToPlay);
 				else
 				{
-					audio.play();
+					soundToPlay.play().catch(() => {});
 					return await sleep(waitTime);
 				}
 			}
@@ -3245,6 +4057,11 @@ class Settings
 	static music = new ToggleOption("gc-music", true);
 	static notifications = new ToggleOption("gc-notifications", true);
 	static soundEffects = new ToggleOption("gc-sound-effects", true);
+	static difficulty = new SavedString("gc-difficulty", "medium");
+	static language = new SavedString("gc-language", "en");
+	static displayMode = new SavedString("gc-display-mode", "window");
+	static resolution = new SavedString("gc-resolution", "1366x768");
+	static jukeboxTrack = new SavedString("gc-jukebox-track", "all");
 	static lastFaction = new SavedString("gc-last-faction", "realms"); 
 	static realmsDeck = new SavedDeck("gc-deck-realms", premade_deck[0]);
 	static nilfgaardDeck = new SavedDeck("gc-deck-nilfgaard", premade_deck[2]);
@@ -3327,6 +4144,7 @@ async function translateTo(card, container_source, container_dest){
 		return;
 	
 	let elem = card.elem;
+	if (elem) elem.classList.remove("gamepad-focused");
 	let source = !container_source ? card.elem : getSourceElem(card, container_source, container_dest);
 	let dest = getDestinationElem(card, container_source, container_dest);
 	if (!isInDocument(elem))
@@ -3390,20 +4208,35 @@ async function translateTo(card, container_source, container_dest){
 	}
 }
 
-// Translates an element by x from the left and y from the top
+// Translates an element by x from the left and y from the top with smooth bezier easing
 async function translate(elem, x, y){
+	if (!elem) return;
+	elem.classList.remove("gamepad-focused");
 	let vw100 = 100 / document.getElementById("dimensions").offsetWidth;
-	x*=vw100;
-	y*=vw100 ;
-	elem.style.transform = "translate(" + x + "vw, " + y + "vw)";
-	let margin = elem.style.marginLeft;
-	elem.style.marginRight = -elem.offsetWidth*vw100 + "vw";
-	elem.style.marginLeft = "";
-	await sleep(499);
-	elem.style.transform = "";
-	elem.style.position = "";
-	elem.style.marginLeft = margin;
-	elem.style.marginRight = margin;
+	x *= vw100;
+	y *= vw100;
+
+	// In-flight styling: elevated z-index, realistic table shadow and subtle scale
+	elem.style.zIndex = "9999";
+	elem.style.pointerEvents = "none";
+	elem.style.transition = "transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.38s ease, filter 0.38s ease";
+	elem.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.8), 0 0 16px rgba(242, 201, 107, 0.6)";
+	elem.style.filter = "brightness(1.1) drop-shadow(0 12px 24px rgba(0,0,0,0.7))";
+	elem.style.transform = "translate(" + x + "vw, " + y + "vw) scale(1.05)";
+
+	await sleep(380);
+
+	// Safety fallback in case caller doesn't clean up
+	setTimeout(() => {
+		if (elem && elem.style.zIndex === "9999") {
+			elem.style.transition = "none";
+			elem.style.transform = "";
+			elem.style.zIndex = "";
+			elem.style.boxShadow = "";
+			elem.style.filter = "";
+			elem.style.pointerEvents = "";
+		}
+	}, 400);
 }
 
 // Fades out an element until hidden over the duration
@@ -3440,6 +4273,81 @@ async function fade(fadeIn, elem, dur){
 			}
 		}, DUR_FADE_STEP);
 	});
+}
+
+// Triggers the authentic Witcher 3 golden perimeter spark & ember animation for Hero cards
+function animateHeroSpark(elem) {
+	if (!elem) return;
+
+	// Remove any existing fx
+	const existing = elem.querySelector(".hero-spark-fx");
+	if (existing) existing.remove();
+
+	const fx = document.createElement("div");
+	fx.className = "hero-spark-fx";
+	fx.style.cssText = "position:absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; pointer-events:none !important; z-index:150 !important; overflow:visible !important; background:none !important;";
+
+	fx.innerHTML = `
+		<svg class="hero-spark-svg" viewBox="0 0 100 142" preserveAspectRatio="none" style="position:absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; overflow:visible !important; pointer-events:none !important;">
+			<rect class="hero-spark-path hero-spark-glow" x="1" y="1" width="98" height="140" rx="4" ry="4" pathLength="100" />
+			<rect class="hero-spark-path hero-spark-trail" x="1" y="1" width="98" height="140" rx="4" ry="4" pathLength="100" />
+			<rect class="hero-spark-path hero-spark-head" x="1" y="1" width="98" height="140" rx="4" ry="4" pathLength="100" />
+		</svg>
+		<div class="hero-spark-flash" style="position:absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; margin:0 !important; pointer-events:none !important;"></div>
+	`;
+
+	const embersContainer = document.createElement("div");
+	embersContainer.className = "hero-embers-container";
+	embersContainer.style.cssText = "position:absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; margin:0 !important; padding:0 !important; pointer-events:none !important; overflow:visible !important; background:none !important;";
+
+	const particleCount = 20;
+	for (let i = 0; i < particleCount; i++) {
+		const ember = document.createElement("span");
+		ember.className = "hero-ember";
+		ember.style.cssText = "position:absolute !important; margin:0 !important; pointer-events:none !important;";
+		
+		const progress = i / particleCount;
+		const delay = (progress * 0.88).toFixed(3);
+		
+		let px, py, vx, vy;
+		if (progress < 0.25) {
+			px = (progress / 0.25) * 100;
+			py = 1;
+			vx = (Math.random() - 0.5) * 22;
+			vy = -12 - Math.random() * 24;
+		} else if (progress < 0.50) {
+			px = 99;
+			py = ((progress - 0.25) / 0.25) * 100;
+			vx = 12 + Math.random() * 24;
+			vy = (Math.random() - 0.5) * 22;
+		} else if (progress < 0.75) {
+			px = (1 - (progress - 0.50) / 0.25) * 100;
+			py = 99;
+			vx = (Math.random() - 0.5) * 22;
+			vy = 12 + Math.random() * 24;
+		} else {
+			px = 1;
+			py = (1 - (progress - 0.75) / 0.25) * 100;
+			vx = -12 - Math.random() * 24;
+			vy = (Math.random() - 0.5) * 22;
+		}
+
+		ember.style.left = px + "%";
+		ember.style.top = py + "%";
+		ember.style.setProperty("--vx", vx.toFixed(1) + "px");
+		ember.style.setProperty("--vy", vy.toFixed(1) + "px");
+		ember.style.animationDelay = delay + "s";
+		embersContainer.appendChild(ember);
+	}
+
+	fx.appendChild(embersContainer);
+	elem.appendChild(fx);
+
+	setTimeout(() => {
+		if (fx.parentNode) {
+			fx.parentNode.removeChild(fx);
+		}
+	}, 1400);
 }
 
 //      Get Image paths   
@@ -3479,7 +4387,11 @@ function audioURL(name, ext = "mp3") {
 // Get audio instance
 function getAudio(name, ext = "mp3")
 {
-	return new Audio(audioURL(name, ext));
+	const a = new Audio(audioURL(name, ext));
+	if (typeof AudioManager !== "undefined" && AudioManager.volume !== undefined) {
+		a.volume = AudioManager.volume;
+	}
+	return a;
 }
 // Play sound effect
 async function playAudio(name, ext = "mp3")
@@ -3534,6 +4446,10 @@ AudioManager.init();
 
 ui.enablePlayer(false);
 let dm = new DeckMaker();
+ui.initYouTube();
 
 
-document.addEventListener('click', () => userInteracted = true, { once: true });
+const enableInteraction = () => { userInteracted = true; };
+['click', 'pointerdown', 'mousemove', 'keydown'].forEach(evt => {
+	document.addEventListener(evt, enableInteraction, { once: true, passive: true });
+});

@@ -1,0 +1,24 @@
+# OS & System
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Temporary & Logs
+*.log
+*.tmp
+*.bak
+*~
+node_modules/
+npm-debug.log*
+
+# Patch or Scratch scripts
+patch_*.js
+test_*.cs
