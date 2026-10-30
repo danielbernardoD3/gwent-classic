@@ -190,8 +190,8 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 2880px;
-	height: 3857px;
+	width: 2894px;
+	height: 4096px;
 	transform-origin: 0 0;
 	transition: transform 0.05s linear;
 }
@@ -200,8 +200,8 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 2880px;
-	height: 3857px;
+	width: 2894px;
+	height: 4096px;
 	display: block;
 	pointer-events: none;
 }
@@ -211,8 +211,8 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 2880px;
-	height: 3857px;
+	width: 2894px;
+	height: 4096px;
 	pointer-events: none;
 	z-index: 2;
 }
@@ -255,8 +255,8 @@
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 2880px;
-	height: 3857px;
+	width: 2894px;
+	height: 4096px;
 	z-index: 5;
 }
 
@@ -273,9 +273,10 @@
 	transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.story-map-pin:hover {
-	transform: translate(-50%, -50%) scale(1.25);
-	z-index: 50;
+.story-map-pin:hover,
+.story-map-pin.gamepad-hover {
+	transform: translate(-50%, -50%) scale(1.28);
+	z-index: 65;
 }
 
 .pin-badge {
@@ -345,7 +346,8 @@
 	transition: opacity 0.25s ease;
 }
 
-.story-map-pin.completed:hover .pin-label {
+.story-map-pin.completed:hover .pin-label,
+.story-map-pin.completed.gamepad-hover .pin-label {
 	display: flex;
 	opacity: 1;
 	pointer-events: auto;
@@ -384,13 +386,15 @@
 }
 
 /* Hover state on locked point: Expands with full opacity and reveals padlock icon and name */
-.story-map-pin.locked:hover {
+.story-map-pin.locked:hover,
+.story-map-pin.locked.gamepad-hover {
 	opacity: 1 !important;
 	z-index: 100 !important;
 	transform: translate(-50%, -50%) scale(1.15);
 }
 
-.story-map-pin.locked:hover .pin-badge {
+.story-map-pin.locked:hover .pin-badge,
+.story-map-pin.locked.gamepad-hover .pin-badge {
 	width: 44px;
 	height: 44px;
 	border-color: #a38563;
@@ -398,12 +402,14 @@
 	box-shadow: 0 0 20px rgba(0, 0, 0, 0.95), 0 0 10px rgba(163, 133, 99, 0.6);
 }
 
-.story-map-pin.locked:hover .pin-icon {
+.story-map-pin.locked:hover .pin-icon,
+.story-map-pin.locked.gamepad-hover .pin-icon {
 	opacity: 1;
 	transform: scale(1);
 }
 
-.story-map-pin.locked:hover .pin-label {
+.story-map-pin.locked:hover .pin-label,
+.story-map-pin.locked.gamepad-hover .pin-label {
 	display: flex;
 	opacity: 1;
 	pointer-events: auto;
@@ -419,6 +425,21 @@
 .story-map-pin.node-type-tournament .pin-icon {
 	color: #ffe6e6;
 	text-shadow: 0 0 10px rgba(255, 51, 51, 0.9), 0 2px 4px #000;
+}
+
+/* Regional Tournaments (7-Match Supreme Challenges): Imperial Crimson & Royal Gold */
+.story-map-pin.regional-tourney:not(.locked) .pin-badge {
+	width: 54px;
+	height: 54px;
+	background: radial-gradient(circle, #7a0b1e 0%, #240208 100%);
+	border: 3px solid #ffd700;
+	box-shadow: 0 0 28px rgba(255, 215, 0, 0.95), 0 0 14px rgba(255, 40, 60, 0.9), 0 4px 14px rgba(0, 0, 0, 0.95);
+}
+
+.story-map-pin.regional-tourney:not(.locked) .pin-icon {
+	font-size: 1.55rem;
+	color: #ffd700;
+	text-shadow: 0 0 12px rgba(255, 215, 0, 1), 0 2px 4px #000;
 }
 
 /* Shops: Diamond / Losango Geometric Shape */
@@ -659,9 +680,9 @@
 }
 
 .story-parchment-frame {
-	background: url("img/board.jpg") center/cover, #241a12;
+	background: radial-gradient(circle at 50% 0%, #17130e 0%, #0b0907 70%, #050403 100%);
 	border: 3px solid #8e734c;
-	box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.8), 0 10px 40px rgba(0, 0, 0, 0.9);
+	box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.9), 0 10px 40px rgba(0, 0, 0, 0.95);
 	border-radius: 6px;
 	max-width: 780px;
 	width: 90%;
@@ -671,6 +692,18 @@
 	position: relative;
 	box-sizing: border-box;
 	color: #f1e4c3;
+}
+
+/* Shop Modal: Clean Black / Obsidian Background (no board texture) */
+#story-shop-modal .story-parchment-frame {
+	background: radial-gradient(circle at 50% 0%, #0f0d0a 0%, #050505 65%, #000000 100%);
+	border-color: #c5a059;
+	box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.95), 0 14px 50px rgba(0, 0, 0, 0.98);
+}
+
+/* Outcome Modal: Always renders above active match board and end screen */
+#story-outcome-modal {
+	z-index: 9999 !important;
 }
 
 .story-parchment-frame::before {
@@ -889,8 +922,11 @@
 .story-tourney-rounds-box {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	margin-bottom: 24px;
+	gap: 8px;
+	margin-bottom: 20px;
+	max-height: 255px;
+	overflow-y: auto;
+	padding-right: 6px;
 }
 
 .story-tourney-round-box {
@@ -1188,9 +1224,9 @@
 
 /* New Campaign Setup View */
 .story-setup-container {
-	max-width: 840px;
+	max-width: 860px;
 	width: 90%;
-	background: url("img/board.jpg") center/cover, #241a12;
+	background: radial-gradient(circle at 50% 0%, #17130e 0%, #0a0806 70%, #040302 100%);
 	border: 3px solid #8e734c;
 	box-shadow: 0 10px 40px #000;
 	padding: 32px 40px;
@@ -1317,10 +1353,12 @@
 
 /* ==========================================================================
    Modo História: Organização do Baralho (story-deck-mode)
-   Exclusivamente no modo história, o botão "Iniciar Partida" (#start-game)
-   e o seletor de adversário (#opponent-preview) NÃO devem existir/ser exibidos.
+   Exclusivamente no modo história, o botão "Iniciar Partida" (#start-game),
+   o botão "Carregar Baralho" (#upload-deck) e o seletor de adversário (#opponent-preview)
+   NÃO devem existir/ser exibidos.
    ========================================================================== */
-#deck-customization.story-deck-mode #start-game {
+#deck-customization.story-deck-mode #start-game,
+#deck-customization.story-deck-mode #upload-deck {
 	display: none !important;
 	visibility: hidden !important;
 	pointer-events: none !important;
@@ -1380,4 +1418,128 @@
 	border-color: #8ce69e !important;
 	box-shadow: 0 0 1.6vw rgba(140, 230, 158, 0.8), inset 0 0 1.2vw rgba(180, 255, 190, 0.45) !important;
 	transform: scale(1.02);
+}
+
+/* ==========================================================================
+   MODERN GAMEPAD VIRTUAL CURSOR FOR CONTINENT MAP
+   ========================================================================== */
+#story-gamepad-cursor {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	width: 48px;
+	height: 48px;
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+	z-index: 9500;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#story-gamepad-cursor.hide {
+	display: none !important;
+}
+
+.story-pad-cursor-ring {
+	position: absolute;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	border: 2.5px solid rgba(255, 215, 0, 0.85);
+	box-shadow: 0 0 16px rgba(255, 215, 0, 0.65), inset 0 0 10px rgba(255, 215, 0, 0.35);
+	background: radial-gradient(circle, rgba(255, 215, 0, 0.12) 0%, transparent 70%);
+	transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.16s ease, box-shadow 0.16s ease;
+	animation: padCursorRotate 8s infinite linear;
+}
+
+.story-pad-cursor-ring::before,
+.story-pad-cursor-ring::after {
+	content: "";
+	position: absolute;
+	background: #ffd700;
+	box-shadow: 0 0 6px #ffd700;
+}
+
+.story-pad-cursor-ring::before {
+	top: -5px;
+	bottom: -5px;
+	left: 50%;
+	width: 2px;
+	transform: translateX(-50%);
+	background: linear-gradient(180deg, #ffd700 0%, transparent 30%, transparent 70%, #ffd700 100%);
+}
+
+.story-pad-cursor-ring::after {
+	left: -5px;
+	right: -5px;
+	top: 50%;
+	height: 2px;
+	transform: translateY(-50%);
+	background: linear-gradient(90deg, #ffd700 0%, transparent 30%, transparent 70%, #ffd700 100%);
+}
+
+.story-pad-cursor-core {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: #fff8d6;
+	border: 1.5px solid #ffd700;
+	box-shadow: 0 0 10px #ffd700, 0 0 4px #000;
+	transition: transform 0.16s ease, background 0.16s ease;
+}
+
+/* Magnetic Target Lock State when hovering a Node or Button */
+#story-gamepad-cursor.target-locked .story-pad-cursor-ring {
+	transform: scale(1.32);
+	border-color: #2ecc71;
+	box-shadow: 0 0 24px rgba(46, 204, 113, 0.95), inset 0 0 14px rgba(46, 204, 113, 0.45);
+	background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
+}
+
+#story-gamepad-cursor.target-locked .story-pad-cursor-core {
+	transform: scale(1.35);
+	background: #2ecc71;
+	border-color: #fff;
+	box-shadow: 0 0 12px #2ecc71;
+}
+
+.story-pad-cursor-label {
+	position: absolute;
+	top: -34px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(10, 8, 6, 0.95);
+	border: 1.5px solid #ffd700;
+	color: #fff;
+	font-size: 0.76rem;
+	font-weight: bold;
+	padding: 3px 10px;
+	border-radius: 12px;
+	white-space: nowrap;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.story-pad-cursor-label.hide {
+	display: none !important;
+}
+
+.story-hud-btn.gamepad-hover,
+.story-filter-btn.gamepad-hover,
+.story-map-control-btn.gamepad-hover {
+	border-color: #2ecc71 !important;
+	box-shadow: 0 0 16px rgba(46, 204, 113, 0.85) !important;
+	transform: scale(1.06);
+}
+
+@keyframes padCursorRotate {
+	0% {
+		transform: rotate(0deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
 }

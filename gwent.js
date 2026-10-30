@@ -1627,6 +1627,10 @@ class Game {
 	
 	// Sets initializes player abilities, player hands and redraw
 	async startGame() {
+		const mainEl = document.querySelector("main");
+		if (mainEl) mainEl.classList.remove("hide");
+		const endScr = document.getElementById("end-screen");
+		if (endScr) endScr.classList.add("hide");
 		this.playerMeSpiesPlayed = 0;
 		EventManager.gameOpened.dispatch();
 		this.initPlayers(player_me, player_op);
@@ -1976,9 +1980,21 @@ class Game {
 			if (storyReturnBtn) {
 				storyReturnBtn.classList.remove("hide");
 				storyReturnBtn.style.display = "block";
-				storyReturnBtn.onclick = () => {
-					StoryMode.returnFromMatchToMap();
-				};
+				const match = StoryMode.activeMatch;
+				const wonMatch = (player_op.health === 0 && player_me.health > 0);
+				if (match && match.isTournament && wonMatch && match.roundIndex < (match.node.rounds.length - 1)) {
+					const nextR = match.roundIndex + 1;
+					const totalR = match.node.rounds.length;
+					storyReturnBtn.textContent = `⚔ Avançar para Batalha ${nextR + 1}/${totalR}`;
+					storyReturnBtn.onclick = () => {
+						StoryMode.advanceToNextTournamentMatch(match.nodeId, nextR);
+					};
+				} else {
+					storyReturnBtn.textContent = "Retornar ao Mapa do Continente";
+					storyReturnBtn.onclick = () => {
+						StoryMode.returnFromMatchToMap();
+					};
+				}
 			}
 		} else {
 			if (this.customize_elem) this.customize_elem.style.display = "";
@@ -2012,6 +2028,7 @@ class Game {
 			}
 		};
 		if (isStory) {
+			const isTourney = StoryMode.activeMatch && StoryMode.activeMatch.isTournament;
 			ui.popup(
 				"Continuar Partida", restoreBoardInteraction,
 				"Retornar ao Mapa", ()=>{
@@ -2019,10 +2036,16 @@ class Game {
 						VersusMode.stopAllTimers();
 						VersusMode.hideTurnHUD();
 					}
-					StoryMode.returnFromMatchToMap();
+					if (typeof StoryMode.onMatchAbandoned === "function") {
+						StoryMode.onMatchAbandoned();
+					} else {
+						StoryMode.returnFromMatchToMap();
+					}
 				},
 				"Abandonar Partida?", 
-				"Deseja sair do confronto e retornar ao Mapa da Campanha? A partida será considerada uma derrota."
+				isTourney
+					? "Deseja abandonar o torneio e retornar ao Mapa? O progresso atual do torneio será reiniciado da 1ª batalha."
+					: "Deseja sair do confronto e retornar ao Mapa da Campanha? A partida será considerada uma derrota."
 			);
 			return;
 		}
@@ -3558,9 +3581,18 @@ class DeckMaker {
 		if (warning != "")
 		{
 			AudioManager.playSFX("warning");
-			return alert(warning);
+			if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+				MenuController.showAlert(warning.trim(), "BARALHO INCOMPLETO", "⚠️");
+			} else {
+				alert(warning);
+			}
+			return;
 		}
 		
+		if (typeof game !== "undefined" && typeof game.reset === "function") {
+			game.reset();
+		}
+
 		const me_deck = { 
 			faction: this.faction,
 			leader: card_dict[this.leader.index], 
@@ -3572,6 +3604,8 @@ class DeckMaker {
 		player_op = new Player(1, (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Opponent", op_deck);
 		
 		this.elem.classList.add("hide");
+		const mainEl = document.querySelector("main");
+		if (mainEl) mainEl.classList.remove("hide");
 		game.startGame();
 	}
 
@@ -3660,6 +3694,9 @@ class DeckMaker {
 	
 	// Called by the client to upload a JSON file representing a new deck
 	uploadPlayerDeck() {
+		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) {
+			return;
+		}
 		this.uploadDeck("add-file", deck => this.loadPlayerDeck(deck, false));
 	}
 
@@ -3677,12 +3714,16 @@ class DeckMaker {
 			return deck;
 		} catch (e) {
 			AudioManager.playSFX('warning');
-			alert((typeof I18N !== "undefined") ? I18N.t("err_deck_parse") : "Uploaded deck is not parsable!");
+			if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+				MenuController.showAlert((typeof I18N !== "undefined") ? I18N.t("err_deck_parse") : "Uploaded deck is not parsable!", "ERRO NO ARQUIVO", "⚠️");
+			} else {
+				alert((typeof I18N !== "undefined") ? I18N.t("err_deck_parse") : "Uploaded deck is not parsable!");
+			}
 			return;
 		}
 	}
 
-	loadDeck(deck, siilent = true)
+	loadDeck(deck, silent = true)
 	{
 		if (!deck)
 			return null;
@@ -3704,7 +3745,7 @@ class DeckMaker {
 				return false;
 			}
 			if (card.count < c[1]) {
-				warning += "Deck contains " + c[1] + "/" + card.count + " available " + card_dict[c.index].name + " cards\n";
+				warning += "Deck contains " + c[1] + "/" + card.count + " available " + (card_dict[c[0]] ? card_dict[c[0]].name : "") + " cards\n";
 				c[1] = card.count;
 				return true;
 			}
@@ -3719,9 +3760,8 @@ class DeckMaker {
 				return null;
 			}
 			AudioManager.playSFX('warning');
-			if (confirm(warning + "\n\n" + ((typeof I18N !== "undefined") ? I18N.t("confirm_import_deck") : "Continue importing deck?")))
-			{
-				return null;
+			if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+				MenuController.showAlert(warning.trim(), "AVISO DE IMPORTAÇÃO", "⚠️");
 			}
 		}
 		return {faction: deck.faction, leader: deck.leader, cards: cards};

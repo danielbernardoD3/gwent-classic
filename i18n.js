@@ -67,12 +67,9 @@ const I18N = {
 			credits_cdpr_title: "CD Projekt Red",
 			credits_cdpr_role: "Original Creator of Gwent & The Witcher 3: Wild Hunt",
 			credits_cdpr_desc: "For envisioning the incredible world of Geralt of Rivia and creating the timeless mini-game that captivated millions of players worldwide.",
-			credits_arun_title: "Arun Sundaram",
-			credits_arun_role: "Web Remake Author (arunsundaram.com)",
-			credits_arun_desc: "For painstakingly implementing the full Gwent game logic, AI, card databases and animations for modern web browsers.",
-			credits_creator_title: "Desktop Project Creator",
-			credits_creator_role: "Desktop Edition, Native Launcher & Expansions",
-			credits_creator_desc: "For taking this project further: reverse engineering the web bundle, building the native offline Windows executable, adding the offline Witcher 3 OST jukebox, creating the main menu, AI difficulty levels and multi-language support.",
+			credits_creator_title: "Daniel Bernardo",
+			credits_creator_role: "Project Creator & Lead Developer",
+			credits_creator_desc: "Creator of Gwent Classic Edition: full Story Mode across the Continent, Regional Tournaments & Insignias, PvP Versus Mode, full Gamepad support, Jukebox OST, Achievements, AI difficulty levels and multi-language localization.",
 
 			// Board & Tooltips
 			player_name: "Geralt",
@@ -340,12 +337,9 @@ const I18N = {
 			credits_cdpr_title: "CD Projekt Red",
 			credits_cdpr_role: "Criadora Original de Gwent & The Witcher 3: Wild Hunt",
 			credits_cdpr_desc: "Por conceber o lendário universo de Geralt de Rívia e criar este clássico minigame de cartas que conquistou milhões de jogadores ao redor do mundo.",
-			credits_arun_title: "Arun Sundaram",
-			credits_arun_role: "Autor do Remake Web (arunsundaram.com)",
-			credits_arun_desc: "Pela brilhante recriação da lógica de regras, IA de cartas e animações do Gwent em HTML/JS para navegadores.",
-			credits_creator_title: "Criador do Projeto Desktop",
-			credits_creator_role: "Edição Executável, Launcher Nativo & Expansões",
-			credits_creator_desc: "Por fazer este projeto ir além: engenharia reversa do pacote web, criação do executável nativo offline (.exe) para Windows, implementação da trilha sonora offline (Jukebox), criação do Menu Principal, seletor de dificuldade da IA e suporte a múltiplos idiomas.",
+			credits_creator_title: "Daniel Bernardo",
+			credits_creator_role: "Criador do Projeto & Desenvolvedor Principal",
+			credits_creator_desc: "Idealizador e desenvolvedor da edição Gwent Classic: Modo História completo pelo Continente, Torneios Regionais e Insígnias, Modo Versus PvP, suporte completo a Gamepad, trilha sonora offline (Jukebox), sistema de Conquistas, níveis de dificuldade de IA e múltiplos idiomas.",
 
 			// Board & Tooltips
 			player_name: "Geralt",
@@ -612,12 +606,9 @@ const I18N = {
 			credits_cdpr_title: "CD Projekt Red",
 			credits_cdpr_role: "Creadores originales de Gwent & The Witcher 3: Wild Hunt",
 			credits_cdpr_desc: "Por dar vida al increíble mundo de Geralt de Rivia y crear el inolvidable minijuego de cartas.",
-			credits_arun_title: "Arun Sundaram",
-			credits_arun_role: "Autor del Remake Web (arunsundaram.com)",
-			credits_arun_desc: "Por programar la lógica del juego, inteligencia artificial y animaciones en navegadores.",
-			credits_creator_title: "Creador del Proyecto Desktop",
-			credits_creator_role: "Edición Ejecutable, Launcher y Expansiones",
-			credits_creator_desc: "Por llevar el proyecto más allá: ingeniería inversa, ejecutable nativo offline, Jukebox con música original, menú principal, selector de dificultad y soporte multilingüe.",
+			credits_creator_title: "Daniel Bernardo",
+			credits_creator_role: "Creador del Proyecto y Desarrollador Principal",
+			credits_creator_desc: "Creador de Gwent Classic Edition: Modo Historia por el Continente, Torneos Regionales e Insignias, Modo Versus PvP, soporte completo de mando, Jukebox con música original, Logros, niveles de dificultad y soporte multilingüe.",
 
 			// Board & Tooltips
 			player_name: "Geralt",
@@ -884,12 +875,9 @@ const I18N = {
 			credits_cdpr_title: "CD Projekt Red",
 			credits_cdpr_role: "Twórcy Gwinta i Wiedźmina 3: Dziki Gon",
 			credits_cdpr_desc: "Za stworzenie legendarnego uniwersum wiedźmińskiego i genialnej karcianki Gwint.",
-			credits_arun_title: "Arun Sundaram",
-			credits_arun_role: "Autor Web Remake (arunsundaram.com)",
-			credits_arun_desc: "Za wierne odtworzenie logiki gry, SI i mechaniki Gwinta w przeglądarce.",
-			credits_creator_title: "Twórca Wersji Desktop",
-			credits_creator_role: "Wersja Wykonywalna, Launcher i Rozszerzenia",
-			credits_creator_desc: "Za rozwinięcie projektu: inżynierię wsteczną, samodzielny plik .exe, szafę grającą z muzyką offline, menu główne, poziomy trudności i lokalizację.",
+			credits_creator_title: "Daniel Bernardo",
+			credits_creator_role: "Twórca Projektu i Główny Programista",
+			credits_creator_desc: "Twórca edycji Gwent Classic: pełny Tryb Opowieści na Kontynencie, Regionalne Turnieje i Insygnia, Tryb Versus PvP, pełna obsługa kontrolera, szafa grająca z muzyką offline, Osiągnięcia, poziomy trudności i lokalizacja.",
 
 			// Board & Tooltips
 			player_name: "Geralt",

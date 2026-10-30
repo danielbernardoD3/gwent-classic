@@ -31,8 +31,17 @@ const GamepadManager = {
 		menuSettingsRow: 0,
 		menuAchTab: 0,
 		endScreenBtnIndex: 1, // default Rematch
-		popupBtnIndex: 0
+		popupBtnIndex: 0,
+		storyModalBtnIndex: 0,
+		storySetupFactionIndex: 0,
+		storySetupBtnIndex: 1
 	},
+
+	// Story Map Modern Virtual Cursor State
+	mapCursorX: 0,
+	mapCursorY: 0,
+	mapCursorInitialized: false,
+	hoveredMapTarget: null,
 
 	// Currently focused DOM element
 	currentFocusedElem: null,
@@ -108,9 +117,19 @@ const GamepadManager = {
 		}
 		if (!active) {
 			this.clearFocus();
+			this.hideMapCursor();
 		} else {
 			this.lastActiveTime = Date.now();
 			this.refreshFocus();
+		}
+	},
+
+	hideMapCursor() {
+		const cursorEl = document.getElementById("story-gamepad-cursor");
+		if (cursorEl) cursorEl.classList.add("hide");
+		if (this.hoveredMapTarget) {
+			this.hoveredMapTarget.classList.remove("gamepad-hover");
+			this.hoveredMapTarget = null;
 		}
 	},
 
@@ -139,11 +158,33 @@ const GamepadManager = {
 
 	// Identifies the active screen context
 	getContext() {
+		const ingameDialog = document.getElementById("ingame-dialog-modal");
+		if (ingameDialog && !ingameDialog.classList.contains("hide")) return "INGAME_DIALOG";
+
 		const popup = document.getElementById("popup");
 		if (popup && !popup.classList.contains("hide")) return "POPUP";
 
 		const carousel = document.getElementById("carousel");
 		if (carousel && !carousel.classList.contains("hide")) return "CAROUSEL";
+
+		// Story Outcome Modal (renders above end-screen and match board)
+		const outcomeModal = document.getElementById("story-outcome-modal");
+		if (outcomeModal && !outcomeModal.classList.contains("hide")) return "STORY_MODAL";
+
+		// Any open Story Modal (Battle, Tournament, Shop, Compendium)
+		const storyModals = ["story-battle-modal", "story-tournament-modal", "story-shop-modal", "story-compendium-modal"];
+		for (const id of storyModals) {
+			const m = document.getElementById(id);
+			if (m && !m.classList.contains("hide")) return "STORY_MODAL";
+		}
+
+		// Story New Campaign Setup Screen
+		const setupView = document.getElementById("story-setup-view");
+		if (setupView && !setupView.classList.contains("hide")) return "STORY_SETUP";
+
+		// Story Continent Map Screen
+		const mapScreen = document.getElementById("story-map-screen");
+		if (mapScreen && !mapScreen.classList.contains("hide")) return "STORY_MAP";
 
 		const endScreen = document.getElementById("end-screen");
 		if (endScreen && !endScreen.classList.contains("hide")) return "END_SCREEN";
@@ -189,7 +230,7 @@ const GamepadManager = {
 		if (!pad) return;
 
 		// Button mappings (Standard Gamepad)
-		// 0: A, 1: B, 2: X, 3: Y, 4: LB, 5: RB, 8: Back, 9: Start, 12: Up, 13: Down, 14: Left, 15: Right
+		// 0: A, 1: B, 2: X, 3: Y, 4: LB, 5: RB, 6: LT, 7: RT, 8: Back, 9: Start, 12: Up, 13: Down, 14: Left, 15: Right
 		const b = pad.buttons;
 		const a = pad.axes;
 
@@ -198,8 +239,9 @@ const GamepadManager = {
 		const stickRight = (a[0] > 0.5);
 		const stickUp = (a[1] < -0.5);
 		const stickDown = (a[1] > 0.5);
+		const rStickMoved = (Math.abs(a[2] || 0) > 0.2 || Math.abs(a[3] || 0) > 0.2);
 
-		const isPressed = (idx) => (b[idx] && b[idx].pressed);
+		const isPressed = (idx) => !!(b[idx] && (b[idx].pressed || b[idx].value > 0.35));
 
 		const dUp = isPressed(12) || stickUp;
 		const dDown = isPressed(13) || stickDown;
@@ -212,10 +254,13 @@ const GamepadManager = {
 		const btnY = isPressed(3);
 		const btnLB = isPressed(4);
 		const btnRB = isPressed(5);
+		const btnLT = isPressed(6);
+		const btnRT = isPressed(7);
 		const btnStart = isPressed(9);
 
 		// Check if any controller input occurred
-		const anyAction = dUp || dDown || dLeft || dRight || btnA || btnB || btnX || btnY || btnLB || btnRB || btnStart;
+		const anyStick = (Math.abs(a[0] || 0) > 0.18 || Math.abs(a[1] || 0) > 0.18 || rStickMoved);
+		const anyAction = dUp || dDown || dLeft || dRight || anyStick || btnA || btnB || btnX || btnY || btnLB || btnRB || btnLT || btnRT || btnStart;
 		if (anyAction) {
 			if (!this.active) {
 				this.setGamepadActive(true);
@@ -228,13 +273,22 @@ const GamepadManager = {
 		const context = this.getContext();
 		this.updateHUD(context);
 
+		// Continuous analog cursor & map pan/zoom when in STORY_MAP
+		if (context === "STORY_MAP") {
+			this.updateStoryMapCursor(pad);
+		} else {
+			this.hideMapCursor();
+		}
+
 		// Handle Directional inputs with repeat curve (260ms initial delay, 110ms repeat)
 		const now = performance.now();
 		let activeDir = null;
-		if (dUp) activeDir = "up";
-		else if (dDown) activeDir = "down";
-		else if (dLeft) activeDir = "left";
-		else if (dRight) activeDir = "right";
+		if (context !== "STORY_MAP") {
+			if (dUp) activeDir = "up";
+			else if (dDown) activeDir = "down";
+			else if (dLeft) activeDir = "left";
+			else if (dRight) activeDir = "right";
+		}
 
 		if (activeDir) {
 			if (this.repeatDir !== activeDir) {
@@ -301,6 +355,9 @@ const GamepadManager = {
 
 	handleDirection(dir, context) {
 		switch (context) {
+			case "INGAME_DIALOG":
+				this.navInGameDialog(dir);
+				break;
 			case "POPUP":
 				this.navPopup(dir);
 				break;
@@ -334,11 +391,103 @@ const GamepadManager = {
 			case "MATCH_TARGETING":
 				this.navMatchTargeting(dir);
 				break;
+			case "STORY_MODAL":
+				this.navStoryModal(dir);
+				break;
+			case "STORY_SETUP":
+				this.navStorySetup(dir);
+				break;
 		}
 	},
 
 	handleAction(action, context) {
 		switch (context) {
+			case "INGAME_DIALOG": {
+				const confirmBtn = document.getElementById("ingame-dialog-confirm-btn");
+				const cancelBtn = document.getElementById("ingame-dialog-cancel-btn");
+				const hasCancel = cancelBtn && !cancelBtn.classList.contains("hide");
+				if (action === "A" || action === "Start") {
+					if (this.currentFocusedElem && (this.currentFocusedElem === confirmBtn || (hasCancel && this.currentFocusedElem === cancelBtn))) {
+						this.currentFocusedElem.click();
+					} else if (confirmBtn) {
+						confirmBtn.click();
+					}
+					setTimeout(() => this.refreshFocus(), 50);
+				} else if (action === "B") {
+					if (hasCancel) {
+						cancelBtn.click();
+					} else if (confirmBtn) {
+						confirmBtn.click();
+					}
+					setTimeout(() => this.refreshFocus(), 50);
+				}
+				break;
+			}
+
+			case "STORY_MAP":
+				if (action === "A") {
+					if (this.hoveredMapTarget) {
+						this.hoveredMapTarget.click();
+					}
+				} else if (action === "X") {
+					if (typeof StoryMode !== "undefined") StoryMode.openCampaignDeckBuilder();
+				} else if (action === "Y") {
+					if (typeof StoryMode !== "undefined") StoryMode.openCompendiumModal("all", "all");
+				} else if (action === "LB") {
+					if (typeof StoryMode !== "undefined") {
+						StoryMode.focusCurrentNode();
+						this.mapCursorX = window.innerWidth / 2;
+						this.mapCursorY = window.innerHeight / 2;
+					}
+				} else if (action === "RB") {
+					if (typeof StoryMode !== "undefined") StoryMode.resetMapToContinent();
+				} else if (action === "B" || action === "Start") {
+					if (typeof StoryMode !== "undefined") StoryMode.closeMapToMenu();
+				}
+				break;
+
+			case "STORY_MODAL": {
+				const outcomeModal = document.getElementById("story-outcome-modal");
+				const isOutcome = outcomeModal && !outcomeModal.classList.contains("hide");
+				if (action === "A") {
+					if (this.currentFocusedElem) {
+						this.currentFocusedElem.click();
+					} else if (isOutcome) {
+						const actBtn = document.getElementById("story-outcome-action-btn");
+						if (actBtn) actBtn.click();
+					}
+					setTimeout(() => this.refreshFocus(), 60);
+				} else if (action === "B") {
+					if (isOutcome) {
+						const actBtn = document.getElementById("story-outcome-action-btn");
+						if (actBtn) actBtn.click();
+					} else if (typeof StoryMode !== "undefined") {
+						StoryMode.closeAllModals();
+					}
+				}
+				break;
+			}
+
+			case "STORY_SETUP":
+				if (action === "A") {
+					if (this.currentFocusedElem) {
+						this.currentFocusedElem.click();
+					} else if (typeof StoryMode !== "undefined") {
+						StoryMode.confirmStartCampaign();
+					}
+				} else if (action === "Start") {
+					if (typeof StoryMode !== "undefined") StoryMode.confirmStartCampaign();
+				} else if (action === "LB") {
+					this.cycleStorySetupFaction(-1);
+				} else if (action === "RB") {
+					this.cycleStorySetupFaction(1);
+				} else if (action === "B") {
+					const setupView = document.getElementById("story-setup-view");
+					if (setupView) setupView.classList.add("hide");
+					if (typeof MenuController !== "undefined") MenuController.returnToMainMenu();
+				}
+				break;
+
 			case "POPUP":
 				if (action === "A") {
 					if (this.currentFocusedElem) this.currentFocusedElem.click();
@@ -517,6 +666,21 @@ const GamepadManager = {
 	// Context Navigation Implementations
 	// -------------------------------------------------------------
 
+	// 0. In-Game Dialog Modal Navigation
+	navInGameDialog(dir) {
+		const btns = Array.from(document.querySelectorAll("#ingame-dialog-modal .ingame-dialog-btn:not(.hide)"));
+		if (btns.length === 0) return;
+		if (btns.length === 1) {
+			this.setFocus(btns[0]);
+			return;
+		}
+		if (dir === "left" || dir === "up") {
+			this.setFocus(btns[0]);
+		} else if (dir === "right" || dir === "down") {
+			this.setFocus(btns[btns.length - 1]);
+		}
+	},
+
 	// 1. Popup Dialog Navigation
 	navPopup(dir) {
 		const buttons = Array.from(document.querySelectorAll("#popup button"));
@@ -657,13 +821,14 @@ const GamepadManager = {
 	},
 
 	navDeckCustomization(dir) {
+		const isStoryDeck = (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign);
 		const topItems = [
-			document.getElementById("btn-back-to-menu"),
-			document.getElementById("upload-deck"),
+			isStoryDeck ? document.getElementById("btn-story-back-to-map") : document.getElementById("btn-back-to-menu"),
+			isStoryDeck ? null : document.getElementById("upload-deck"),
 			document.getElementById("change-faction"),
 			document.getElementById("download-deck"),
-			document.getElementById("start-game")
-		].filter(Boolean);
+			isStoryDeck ? document.getElementById("btn-story-deck-confirm") : document.getElementById("start-game")
+		].filter(el => el && !el.classList.contains("hide") && el.offsetParent !== null);
 
 		if (this.navState.deckPanel === "top") {
 			if (dir === "left") {
@@ -684,7 +849,7 @@ const GamepadManager = {
 		if (cards.length === 0) {
 			if (dir === "up") {
 				this.navState.deckPanel = "top";
-				this.setFocus(topItems[0]);
+				if (topItems.length > 0) this.setFocus(topItems[0]);
 			}
 			return;
 		}
@@ -714,8 +879,10 @@ const GamepadManager = {
 			if (idx < cols) {
 				// Jump to top controls
 				this.navState.deckPanel = "top";
-				this.navState.deckTopIndex = (panelId === "card-bank") ? 0 : 4;
-				this.setFocus(topItems[this.navState.deckTopIndex]);
+				this.navState.deckTopIndex = (panelId === "card-bank") ? 0 : Math.max(0, topItems.length - 1);
+				if (topItems[this.navState.deckTopIndex]) {
+					this.setFocus(topItems[this.navState.deckTopIndex]);
+				}
 				return;
 			}
 			idx = Math.max(0, idx - cols);
@@ -729,14 +896,31 @@ const GamepadManager = {
 		this.setFocus(cards[idx]);
 	},
 
-	// 10. Match Hand Navigation
-	navMatchHand(dir) {
-		if (typeof player_me === "undefined" || !player_me || !player_me.hand || !player_me.hand.cards) return;
-		const cards = player_me.hand.cards;
-		if (cards.length === 0) return;
+	// Helper: Returns the player's hand card DOM elements sorted strictly left-to-right on screen
+	getOrderedHandCardElems() {
+		const handRow = document.getElementById("hand-row");
+		if (!handRow) return [];
+		const elems = Array.from(handRow.querySelectorAll(".card:not(.hide)"));
+		elems.sort((a, b) => {
+			const ra = a.getBoundingClientRect();
+			const rb = b.getBoundingClientRect();
+			if (Math.abs(ra.left - rb.left) > 1) {
+				return ra.left - rb.left;
+			}
+			return 0;
+		});
+		return elems;
+	},
 
-		let idx = this.navState.matchHandIndex;
-		idx = Math.max(0, Math.min(cards.length - 1, idx));
+	// 10. Match Hand Navigation (Strictly follows visual left-to-right sequence)
+	navMatchHand(dir) {
+		const cardElems = this.getOrderedHandCardElems();
+		if (cardElems.length === 0) return;
+
+		let idx = cardElems.indexOf(this.currentFocusedElem);
+		if (idx === -1) {
+			idx = Math.max(0, Math.min(cardElems.length - 1, this.navState.matchHandIndex || 0));
+		}
 
 		const passBtn = document.getElementById("pass-button");
 		const leaderMe = document.getElementById("leader-me");
@@ -745,7 +929,7 @@ const GamepadManager = {
 		if (this.currentFocusedElem === passBtn || (leaderMe && leaderMe.contains(this.currentFocusedElem))) {
 			if (dir === "down") {
 				// Return focus to active hand card
-				this.setFocus(cards[idx].elem);
+				this.setFocus(cardElems[idx]);
 				return;
 			} else if (dir === "left" && this.currentFocusedElem === passBtn) {
 				if (leaderMe && !leaderMe.classList.contains("noclick")) {
@@ -764,7 +948,7 @@ const GamepadManager = {
 		if (dir === "left") {
 			idx = Math.max(0, idx - 1);
 		} else if (dir === "right") {
-			idx = Math.min(cards.length - 1, idx + 1);
+			idx = Math.min(cardElems.length - 1, idx + 1);
 		} else if (dir === "up") {
 			// Move focus up to Pass button or Leader
 			if (passBtn && !passBtn.classList.contains("noclick")) {
@@ -782,9 +966,8 @@ const GamepadManager = {
 		}
 
 		this.navState.matchHandIndex = idx;
-		const card = cards[idx];
-		if (card && card.elem) {
-			this.setFocus(card.elem);
+		if (cardElems[idx]) {
+			this.setFocus(cardElems[idx]);
 		}
 	},
 
@@ -806,9 +989,241 @@ const GamepadManager = {
 		this.setFocus(selectables[idx]);
 	},
 
+	// 12. Story Map Modern Virtual Cursor, Edge Panning & Magnetic Node Targeting
+	updateStoryMapCursor(pad) {
+		const cursorEl = document.getElementById("story-gamepad-cursor");
+		if (!cursorEl) return;
+
+		if (!this.mapCursorInitialized || this.mapCursorX <= 0 || this.mapCursorY <= 0) {
+			this.mapCursorX = window.innerWidth / 2;
+			this.mapCursorY = window.innerHeight / 2;
+			this.mapCursorInitialized = true;
+		}
+
+		cursorEl.classList.remove("hide");
+
+		const a = pad.axes || [0, 0, 0, 0];
+		const b = pad.buttons || [];
+		const isPressed = (idx) => !!(b[idx] && (b[idx].pressed || b[idx].value > 0.35));
+
+		// Left Stick + D-Pad movement for virtual cursor
+		let vx = (Math.abs(a[0] || 0) > 0.16) ? a[0] : 0;
+		let vy = (Math.abs(a[1] || 0) > 0.16) ? a[1] : 0;
+		if (isPressed(14)) vx = -0.85;
+		if (isPressed(15)) vx = 0.85;
+		if (isPressed(12)) vy = -0.85;
+		if (isPressed(13)) vy = 0.85;
+
+		// Magnetic slowdown when hovering over a pin so selecting nodes feels effortless
+		const speedFactor = this.hoveredMapTarget ? 6.5 : 11.5;
+		this.mapCursorX += vx * speedFactor;
+		this.mapCursorY += vy * speedFactor;
+
+		const vW = window.innerWidth;
+		const vH = window.innerHeight;
+		const margin = 16;
+		this.mapCursorX = Math.max(margin, Math.min(vW - margin, this.mapCursorX));
+		this.mapCursorY = Math.max(margin, Math.min(vH - margin, this.mapCursorY));
+
+		cursorEl.style.left = `${this.mapCursorX}px`;
+		cursorEl.style.top = `${this.mapCursorY}px`;
+
+		// Automatic Edge Panning when cursor pushes near viewport edges
+		if (typeof StoryMode !== "undefined") {
+			let panned = false;
+			const edgeZone = 85;
+			const edgePanSpeed = 12;
+
+			if (this.mapCursorX < edgeZone && vx < -0.1) {
+				StoryMode.mapPanX += edgePanSpeed * Math.abs(vx);
+				panned = true;
+			} else if (this.mapCursorX > vW - edgeZone && vx > 0.1) {
+				StoryMode.mapPanX -= edgePanSpeed * Math.abs(vx);
+				panned = true;
+			}
+
+			if (this.mapCursorY < edgeZone + 60 && vy < -0.1) {
+				StoryMode.mapPanY += edgePanSpeed * Math.abs(vy);
+				panned = true;
+			} else if (this.mapCursorY > vH - edgeZone && vy > 0.1) {
+				StoryMode.mapPanY -= edgePanSpeed * Math.abs(vy);
+				panned = true;
+			}
+
+			// Right Stick direct map camera panning
+			const rx = (Math.abs(a[2] || 0) > 0.18) ? a[2] : 0;
+			const ry = (Math.abs(a[3] || 0) > 0.18) ? a[3] : 0;
+			if (rx !== 0 || ry !== 0) {
+				StoryMode.mapPanX -= rx * 15;
+				StoryMode.mapPanY -= ry * 15;
+				panned = true;
+			}
+
+			if (panned) {
+				StoryMode.clampPan();
+				StoryMode.applyMapTransform();
+			}
+
+			// LT (6) / RT (7) smooth zoom centered on the virtual cursor
+			const ltVal = b[6] ? (b[6].value || (b[6].pressed ? 1 : 0)) : 0;
+			const rtVal = b[7] ? (b[7].value || (b[7].pressed ? 1 : 0)) : 0;
+			if (rtVal > 0.15) {
+				StoryMode.zoomMap(0.022 * rtVal, this.mapCursorX, this.mapCursorY);
+			} else if (ltVal > 0.15) {
+				StoryMode.zoomMap(-0.022 * ltVal, this.mapCursorX, this.mapCursorY);
+			}
+		}
+
+		// Magnetic hit detection against map nodes and HUD/filter buttons
+		let bestTarget = null;
+		let bestDist = 42; // 42px magnetic capture radius for pins
+
+		const pins = document.querySelectorAll("#story-map-nodes-layer .story-map-pin");
+		pins.forEach(pin => {
+			if (pin.offsetParent === null) return; // hidden by filter
+			const r = pin.getBoundingClientRect();
+			const cx = r.left + r.width / 2;
+			const cy = r.top + r.height / 2;
+			const dist = Math.hypot(this.mapCursorX - cx, this.mapCursorY - cy);
+			if (dist < bestDist) {
+				bestDist = dist;
+				bestTarget = pin;
+			}
+		});
+
+		if (!bestTarget) {
+			const uiBtns = document.querySelectorAll("#story-map-screen .story-hud-btn, #story-map-screen .story-filter-btn, #story-map-screen .story-map-control-btn");
+			uiBtns.forEach(btn => {
+				if (btn.offsetParent === null) return;
+				const r = btn.getBoundingClientRect();
+				if (this.mapCursorX >= r.left - 6 && this.mapCursorX <= r.right + 6 &&
+					this.mapCursorY >= r.top - 6 && this.mapCursorY <= r.bottom + 6) {
+					bestTarget = btn;
+				}
+			});
+		}
+
+		const labelEl = document.getElementById("story-gamepad-cursor-label");
+
+		if (this.hoveredMapTarget !== bestTarget) {
+			if (this.hoveredMapTarget) {
+				this.hoveredMapTarget.classList.remove("gamepad-hover");
+			}
+			this.hoveredMapTarget = bestTarget;
+			if (bestTarget) {
+				bestTarget.classList.add("gamepad-hover");
+				cursorEl.classList.add("target-locked");
+				if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+					AudioManager.playSFX("witcher_hover");
+				}
+			} else {
+				cursorEl.classList.remove("target-locked");
+			}
+		}
+
+		if (labelEl) {
+			if (bestTarget && bestTarget.classList.contains("story-map-pin")) {
+				const isLocked = bestTarget.classList.contains("locked");
+				labelEl.textContent = isLocked ? "🔒 Local Bloqueado" : "🅰 Abrir Local";
+				labelEl.classList.remove("hide");
+			} else if (bestTarget) {
+				labelEl.textContent = "🅰 Selecionar";
+				labelEl.classList.remove("hide");
+			} else {
+				labelEl.classList.add("hide");
+			}
+		}
+	},
+
+	// 13. Story Modal Navigation (Battle, Tournament, Shop, Compendium, Outcome)
+	getActiveStoryModalButtons() {
+		const modalIds = ["story-outcome-modal", "story-battle-modal", "story-tournament-modal", "story-shop-modal", "story-compendium-modal"];
+		for (const id of modalIds) {
+			const m = document.getElementById(id);
+			if (m && !m.classList.contains("hide")) {
+				return Array.from(m.querySelectorAll("button:not([disabled]):not(.hide)")).filter(b => b.offsetParent !== null);
+			}
+		}
+		return [];
+	},
+
+	navStoryModal(dir) {
+		const btns = this.getActiveStoryModalButtons();
+		if (btns.length === 0) return;
+
+		// Scroll compendium grid or tournament list if open
+		const compModal = document.getElementById("story-compendium-modal");
+		if (compModal && !compModal.classList.contains("hide")) {
+			const grid = document.getElementById("story-comp-cards-grid");
+			if (grid && (dir === "up" || dir === "down")) {
+				grid.scrollTop += (dir === "down" ? 90 : -90);
+			}
+		}
+
+		let idx = btns.indexOf(this.currentFocusedElem);
+		if (idx === -1) idx = Math.min(btns.length - 1, this.navState.storyModalBtnIndex || 0);
+
+		if (dir === "left" || dir === "up") {
+			idx = (idx - 1 + btns.length) % btns.length;
+		} else if (dir === "right" || dir === "down") {
+			idx = (idx + 1) % btns.length;
+		}
+
+		this.navState.storyModalBtnIndex = idx;
+		this.setFocus(btns[idx]);
+	},
+
+	// 14. Story New Campaign Setup Navigation
+	cycleStorySetupFaction(delta) {
+		const opts = Array.from(document.querySelectorAll("#story-setup-view .story-faction-opt"));
+		if (opts.length === 0) return;
+		let curr = opts.findIndex(o => o.classList.contains("active"));
+		if (curr === -1) curr = 0;
+		const next = (curr + delta + opts.length) % opts.length;
+		opts[next].click();
+		this.setFocus(opts[next]);
+	},
+
+	navStorySetup(dir) {
+		if (dir === "left") {
+			this.cycleStorySetupFaction(-1);
+		} else if (dir === "right") {
+			this.cycleStorySetupFaction(1);
+		} else if (dir === "up" || dir === "down") {
+			const btns = Array.from(document.querySelectorAll("#story-setup-view button"));
+			if (btns.length > 0) {
+				this.navState.storySetupBtnIndex = (this.navState.storySetupBtnIndex + 1) % btns.length;
+				this.setFocus(btns[this.navState.storySetupBtnIndex]);
+			}
+		}
+	},
+
 	// Applies focus automatically when entering or refreshing a context
 	applyContextFocus(context) {
 		switch (context) {
+			case "INGAME_DIALOG": {
+				const confirmBtn = document.getElementById("ingame-dialog-confirm-btn");
+				if (confirmBtn) this.setFocus(confirmBtn, false);
+				break;
+			}
+			case "STORY_MAP":
+				this.clearFocus();
+				break;
+			case "STORY_MODAL": {
+				const btns = this.getActiveStoryModalButtons();
+				if (btns.length > 0) {
+					this.navState.storyModalBtnIndex = btns.length - 1;
+					this.setFocus(btns[btns.length - 1], false);
+				}
+				break;
+			}
+			case "STORY_SETUP": {
+				const btns = Array.from(document.querySelectorAll("#story-setup-view button"));
+				if (btns.length > 0) {
+					this.setFocus(btns[btns.length - 1], false);
+				}
+				break;
+			}
 			case "POPUP":
 				this.navPopup("left");
 				break;
@@ -846,12 +1261,11 @@ const GamepadManager = {
 				break;
 			}
 			case "MATCH_HAND": {
-				if (typeof player_me !== "undefined" && player_me && player_me.hand && player_me.hand.cards) {
-					const cards = player_me.hand.cards;
-					const idx = Math.max(0, Math.min(cards.length - 1, this.navState.matchHandIndex || 0));
-					if (cards[idx] && cards[idx].elem) {
-						this.setFocus(cards[idx].elem, false);
-					}
+				const cardElems = this.getOrderedHandCardElems();
+				if (cardElems.length > 0) {
+					const idx = Math.max(0, Math.min(cardElems.length - 1, this.navState.matchHandIndex || 0));
+					this.navState.matchHandIndex = idx;
+					this.setFocus(cardElems[idx], false);
 				}
 				break;
 			}
@@ -875,6 +1289,32 @@ const GamepadManager = {
 
 		let items = [];
 		switch (context) {
+			case "STORY_MAP":
+				items = [
+					{ btn: "LS / D-Pad", text: "Mover Cursor" },
+					{ btn: "RS", text: "Mover Mapa" },
+					{ btn: "LT / RT", class: "pad-btn-rect", text: "Zoom" },
+					{ btn: "A", class: "pad-a", text: "Abrir Local" },
+					{ btn: "X", class: "pad-x", text: "Baralho" },
+					{ btn: "Y", class: "pad-y", text: "Coleção" },
+					{ btn: "LB / RB", class: "pad-btn-rect", text: "Focar / Continente" },
+					{ btn: "B", class: "pad-b", text: "Menu" }
+				];
+				break;
+			case "STORY_MODAL":
+				items = [
+					{ btn: "D-Pad / LS", text: "Navegar" },
+					{ btn: "A", class: "pad-a", text: "Confirmar" },
+					{ btn: "B", class: "pad-b", text: "Fechar / Voltar" }
+				];
+				break;
+			case "STORY_SETUP":
+				items = [
+					{ btn: "LB / RB / ◄►", class: "pad-btn-rect", text: "Facção Inicial" },
+					{ btn: "Start / A", class: "pad-a", text: "Iniciar Jornada" },
+					{ btn: "B", class: "pad-b", text: "Voltar" }
+				];
+				break;
 			case "MATCH_HAND":
 				items = [
 					{ btn: "D-Pad / LS", text: t("pad_navigate_hand", "Cards") },

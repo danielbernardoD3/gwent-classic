@@ -72,21 +72,44 @@
 	text-shadow: 1px 2px 5px black;
 }
 
-/* Bottom-Right Menu Panel (Takes 50% width and bottom area, 30% black opacity) */
+/* Version Badge on Main Menu */
+.menu-version-badge {
+	position: absolute;
+	bottom: 2.5vh;
+	left: 3.5vw;
+	z-index: 10002;
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	font-size: clamp(0.8rem, 0.95vw, 1.05rem);
+	font-weight: bold;
+	letter-spacing: 0.12vw;
+	color: #e5c378;
+	background: rgba(12, 10, 8, 0.85);
+	border: 1px solid rgba(197, 151, 59, 0.55);
+	border-left: 3px solid #ffd700;
+	border-radius: 4px;
+	padding: 0.45vh 0.9vw;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+	text-shadow: 0 1px 3px #000;
+	pointer-events: none;
+}
+
+/* Bottom-Right Menu Panel (Improved visibility, framing & spacing for all 8 menu items) */
 .menu-panel-bottom-right {
 	position: absolute;
-	right: 0;
-	bottom: 0;
-	width: 50vw;
-	height: 54vh;
-	min-height: 420px;
-	background: rgba(0, 0, 0, 0.30); /* 30% black opacity filter */
-	backdrop-filter: blur(8px);
-	-webkit-backdrop-filter: blur(8px);
-	border-top: 2px solid rgba(197, 151, 59, 0.45);
-	border-left: 2px solid rgba(197, 151, 59, 0.45);
-	box-shadow: -15px -15px 45px rgba(0, 0, 0, 0.75);
-	padding: 3vh 3.5vw;
+	right: 3.5vw;
+	bottom: 4vh;
+	width: 44vw;
+	max-width: 680px;
+	min-width: 380px;
+	height: auto;
+	max-height: 88vh;
+	background: linear-gradient(160deg, rgba(16, 13, 10, 0.88) 0%, rgba(8, 6, 5, 0.94) 100%);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	border: 1.5px solid rgba(197, 151, 59, 0.65);
+	border-radius: 8px;
+	box-shadow: 0 16px 50px rgba(0, 0, 0, 0.92), 0 0 25px rgba(197, 151, 59, 0.18);
+	padding: 2.4vh 2.6vw;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -98,7 +121,8 @@
 .menu-view {
 	display: none;
 	width: 100%;
-	height: 100%;
+	height: auto;
+	max-height: 82vh;
 	flex-direction: column;
 	justify-content: center;
 	animation: menuFadeIn 0.25s ease-out;
@@ -118,23 +142,24 @@
 	font-size: 1.8vw;
 	color: #e5c378;
 	letter-spacing: 0.2vw;
-	margin: 0 0 2vh 0;
-	border-bottom: 1px solid rgba(197, 151, 59, 0.3);
-	padding-bottom: 0.8vh;
+	margin: 0 0 1.6vh 0;
+	border-bottom: 1px solid rgba(197, 151, 59, 0.35);
+	padding-bottom: 0.7vh;
 	text-shadow: 1px 2px 4px black;
 }
 
 /* Witcher Style Menu Buttons */
 .witcher-menu-btn {
 	font-family: 'WitcherTitle', serif;
-	font-size: 1.3vw;
-	letter-spacing: 0.12vw;
-	color: #e2cca0;
-	background: linear-gradient(90deg, rgba(25, 20, 15, 0.88) 0%, rgba(45, 36, 25, 0.45) 100%);
-	border: 1px solid rgba(197, 151, 59, 0.35);
-	border-left: 5px solid #b88628;
-	padding: 1.3vh 1.8vw;
-	margin-bottom: 1.4vh;
+	font-size: clamp(0.95rem, 1.18vw, 1.32rem);
+	letter-spacing: 0.1vw;
+	color: #f0dec0;
+	background: linear-gradient(90deg, rgba(30, 24, 17, 0.94) 0%, rgba(52, 40, 26, 0.68) 100%);
+	border: 1px solid rgba(197, 151, 59, 0.45);
+	border-left: 5px solid #c5973b;
+	border-radius: 4px;
+	padding: 1.12vh 1.5vw;
+	margin-bottom: 1.0vh;
 	cursor: pointer;
 	text-align: left;
 	display: flex;
@@ -142,6 +167,10 @@
 	transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
 	text-shadow: 1px 2px 3px black;
 	outline: none;
+}
+
+#menu-nav .witcher-menu-btn:last-child {
+	margin-bottom: 0;
 }
 
 .witcher-menu-btn .btn-icon {
@@ -2046,6 +2075,146 @@
 	border-top: 1px solid rgba(166, 124, 51, 0.3) !important;
 	margin-top: 0.6vw !important;
 }
+
+/* GitHub Link in Credits */
+.credit-github-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-family: 'WitcherFont', serif;
+	font-size: 0.88vw;
+	font-weight: bold;
+	color: #ffd700;
+	text-decoration: none;
+	padding: 0.4vh 0.8vw;
+	background: rgba(197, 151, 59, 0.14);
+	border: 1px solid rgba(255, 215, 0, 0.45);
+	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+.credit-github-link:hover {
+	background: rgba(197, 151, 59, 0.3);
+	border-color: #ffd700;
+	color: #ffffff;
+	box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+	transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   IN-GAME DIALOG MODAL (Replaces all browser alert() & confirm() popups)
+   ========================================================================== */
+.ingame-dialog-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 45000;
+	background: rgba(4, 3, 2, 0.82);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	animation: menuFadeIn 0.2s ease-out;
+}
+
+.ingame-dialog-overlay.hide {
+	display: none !important;
+}
+
+.ingame-dialog-box {
+	background: radial-gradient(circle at 50% 0%, #1c1610 0%, #0d0a07 70%, #060504 100%);
+	border: 2px solid #c5a059;
+	border-radius: 8px;
+	box-shadow: 0 18px 55px rgba(0, 0, 0, 0.95), 0 0 30px rgba(197, 160, 89, 0.25), inset 0 0 40px rgba(0, 0, 0, 0.85);
+	max-width: 520px;
+	width: 90%;
+	padding: 26px 32px;
+	color: #f2e5c9;
+	text-align: center;
+	position: relative;
+	box-sizing: border-box;
+}
+
+.ingame-dialog-box::before {
+	content: "";
+	position: absolute;
+	inset: 5px;
+	border: 1px solid rgba(255, 215, 0, 0.2);
+	border-radius: 5px;
+	pointer-events: none;
+}
+
+.ingame-dialog-header {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	margin-bottom: 8px;
+}
+
+.ingame-dialog-icon {
+	font-size: 1.65rem;
+	filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+}
+
+.ingame-dialog-title {
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	font-size: 1.35rem;
+	color: #ffd700;
+	margin: 0;
+	letter-spacing: 1.5px;
+	text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95);
+	text-transform: uppercase;
+}
+
+.ingame-dialog-divider {
+	width: 75%;
+	height: 2px;
+	margin: 10px auto 18px auto;
+	background: linear-gradient(90deg, transparent, #c5a059, transparent);
+}
+
+.ingame-dialog-message {
+	font-family: 'WitcherFont', sans-serif;
+	font-size: 1.02rem;
+	line-height: 1.55;
+	color: #e8dab8;
+	margin: 0 0 24px 0;
+	white-space: pre-line;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.ingame-dialog-actions {
+	display: flex;
+	justify-content: center;
+	gap: 14px;
+}
+
+.ingame-dialog-btn {
+	width: auto !important;
+	min-width: 150px;
+	justify-content: center !important;
+	text-align: center !important;
+	padding: 10px 24px !important;
+	margin-bottom: 0 !important;
+	font-size: 1rem !important;
+	border-radius: 5px !important;
+}
+
+.ingame-dialog-btn.btn-primary {
+	border-color: #ffd700 !important;
+	border-left: 4px solid #ffd700 !important;
+	color: #fff2cc !important;
+	background: linear-gradient(180deg, rgba(65, 48, 22, 0.95) 0%, rgba(32, 23, 10, 0.98) 100%) !important;
+}
+
+.ingame-dialog-btn.btn-secondary {
+	border-color: #7a6a52 !important;
+	border-left: 4px solid #7a6a52 !important;
+	color: #cbbba0 !important;
+	background: rgba(22, 18, 14, 0.9) !important;
+}
+
 
 
 

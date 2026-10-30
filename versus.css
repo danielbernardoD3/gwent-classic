@@ -605,45 +605,51 @@
 	text-shadow: 0 0 10px rgba(140, 230, 158, 0.5);
 }
 
-/* 7. Banner de Turno e Cronômetro no Tabuleiro (In-Game HUD & Timers) */
+/* 7. Banner de Turno e Cronômetro no Tabuleiro (In-Game HUD & Timers - Posicionado no Painel Esquerdo fora das cartas) */
 #versus-turn-hud {
 	position: fixed;
-	top: 1.1vh;
-	left: 52.7%;
-	transform: translateX(-50%);
+	top: 1.0vh;
+	left: 4.3vw;
+	transform: none;
 	z-index: 95;
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
-	min-width: 310px;
-	padding: 0.45rem 1.35rem 0.55rem 1.35rem;
-	border-radius: 22px;
+	width: 21.2vw;
+	min-width: 220px;
+	max-width: 410px;
+	padding: 0.38rem 0.95rem 0.48rem 0.95rem;
+	border-radius: 8px;
 	font-family: 'WitcherTitle', 'Cinzel', serif;
-	font-size: 0.95rem;
-	letter-spacing: 0.8px;
-	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.82);
+	font-size: clamp(0.75rem, 0.86vw, 0.95rem);
+	letter-spacing: 0.6px;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85);
 	transition: all 0.25s ease;
 	pointer-events: none;
 	overflow: hidden;
 	backdrop-filter: blur(4px);
+	box-sizing: border-box;
 }
 
 .hud-turn-content {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 0.9rem;
+	gap: 0.5rem;
 	width: 100%;
 }
 
 .hud-turn-icon {
-	font-size: 1.05rem;
+	font-size: 0.95rem;
+	flex-shrink: 0;
 }
 
 .hud-turn-text {
 	flex: 1;
-	text-align: center;
+	text-align: left;
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	font-weight: 700;
 	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
@@ -932,13 +938,17 @@
 	transform: scale(1.1);
 }
 
-/* Oculta botões flutuantes do tabuleiro quando no Menu Principal, Deck Builder ou Mapa */
+/* Oculta botões flutuantes do tabuleiro quando no Menu Principal, Deck Builder, Mapa ou quando <main> estiver oculto */
+main.hide ~ #open-game-settings,
+main.hide ~ #toggle-notifications,
 #main-menu:not(.hide) ~ #open-game-settings,
 #main-menu:not(.hide) ~ #toggle-notifications,
 #deck-customization:not(.hide) ~ #open-game-settings,
 #deck-customization:not(.hide) ~ #toggle-notifications,
 #story-map-screen:not(.hide) ~ #open-game-settings,
 #story-map-screen:not(.hide) ~ #toggle-notifications,
+#versus-lobby-modal:not(.hide) ~ #open-game-settings,
+#versus-lobby-modal:not(.hide) ~ #toggle-notifications,
 #open-game-settings.deck-menu,
 #toggle-notifications.deck-menu {
 	display: none !important;
@@ -987,5 +997,50 @@
 	color: #8ce69e !important;
 	box-shadow: 0 0 1.5vw rgba(46, 204, 113, 0.8) !important;
 }
+
+/* Barra de Notificações de Partida reposicionada na coluna esquerda (fora das cartas do tabuleiro) */
+#notification-bar {
+	position: absolute !important;
+	width: 24.4% !important;
+	height: 7.2% !important;
+	top: 54.2% !important;
+	left: 1.0% !important;
+	background: linear-gradient(90deg, rgba(14, 11, 8, 0.96) 0%, rgba(26, 20, 13, 0.94) 100%) !important;
+	border: 1px solid rgba(197, 151, 59, 0.55) !important;
+	border-left: 4px solid #ffd700 !important;
+	border-radius: 0.4vw !important;
+	box-shadow: 0 0.35vw 1.1vw rgba(0, 0, 0, 0.88) !important;
+	z-index: 100 !important;
+	pointer-events: none !important;
+	box-sizing: border-box !important;
+}
+
+#notification-bar > div {
+	width: 18% !important;
+	height: 92% !important;
+	top: 4% !important;
+	left: 2.5% !important;
+	position: absolute !important;
+	background-repeat: no-repeat !important;
+	background-size: contain !important;
+	background-position: center !important;
+}
+
+#notification-bar > div::after {
+	position: absolute !important;
+	left: 108% !important;
+	top: 0 !important;
+	width: 425% !important;
+	height: 100% !important;
+	color: #f4d06f !important;
+	font-size: 0.92vw !important;
+	line-height: 1.2 !important;
+	text-align: left !important;
+	font-weight: bold !important;
+	display: flex !important;
+	align-items: center !important;
+	text-shadow: 0 1px 3px #000 !important;
+}
+
 
 

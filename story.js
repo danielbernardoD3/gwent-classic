@@ -2,15 +2,16 @@
 
 /**
  * Story Mode Controller for Gwent Classic
- * Manages Continent Map navigation, campaigns, tournaments, merchants, 
- * card compendium, deck builder synchronization, and rewards.
+ * Manages Continent Map navigation (WitcherMap_8k_borders.jpg), faction-based starting regions,
+ * consecutive tournament gauntlets (2, 3, 5, and 7-match Regional Tournaments),
+ * regional merchants, card compendium (216 cards with strict max copy caps), and deck builder.
  */
 class StoryMode {
 	static SAVE_KEY = "gc-story-save";
 	static activeMatch = null;
 	static isCustomizingCampaign = false;
-	static MAP_WIDTH = 2880;
-	static MAP_HEIGHT = 3857;
+	static MAP_WIDTH = 2894;
+	static MAP_HEIGHT = 4096;
 	static mapZoom = 1;
 	static mapPanX = 0;
 	static mapPanY = 0;
@@ -24,20 +25,119 @@ class StoryMode {
 	};
 
 	static init() {
-		// Verify story data is loaded
 		if (typeof STORY_DATA === "undefined") {
 			console.error("STORY_DATA is not defined. Ensure story_data.js is loaded.");
 			return;
 		}
 
-		// Initialize menu buttons and event listeners
+		if (STORY_DATA.MAP_WIDTH) StoryMode.MAP_WIDTH = STORY_DATA.MAP_WIDTH;
+		if (STORY_DATA.MAP_HEIGHT) StoryMode.MAP_HEIGHT = STORY_DATA.MAP_HEIGHT;
+
 		StoryMode.setupEventListeners();
 
-		// Check if a saved campaign exists
 		if (StoryMode.hasSave()) {
 			const continueBtn = document.getElementById("btn-story-continue");
 			if (continueBtn) continueBtn.classList.remove("hide");
 		}
+	}
+
+	/**
+	 * Returns the maximum allowed copies of a given card index in the collection/deck.
+	 * Enforces 1 copy max for Leaders, Heroes, and unique cards such as Dethmold (index 31).
+	 */
+	static getCardMaxCopies(cardIndex) {
+		const idx = Number(cardIndex);
+		if ([21, 196, 206, 207].includes(idx)) return 1;
+		if (typeof card_dict !== "undefined" && card_dict[idx]) {
+			const c = card_dict[idx];
+			if (c.row === "leader") return 1;
+			const max = Number(c.count);
+			return max > 0 ? max : 1;
+		}
+		if (typeof STORY_DATA !== "undefined" && STORY_DATA.COMPENDIUM_HINTS && STORY_DATA.COMPENDIUM_HINTS[idx]) {
+			return STORY_DATA.COMPENDIUM_HINTS[idx].maxCount || 1;
+		}
+		return 1;
+	}
+
+	/**
+	 * Automatically unlocks the 4 token cards in the Compendium when their summoner is owned,
+	 * and enforces strict maximum copy caps across all cards in the player's collection.
+	 */
+	static syncCollectionAndTokens() {
+		if (!StoryMode.save || !StoryMode.save.collection) return;
+		const col = StoryMode.save.collection;
+
+		// Unlock summoned tokens when their summoner is owned
+		if ((col[20] || 0) > 0) col[21] = 1;   // Cow -> Bovine Defense Force
+		if ((col[199] || 0) > 0) col[196] = 1; // Kambi -> Hemdall
+		if ((col[183] || 0) > 0) col[206] = 1; // Berserker -> Transformed Vildkaarl
+		if ((col[209] || 0) > 0) col[207] = 1; // Young Berserker -> Transformed Young Vildkaarl
+
+		// Clamp every card in the collection to its strict maximum allowed copies
+		Object.keys(col).forEach(k => {
+			const idx = Number(k);
+			const maxAllowed = StoryMode.getCardMaxCopies(idx);
+			if (col[idx] > maxAllowed) {
+				col[idx] = maxAllowed;
+			}
+		});
+
+		// Also ensure playerDeck does not exceed owned/max copies
+		if (StoryMode.save.playerDeck && Array.isArray(StoryMode.save.playerDeck.cards)) {
+			StoryMode.save.playerDeck.cards = StoryMode.save.playerDeck.cards
+				.map(([idx, cnt]) => {
+					const maxAllowed = Math.min(StoryMode.getCardMaxCopies(idx), col[idx] || 0);
+					return [idx, Math.min(cnt, maxAllowed)];
+				})
+				.filter(([, cnt]) => cnt > 0);
+		}
+	}
+
+	/**
+	 * Safely awards copies of a card to the player's collection without exceeding its max limit.
+	 */
+	static awardCardToCollection(cardIndex, count = 1) {
+		if (!StoryMode.save || !StoryMode.save.collection) return 0;
+		const idx = Number(cardIndex);
+		const maxAllowed = StoryMode.getCardMaxCopies(idx);
+		const currentOwned = StoryMode.save.collection[idx] || 0;
+		const newTotal = Math.min(maxAllowed, currentOwned + (count || 1));
+		const added = Math.max(0, newTotal - currentOwned);
+		StoryMode.save.collection[idx] = newTotal;
+		StoryMode.syncCollectionAndTokens();
+		return added;
+	}
+
+	/**
+	 * Unlocks a node and, if that node (or any newly unlocked neighbor) is a shop,
+	 * also unlocks the shop's neighbors so shops on roads never block progression.
+	 */
+	static unlockNodeWithConnections(nodeId) {
+		if (!StoryMode.save) return;
+		const node = STORY_DATA.NODES[nodeId];
+		if (!node) return;
+
+		if (!StoryMode.save.unlockedNodes.includes(nodeId)) {
+			StoryMode.save.unlockedNodes.push(nodeId);
+		}
+
+		(node.connections || []).forEach(connId => {
+			if (!StoryMode.save.unlockedNodes.includes(connId)) {
+				StoryMode.save.unlockedNodes.push(connId);
+			}
+			const connNode = STORY_DATA.NODES[connId];
+			if (connNode && connNode.type === "shop") {
+				if (!StoryMode.save.completedNodes.includes(connId)) {
+					StoryMode.save.completedNodes.push(connId);
+				}
+				(connNode.connections || []).forEach(shopConnId => {
+					if (!StoryMode.save.unlockedNodes.includes(shopConnId)) {
+						StoryMode.save.unlockedNodes.push(shopConnId);
+					}
+				});
+			}
+		});
 	}
 
 	static hasSave() {
@@ -50,14 +150,35 @@ class StoryMode {
 			const raw = localStorage.getItem(StoryMode.SAVE_KEY);
 			if (raw) {
 				StoryMode.save = JSON.parse(raw);
-				// Ensure collection has proper defaults
 				if (!StoryMode.save.collection) StoryMode.save.collection = {};
 				if (!StoryMode.save.trophies) StoryMode.save.trophies = [];
 				if (!StoryMode.save.completedNodes) StoryMode.save.completedNodes = [];
-				if (!StoryMode.save.unlockedNodes) StoryMode.save.unlockedNodes = ["wo_tavern"];
 				if (!StoryMode.save.winsCount) StoryMode.save.winsCount = {};
 				if (!StoryMode.save.tournamentStates) StoryMode.save.tournamentStates = {};
+				if (!StoryMode.save.tournamentStageCleared) StoryMode.save.tournamentStageCleared = {};
 				if (!StoryMode.save.purchasedShopItems) StoryMode.save.purchasedShopItems = {};
+				if (!StoryMode.save.stats) {
+					StoryMode.save.stats = { matchesWon: 0, matchesLost: 0, crownsEarned: 0, crownsSpent: 0 };
+				}
+
+				const faction = StoryMode.save.faction || (StoryMode.save.playerDeck && StoryMode.save.playerDeck.faction) || "realms";
+				const defaultStartNode = (STORY_DATA.STARTER_NODES && STORY_DATA.STARTER_NODES[faction]) || "nr_white_orchard";
+
+				if (!StoryMode.save.unlockedNodes || !Array.isArray(StoryMode.save.unlockedNodes)) {
+					StoryMode.save.unlockedNodes = [defaultStartNode];
+				}
+				// Filter out obsolete node IDs from older map versions
+				StoryMode.save.unlockedNodes = StoryMode.save.unlockedNodes.filter(id => !!STORY_DATA.NODES[id]);
+				StoryMode.save.completedNodes = StoryMode.save.completedNodes.filter(id => !!STORY_DATA.NODES[id]);
+
+				if (StoryMode.save.unlockedNodes.length === 0) {
+					StoryMode.save.unlockedNodes = [defaultStartNode];
+				}
+				if (!StoryMode.save.currentNode || !STORY_DATA.NODES[StoryMode.save.currentNode]) {
+					StoryMode.save.currentNode = StoryMode.save.unlockedNodes[0] || defaultStartNode;
+				}
+
+				StoryMode.syncCollectionAndTokens();
 				return true;
 			}
 		} catch (e) {
@@ -66,10 +187,20 @@ class StoryMode {
 		return false;
 	}
 
+	static showAlert(message, title = "AVISO DO CONTINENTE", icon = "🐺") {
+		if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+			MenuController.showAlert(message, title, icon);
+		}
+	}
+
 	static saveGame() {
 		if (!StoryMode.save) return;
 		try {
+			StoryMode.syncCollectionAndTokens();
 			localStorage.setItem(StoryMode.SAVE_KEY, JSON.stringify(StoryMode.save));
+			if (typeof Achievements !== "undefined" && typeof Achievements.checkStoryAchievements === "function") {
+				Achievements.checkStoryAchievements(StoryMode.save);
+			}
 		} catch (e) {
 			console.error("Error saving Story Mode:", e);
 		}
@@ -78,22 +209,25 @@ class StoryMode {
 	static createNewCampaign(playerName, difficulty, faction) {
 		const starter = STORY_DATA.STARTER_DECKS[faction];
 		if (!starter) {
-			alert("Facção inválida: " + faction);
+			StoryMode.showAlert("Facção inválida: " + faction, "ERRO DE FACÇÃO", "⚠️");
 			return;
 		}
 
-		// Build starting collection: exactly the 22 cards + starting leader
+		// Determine faction-specific starting node on the Continent Map
+		const startNodeId = (STORY_DATA.STARTER_NODES && STORY_DATA.STARTER_NODES[faction]) || "nr_white_orchard";
+
+		// Build starting collection: 22 starter cards + starting leader (respecting max copy caps)
 		const collection = {};
 		collection[starter.leader] = 1;
 		starter.cards.forEach(([idx, count]) => {
-			collection[idx] = (collection[idx] || 0) + count;
+			const maxAllowed = StoryMode.getCardMaxCopies(idx);
+			collection[idx] = Math.min(maxAllowed, (collection[idx] || 0) + count);
 		});
 
-		// Build initial player deck
 		const playerDeck = {
 			faction: faction,
 			leader: starter.leader,
-			cards: starter.cards.map(([idx, count]) => [idx, count])
+			cards: starter.cards.map(([idx, count]) => [idx, Math.min(StoryMode.getCardMaxCopies(idx), count)])
 		};
 
 		StoryMode.save = {
@@ -101,8 +235,8 @@ class StoryMode {
 			difficulty: difficulty || "medium",
 			faction: faction,
 			crowns: STORY_DATA.STARTING_CROWNS || 2000,
-			currentNode: "wo_tavern",
-			unlockedNodes: ["wo_tavern"],
+			currentNode: startNodeId,
+			unlockedNodes: [startNodeId],
 			completedNodes: [],
 			winsCount: {},
 			trophies: [],
@@ -110,6 +244,7 @@ class StoryMode {
 			playerDeck: playerDeck,
 			purchasedShopItems: {},
 			tournamentStates: {},
+			tournamentStageCleared: {},
 			stats: {
 				matchesWon: 0,
 				matchesLost: 0,
@@ -118,13 +253,12 @@ class StoryMode {
 			}
 		};
 
+		StoryMode.syncCollectionAndTokens();
 		StoryMode.saveGame();
 
-		// Update Continue button in menu
 		const continueBtn = document.getElementById("btn-story-continue");
 		if (continueBtn) continueBtn.classList.remove("hide");
 
-		// Open Story Map
 		StoryMode.openMap();
 	}
 
@@ -145,7 +279,6 @@ class StoryMode {
 		const mapContainer = document.getElementById("story-map-viewport");
 		if (mapContainer) {
 			mapContainer.addEventListener("mousedown", (e) => {
-				// Don't drag if clicking directly on a pin, control button or modal
 				if (e.target.closest(".story-map-pin, .story-map-control-btn, .story-modal, button")) return;
 				StoryMode.isDragging = true;
 				StoryMode.dragStartX = e.clientX - StoryMode.mapPanX;
@@ -175,7 +308,6 @@ class StoryMode {
 				StoryMode.zoomMap(zoomDelta, e.clientX, e.clientY);
 			}, { passive: false });
 
-			// Keep map clamped if window resizes
 			window.addEventListener("resize", () => {
 				StoryMode.clampPan();
 				StoryMode.applyMapTransform();
@@ -186,6 +318,11 @@ class StoryMode {
 	static updateFactionPreview(faction) {
 		const starter = STORY_DATA.STARTER_DECKS[faction];
 		if (!starter || typeof card_dict === "undefined") return;
+
+		const regionTextEl = document.getElementById("story-preview-region-text");
+		if (regionTextEl && STORY_DATA.STARTER_REGIONS_INFO) {
+			regionTextEl.textContent = STORY_DATA.STARTER_REGIONS_INFO[faction] || "Continente";
+		}
 
 		const leaderCard = card_dict[starter.leader];
 		const leaderEl = document.getElementById("story-preview-leader");
@@ -222,7 +359,6 @@ class StoryMode {
 		const setupView = document.getElementById("story-setup-view");
 		if (setupView) {
 			setupView.classList.remove("hide");
-			// Select default realms faction
 			const firstOpt = document.querySelector(".story-faction-opt[data-faction='realms']");
 			if (firstOpt) firstOpt.click();
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -234,14 +370,13 @@ class StoryMode {
 	static confirmStartCampaign() {
 		const nameInput = document.getElementById("story-player-name-input");
 		const name = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : "Geralt de Rívia";
-		
+
 		const diffSelect = document.getElementById("story-diff-select");
 		const difficulty = diffSelect ? diffSelect.value : "medium";
 
 		const activeFactionOpt = document.querySelector(".story-faction-opt.active");
 		const faction = activeFactionOpt ? activeFactionOpt.dataset.faction : "realms";
 
-		// Hide setup view
 		const setupView = document.getElementById("story-setup-view");
 		if (setupView) setupView.classList.add("hide");
 
@@ -254,7 +389,7 @@ class StoryMode {
 
 	static continueCampaign() {
 		if (!StoryMode.loadSave()) {
-			alert("Nenhum jogo salvo encontrado.");
+			StoryMode.showAlert("Nenhum jogo salvo encontrado.", "MODO HISTÓRIA", "📜");
 			return;
 		}
 
@@ -275,30 +410,30 @@ class StoryMode {
 			return;
 		}
 
-		// Ensure main menu is hidden
 		const menu = document.getElementById("main-menu");
 		if (menu) menu.classList.add("hide");
 
-		// Hide deck customization & main game canvas
 		const deckCustom = document.getElementById("deck-customization");
 		if (deckCustom) deckCustom.classList.add("hide");
 		const mainGame = document.querySelector("main");
 		if (mainGame) mainGame.classList.add("hide");
 
-		// Show story map screen
+		// Ensure board gear and notification bell are hidden on the map screen
+		const openSetBtn = document.getElementById("open-game-settings");
+		if (openSetBtn) openSetBtn.classList.add("deck-menu");
+		const toggleNotifBtn = document.getElementById("toggle-notifications");
+		if (toggleNotifBtn) toggleNotifBtn.classList.add("deck-menu");
+
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.remove("hide");
 
-		// Update HUD
+		StoryMode.syncCollectionAndTokens();
+		if (typeof Achievements !== "undefined" && typeof Achievements.checkStoryAchievements === "function") {
+			Achievements.checkStoryAchievements(StoryMode.save);
+		}
 		StoryMode.updateHUD();
-
-		// Render Nodes and Road Paths on Map
 		StoryMode.renderMapNodes();
-
-		// Apply active visibility filters (Shops, Tournaments, Locked)
 		StoryMode.applyFilters();
-
-		// Center camera on current location
 		StoryMode.focusCurrentNode();
 
 		if (typeof MusicManager !== "undefined") {
@@ -309,6 +444,9 @@ class StoryMode {
 	static closeMapToMenu() {
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.add("hide");
+
+		const padCursor = document.getElementById("story-gamepad-cursor");
+		if (padCursor) padCursor.classList.add("hide");
 
 		const menu = document.getElementById("main-menu");
 		if (menu) menu.classList.remove("hide");
@@ -321,22 +459,21 @@ class StoryMode {
 	static updateHUD() {
 		if (!StoryMode.save) return;
 
-		// Player name
+		StoryMode.syncCollectionAndTokens();
+
 		const nameEl = document.getElementById("story-hud-player-name");
 		if (nameEl) nameEl.textContent = StoryMode.save.playerName;
 
-		// Crowns balance
 		const crownsEl = document.getElementById("story-hud-crowns-val");
 		if (crownsEl) crownsEl.textContent = Number(StoryMode.save.crowns || 0).toLocaleString("pt-BR");
 
-		// Current node & region
-		const currentNodeData = STORY_DATA.NODES[StoryMode.save.currentNode] || STORY_DATA.NODES["wo_tavern"];
+		const defaultStart = (STORY_DATA.STARTER_NODES && STORY_DATA.STARTER_NODES[StoryMode.save.faction]) || "nr_white_orchard";
+		const currentNodeData = STORY_DATA.NODES[StoryMode.save.currentNode] || STORY_DATA.NODES[defaultStart];
 		const locationEl = document.getElementById("story-hud-location-name");
 		if (locationEl && currentNodeData) {
 			locationEl.textContent = `${currentNodeData.region} · ${currentNodeData.name}`;
 		}
 
-		// Compendium count
 		const compendiumEl = document.getElementById("story-hud-compendium-val");
 		if (compendiumEl) {
 			const totalCards = 216;
@@ -344,7 +481,7 @@ class StoryMode {
 			compendiumEl.textContent = `${ownedUnique} / ${totalCards}`;
 		}
 
-		// Trophies count & bar
+		// 5 Collectible Regional Insignias in HUD
 		const trophiesEl = document.getElementById("story-hud-trophies-container");
 		if (trophiesEl) {
 			trophiesEl.innerHTML = "";
@@ -399,23 +536,33 @@ class StoryMode {
 			const isUnlocked = StoryMode.save.unlockedNodes.includes(node.id);
 			const isCurrent = StoryMode.save.currentNode === node.id;
 			const isAvailable = isUnlocked && !isCompleted;
+			const isRegional = !!(node.type === "tournament" && node.isRegional);
 
 			const pin = document.createElement("div");
 			pin.id = `node-pin-${node.id}`;
-			pin.className = `story-map-pin node-type-${node.type} ${isCompleted ? 'completed' : ''} ${isAvailable ? 'available' : ''} ${!isUnlocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`;
+			pin.dataset.nodeId = node.id;
+			pin.className = `story-map-pin node-type-${node.type} ${isRegional ? 'regional-tourney' : ''} ${isCompleted ? 'completed' : ''} ${isAvailable ? 'available' : ''} ${!isUnlocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`;
 			pin.style.left = node.x + "px";
 			pin.style.top = node.y + "px";
 
-			// Determine high-contrast pin icon & status text
 			let pinIcon = "⚔";
 			let statusBadge = "";
 
 			if (node.type === "tournament") {
-				pinIcon = isCompleted ? "🏆" : "👑";
-				statusBadge = isCompleted ? '<span class="pin-status">✓ Campeão</span>' : '<span class="pin-status tourney">★ Grande Torneio</span>';
+				const numRounds = (node.rounds || []).length;
+				if (isCompleted) {
+					pinIcon = "🏆";
+					statusBadge = `<span class="pin-status">✓ Campeão (${numRounds} Lutas)</span>`;
+				} else if (isRegional) {
+					pinIcon = "👑";
+					statusBadge = `<span class="pin-status tourney">👑 Torneio Regional (${numRounds} Lutas)</span>`;
+				} else {
+					pinIcon = "🏆";
+					statusBadge = `<span class="pin-status tourney">★ Torneio (${numRounds} Lutas)</span>`;
+				}
 			} else if (node.type === "shop") {
 				pinIcon = "💰";
-				statusBadge = '<span class="pin-status shop">🪙 Mercador</span>';
+				statusBadge = '<span class="pin-status shop">🪙 Mercador Regional</span>';
 			} else if (isCompleted) {
 				pinIcon = "✓";
 				statusBadge = '<span class="pin-status">✓ Concluído</span>';
@@ -461,19 +608,29 @@ class StoryMode {
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 				AudioManager.playSFX("warning");
 			}
-			alert(`Localização Trancada! Vença os desafios anteriores no mapa para desbloquear o caminho até ${node.name}.`);
+			StoryMode.showAlert(
+				`Localização trancada! Vença os desafios anteriores conectados no mapa para desbloquear o caminho até ${node.name}.`,
+				"LOCALIZAÇÃO TRANCADA",
+				"🔒"
+			);
 			return;
 		}
 
 		// Move player marker to this node
 		StoryMode.save.currentNode = nodeId;
+
+		// If visiting a shop node, mark it visited and unlock its connected road neighbors
+		if (node.type === "shop") {
+			if (!StoryMode.save.completedNodes.includes(nodeId)) {
+				StoryMode.save.completedNodes.push(nodeId);
+			}
+			StoryMode.unlockNodeWithConnections(nodeId);
+		}
+
 		StoryMode.saveGame();
 		StoryMode.updateHUD();
-
-		// Highlight current pin
-		document.querySelectorAll(".story-map-pin").forEach(p => p.classList.remove("current"));
-		const currentPin = document.getElementById(`node-pin-${nodeId}`);
-		if (currentPin) currentPin.classList.add("current");
+		StoryMode.renderMapNodes();
+		StoryMode.applyFilters();
 
 		// Open appropriate modal based on node type
 		if (node.type === "tournament") {
@@ -493,13 +650,12 @@ class StoryMode {
 		if (!modal) return;
 
 		const isCompleted = StoryMode.save.completedNodes.includes(nodeId);
-		const wins = StoryMode.save.winsCount[nodeId] || 0;
 
 		document.getElementById("story-battle-title").textContent = node.name;
 		document.getElementById("story-battle-region").textContent = `${node.region} · Desafio de Gwent`;
 		document.getElementById("story-battle-lore").textContent = node.lore;
 		document.getElementById("story-battle-op-name").textContent = node.opponent.name;
-		
+
 		const avatarEl = document.getElementById("story-battle-op-avatar");
 		if (avatarEl) avatarEl.style.backgroundImage = `url(${node.opponent.avatar})`;
 
@@ -516,16 +672,14 @@ class StoryMode {
 			factionBadge.className = `story-faction-badge ${node.opponent.faction}`;
 		}
 
-		// Wager & crowns display
-		const firstWinCrowns = node.crownsReward || 200;
-		const replayCrowns = node.crownsReplay || 50;
-		const lossCrowns = node.crownsLoss || 50;
+		const firstWinCrowns = node.crownsReward || 220;
+		const replayCrowns = node.crownsReplay || 55;
+		const lossCrowns = node.crownsLoss || 45;
 
 		document.getElementById("story-battle-reward-first").textContent = `+${firstWinCrowns} Coroas`;
 		document.getElementById("story-battle-reward-replay").textContent = `+${replayCrowns} Coroas`;
 		document.getElementById("story-battle-loss-penalty").textContent = `-${lossCrowns} Coroas`;
 
-		// Card Drop Preview
 		const cardDropBox = document.getElementById("story-battle-card-drop-box");
 		if (cardDropBox) {
 			if (node.cardDrop && typeof card_dict !== "undefined") {
@@ -569,57 +723,104 @@ class StoryMode {
 		if (!modal) return;
 
 		const isCompleted = StoryMode.save.completedNodes.includes(nodeId);
-		const state = StoryMode.save.tournamentStates[nodeId] || { roundIndex: 0, active: false };
+		const totalRounds = (node.rounds || []).length;
+		const isRegional = !!node.isRegional;
+
+		// Consecutive tournament rule: entering from the map always starts at Battle 1
+		StoryMode.save.tournamentStates[nodeId] = { roundIndex: 0, active: false };
 
 		document.getElementById("story-tourney-title").textContent = node.name;
-		document.getElementById("story-tourney-lore").textContent = node.lore;
-		document.getElementById("story-tourney-fee").textContent = `${node.entryFee} Coroas`;
-		document.getElementById("story-tourney-prize").textContent = `${node.grandPrizeCrowns} Coroas`;
+		const subEl = document.getElementById("story-tourney-subtitle");
+		if (subEl) {
+			subEl.textContent = isRegional
+				? `★ Grande Torneio Regional Supremo · ${totalRounds} Batalhas Seguidas sem Perder ★`
+				: `Disputa Oficial · ${totalRounds} Batalhas Consecutivas`;
+		}
 
-		// Grand Prize Card Preview
+		document.getElementById("story-tourney-lore").textContent = node.lore;
+		document.getElementById("story-tourney-fee").textContent = `${Number(node.entryFee || 0).toLocaleString("pt-BR")} Coroas`;
+		document.getElementById("story-tourney-prize").textContent = `${Number(node.grandPrizeCrowns || 0).toLocaleString("pt-BR")} Coroas`;
+
+		// Support multiple Grand Prize Cards (1 card for 2-match, 2 cards for 3-match, 3 cards for 5-match, 1 Leader for 7-match Regional)
+		const prizeCards = node.grandPrizeCards || (node.grandPrizeCard ? [node.grandPrizeCard] : []);
 		const grandCardEl = document.getElementById("story-tourney-grand-card");
-		if (grandCardEl && node.grandPrizeCard && typeof card_dict !== "undefined") {
-			const c = card_dict[node.grandPrizeCard.index];
-			if (c) {
+		if (grandCardEl && typeof card_dict !== "undefined") {
+			if (prizeCards.length > 0) {
+				grandCardEl.style.flexDirection = "column";
+				grandCardEl.style.alignItems = "stretch";
+				const headerLabel = isCompleted
+					? `✓ Cartas de Prêmio Já Conquistadas (${prizeCards.length})`
+					: `🏆 Prêmio de Campeão (${prizeCards.length} ${prizeCards.length === 1 ? 'Carta' : 'Cartas'})`;
+				const cardsHtml = prizeCards.map(pc => {
+					const c = card_dict[pc.index];
+					if (!c) return "";
+					const isLeader = c.row === "leader";
+					return `
+						<div style="display:flex; gap:10px; align-items:center; background:rgba(20,15,10,0.75); border:1px solid ${isLeader ? '#ffd700' : 'rgba(197,160,89,0.4)'}; padding:6px 10px; border-radius:4px;">
+							<div class="story-tourney-card-thumb" style="width:42px; height:58px; flex-shrink:0; background-image: url(img/sm/${c.deck}_${c.filename}.jpg)"></div>
+							<div style="display:flex; flex-direction:column;">
+								<strong style="color:#fff; font-size:0.88rem;">${c.name}</strong>
+								<small style="color:#c5a059; font-size:0.76rem;">${isLeader ? '👑 Carta de Líder' : (c.strength ? '⚔ Força ' + c.strength : '★ Especial')} · ${c.deck}</small>
+							</div>
+						</div>
+					`;
+				}).join("");
 				grandCardEl.innerHTML = `
-					<div class="story-tourney-card-thumb" style="background-image: url(img/sm/${c.deck}_${c.filename}.jpg)"></div>
-					<div class="story-tourney-card-info">
-						<span class="gold-text">🏆 Prêmio Máximo</span>
-						<strong>${c.name}</strong>
-						<small>${c.strength ? 'Força ' + c.strength : 'Especial'} · ${c.ability || ''}</small>
+					<div style="font-size:0.8rem; font-weight:bold; color:#ffd700; margin-bottom:4px;">${headerLabel}</div>
+					<div style="display:flex; flex-direction:column; gap:6px; max-height:150px; overflow-y:auto;">${cardsHtml}</div>
+				`;
+			} else {
+				grandCardEl.innerHTML = "";
+			}
+		}
+
+		// Regional Insignia Preview (for the 5 Regional Tournaments)
+		const trophyData = node.trophyId ? STORY_DATA.TROPHIES[node.trophyId] : null;
+		const trophyEl = document.getElementById("story-tourney-trophy-preview");
+		if (trophyEl) {
+			if (trophyData) {
+				trophyEl.innerHTML = `
+					<div class="story-tourney-trophy-badge ${isCompleted ? 'earned' : ''}" style="display:flex; align-items:center; gap:12px; background:rgba(30,18,12,0.9); border:1.5px solid #ffd700; padding:10px 14px; border-radius:4px; margin-top:8px;">
+						<span class="trophy-icon" style="font-size:1.8rem;">${trophyData.icon}</span>
+						<div class="trophy-text" style="display:flex; flex-direction:column;">
+							<strong style="color:#ffd700; font-size:0.92rem;">${trophyData.title}</strong>
+							<small style="color:#e0d0b0; font-size:0.78rem;">${isCompleted ? '✓ Insígnia Conquistada!' : 'Insígnia Regional Colecionável (1 de 5)'}</small>
+						</div>
+					</div>
+				`;
+			} else {
+				trophyEl.innerHTML = `
+					<div style="background:rgba(20,16,12,0.75); border:1px solid rgba(197,160,89,0.35); padding:8px 12px; border-radius:4px; font-size:0.8rem; color:#c5a059;">
+						⚔ <strong>Regra de Eliminatória Seguida:</strong> Você enfrentará os ${totalRounds} oponentes em sequência sem voltar ao mapa. Se perder uma partida, o torneio reinicia da 1ª luta!
 					</div>
 				`;
 			}
 		}
 
-		// Trophy Preview
-		const trophyData = STORY_DATA.TROPHIES[node.trophyId];
-		const trophyEl = document.getElementById("story-tourney-trophy-preview");
-		if (trophyEl && trophyData) {
-			trophyEl.innerHTML = `
-				<div class="story-tourney-trophy-badge ${isCompleted ? 'earned' : ''}">
-					<span class="trophy-icon">${trophyData.icon}</span>
-					<div class="trophy-text">
-						<strong>${trophyData.title}</strong>
-						<small>${isCompleted ? '✓ Conquistado!' : 'Disputa Oficial'}</small>
-					</div>
-				</div>
-			`;
-		}
-
-		// Rounds status list
+		// Rounds status list showing first-time vs repeat stage rewards
 		const roundsContainer = document.getElementById("story-tourney-rounds-list");
 		if (roundsContainer) {
 			roundsContainer.innerHTML = "";
+			const factionNames = {
+				realms: "Reinos do Norte",
+				nilfgaard: "Nilfgaard",
+				monsters: "Monstros",
+				scoiatael: "Scoia'tael",
+				skellige: "Skellige"
+			};
 			node.rounds.forEach((rnd, idx) => {
-				const isWon = state.active && state.roundIndex > idx;
-				const isCurrent = state.active && state.roundIndex === idx;
+				const stageKey = `${nodeId}_r${idx}`;
+				const stageAlreadyCleared = !!(StoryMode.save.tournamentStageCleared && StoryMode.save.tournamentStageCleared[stageKey]);
+				const stageCrowns = stageAlreadyCleared ? (node.roundWinCrownsRepeat || 40) : (node.roundWinCrownsFirst || 300);
+
 				const roundBox = document.createElement("div");
-				roundBox.className = `story-tourney-round-box ${isWon ? 'won' : ''} ${isCurrent ? 'active' : ''}`;
+				roundBox.className = `story-tourney-round-box ${stageAlreadyCleared ? 'won' : ''}`;
 				roundBox.innerHTML = `
-					<div class="round-num">Batalha ${idx + 1}/3</div>
-					<div class="round-op-name">${rnd.opponentName} (${rnd.faction})</div>
-					<div class="round-status">${isWon ? '✓ Vencida' : (isCurrent ? '⚔ Luta Atual' : 'Em espera')}</div>
+					<div class="round-num" style="font-weight:bold; color:#ffd700;">Batalha ${idx + 1}/${totalRounds}</div>
+					<div class="round-op-name" style="color:#fff;">${rnd.opponentName} <span style="color:#c5a059; font-size:0.82rem;">(${factionNames[rnd.faction] || rnd.faction})</span></div>
+					<div class="round-status" style="font-size:0.82rem; color:${stageAlreadyCleared ? '#aaa' : '#2ecc71'};">
+						🪙 +${stageCrowns} Coroas ${stageAlreadyCleared ? '(2ª+ tentativa)' : '(1ª vitória)'}
+					</div>
 				`;
 				roundsContainer.appendChild(roundBox);
 			});
@@ -627,33 +828,30 @@ class StoryMode {
 
 		const enterBtn = document.getElementById("story-tourney-enter-btn");
 		if (enterBtn) {
-			if (isCompleted) {
-				enterBtn.textContent = "Rejogar Torneio";
-			} else if (state.active) {
-				enterBtn.textContent = `Continuar Batalha ${state.roundIndex + 1}/3`;
-			} else {
-				enterBtn.textContent = `Pagar Inscrição (${node.entryFee} Coroas) & Jogar`;
-			}
+			enterBtn.textContent = isCompleted
+				? `Rejogar Torneio (${node.entryFee} Coroas)`
+				: `Pagar Inscrição (${node.entryFee} Coroas) & Iniciar 1/${totalRounds}`;
 
 			enterBtn.onclick = () => {
-				// Check entry fee if starting fresh
-				if (!state.active) {
-					if (StoryMode.save.crowns < node.entryFee) {
-						if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
-							AudioManager.playSFX("warning");
-						}
-						alert(`Coroas insuficientes! Você precisa de ${node.entryFee} Coroas para a taxa de inscrição.`);
-						return;
+				if (StoryMode.save.crowns < node.entryFee) {
+					if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+						AudioManager.playSFX("warning");
 					}
-					StoryMode.save.crowns -= node.entryFee;
-					StoryMode.save.tournamentStates[nodeId] = { roundIndex: 0, active: true };
-					StoryMode.saveGame();
-					StoryMode.updateHUD();
+					StoryMode.showAlert(
+						`Coroas insuficientes! Você precisa de ${node.entryFee} Coroas para pagar a taxa de inscrição deste torneio.`,
+						"COROAS INSUFICIENTES",
+						"🪙"
+					);
+					return;
 				}
+				StoryMode.save.crowns -= node.entryFee;
+				StoryMode.save.stats.crownsSpent = (StoryMode.save.stats.crownsSpent || 0) + node.entryFee;
+				StoryMode.save.tournamentStates[nodeId] = { roundIndex: 0, active: true };
+				StoryMode.saveGame();
+				StoryMode.updateHUD();
 
 				StoryMode.closeAllModals();
-				const currRound = (StoryMode.save.tournamentStates[nodeId] || {}).roundIndex || 0;
-				StoryMode.startMatch(nodeId, currRound);
+				StoryMode.startMatch(nodeId, 0);
 			};
 		}
 
@@ -670,6 +868,8 @@ class StoryMode {
 		const modal = document.getElementById("story-shop-modal");
 		if (!modal) return;
 
+		StoryMode.syncCollectionAndTokens();
+
 		document.getElementById("story-shop-title").textContent = shopData.name;
 		document.getElementById("story-shop-region").textContent = `${shopData.region} · Mercado Livre`;
 		document.getElementById("story-shop-greeting").textContent = `"${shopData.greeting}"`;
@@ -684,24 +884,29 @@ class StoryMode {
 
 				const purchaseKey = `${shopData.id}_${itemIdx}`;
 				const boughtCount = StoryMode.save.purchasedShopItems[purchaseKey] || 0;
-				const remainingStock = Math.max(0, item.max - boughtCount);
+				const maxAllowed = StoryMode.getCardMaxCopies(item.cardIndex);
+				const ownedCount = StoryMode.save.collection[item.cardIndex] || 0;
+
+				// Clamp shop stock so the player can NEVER exceed the max allowed copies of any card
+				const remainingStock = Math.max(0, Math.min(item.max - boughtCount, maxAllowed - ownedCount));
 				const canAfford = StoryMode.save.crowns >= item.price;
 				const isSoldOut = remainingStock <= 0;
+				const isLeader = card.row === "leader";
 
 				const itemEl = document.createElement("div");
 				itemEl.className = `story-shop-card ${isSoldOut ? 'sold-out' : ''}`;
 				itemEl.innerHTML = `
 					<div class="shop-card-preview" style="background-image: url(img/sm/${card.deck}_${card.filename}.jpg)">
-						<span class="shop-card-power">${card.strength || '★'}</span>
+						<span class="shop-card-power">${isLeader ? '👑' : (card.strength || '★')}</span>
 					</div>
 					<div class="shop-card-info">
 						<strong class="shop-card-name">${card.name}</strong>
-						<span class="shop-card-faction">${card.deck} · ${card.ability || 'Unidade'}</span>
+						<span class="shop-card-faction">${card.deck} · ${isLeader ? 'Líder' : (card.ability || 'Unidade')}</span>
 						<div class="shop-card-price">🪙 ${item.price} Coroas</div>
-						<div class="shop-card-stock">${isSoldOut ? 'ESGOTADO' : `Estoque: ${remainingStock}/${item.max}`}</div>
+						<div class="shop-card-stock">${isSoldOut ? (ownedCount >= maxAllowed ? 'COLEÇÃO MÁXIMA' : 'ESGOTADO') : `Disponível: ${remainingStock} (Você tem: ${ownedCount}/${maxAllowed})`}</div>
 					</div>
 					<button class="witcher-menu-btn shop-buy-btn" ${(!canAfford || isSoldOut) ? 'disabled' : ''}>
-						${isSoldOut ? 'Vendido' : 'Comprar'}
+						${isSoldOut ? 'Adquirido' : 'Comprar'}
 					</button>
 				`;
 
@@ -727,25 +932,30 @@ class StoryMode {
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 				AudioManager.playSFX("warning");
 			}
-			alert("Coroas insuficientes!");
+			StoryMode.showAlert("Coroas insuficientes para adquirir esta carta!", "COROAS INSUFICIENTES", "🪙");
 			return;
 		}
 
 		const purchaseKey = `${shopId}_${itemIdx}`;
 		const currentBought = StoryMode.save.purchasedShopItems[purchaseKey] || 0;
-		if (currentBought >= item.max) {
-			alert("Item esgotado!");
+		const maxAllowed = StoryMode.getCardMaxCopies(item.cardIndex);
+		const ownedCount = StoryMode.save.collection[item.cardIndex] || 0;
+
+		if (currentBought >= item.max || ownedCount >= maxAllowed) {
+			StoryMode.showAlert(
+				"Você já possui o limite máximo desta carta na sua coleção!",
+				"COLEÇÃO MÁXIMA",
+				"🃏"
+			);
 			return;
 		}
 
-		// Deduct crowns
 		StoryMode.save.crowns -= item.price;
+		StoryMode.save.stats.crownsSpent = (StoryMode.save.stats.crownsSpent || 0) + item.price;
 		StoryMode.save.purchasedShopItems[purchaseKey] = currentBought + 1;
 
-		// Add card to player collection
-		StoryMode.save.collection[item.cardIndex] = (StoryMode.save.collection[item.cardIndex] || 0) + 1;
+		StoryMode.awardCardToCollection(item.cardIndex, 1);
 
-		// Save and update
 		StoryMode.saveGame();
 		StoryMode.updateHUD();
 
@@ -753,7 +963,6 @@ class StoryMode {
 			AudioManager.playSFX("witcher_confirm");
 		}
 
-		// Re-render shop
 		StoryMode.openShopModal(shopId);
 	}
 
@@ -761,10 +970,10 @@ class StoryMode {
 		const modal = document.getElementById("story-compendium-modal");
 		if (!modal || typeof card_dict === "undefined") return;
 
+		StoryMode.syncCollectionAndTokens();
 		StoryMode.compendiumFilterFaction = filterFaction;
 		StoryMode.compendiumFilterStatus = filterStatus;
 
-		// Update progress header
 		const totalCards = 216;
 		const ownedUnique = Object.keys(StoryMode.save.collection).filter(k => (StoryMode.save.collection[k] || 0) > 0).length;
 		const pct = Math.round((ownedUnique / totalCards) * 100);
@@ -773,7 +982,6 @@ class StoryMode {
 		const barFill = document.getElementById("story-comp-progress-fill");
 		if (barFill) barFill.style.width = `${pct}%`;
 
-		// Filter buttons
 		const setupTabs = (containerId, currentVal, onClick) => {
 			const container = document.getElementById(containerId);
 			if (!container) return;
@@ -787,21 +995,19 @@ class StoryMode {
 		setupTabs("story-comp-status-tabs", filterStatus, (s) => StoryMode.openCompendiumModal(StoryMode.compendiumFilterFaction, s));
 		setupTabs("story-comp-faction-tabs", filterFaction, (f) => StoryMode.openCompendiumModal(f, StoryMode.compendiumFilterStatus));
 
-		// Populate Cards Grid
 		const grid = document.getElementById("story-comp-cards-grid");
 		if (grid) {
 			grid.innerHTML = "";
 			card_dict.forEach((card, idx) => {
-				// Faction filter
 				if (filterFaction !== "all") {
 					if (filterFaction === "neutral" && !["neutral", "special", "weather"].includes(card.deck)) return;
 					if (filterFaction !== "neutral" && card.deck !== filterFaction) return;
 				}
 
-				const ownedCount = StoryMode.save.collection[idx] || 0;
+				const maxAllowed = StoryMode.getCardMaxCopies(idx);
+				const ownedCount = Math.min(maxAllowed, StoryMode.save.collection[idx] || 0);
 				const isOwned = ownedCount > 0;
 
-				// Status filter
 				if (filterStatus === "owned" && !isOwned) return;
 				if (filterStatus === "missing" && isOwned) return;
 
@@ -812,13 +1018,13 @@ class StoryMode {
 				cardBox.className = `comp-card-item ${isOwned ? 'owned' : 'missing'}`;
 				cardBox.innerHTML = `
 					<div class="comp-card-thumb" style="background-image: url(img/sm/${card.deck}_${card.filename}.jpg)">
-						<span class="comp-card-str">${card.strength || '★'}</span>
-						${isOwned ? `<span class="comp-card-count">x${ownedCount}</span>` : '<span class="comp-card-lock">🔒</span>'}
+						<span class="comp-card-str">${card.row === 'leader' ? '👑' : (card.strength || '★')}</span>
+						${isOwned ? `<span class="comp-card-count">${ownedCount}/${maxAllowed}</span>` : '<span class="comp-card-lock">🔒</span>'}
 					</div>
 					<div class="comp-card-details">
 						<strong class="comp-card-title">${card.name}</strong>
 						<span class="comp-card-sub">${card.deck} · ${card.ability || card.row || 'Unidade'}</span>
-						${isOwned ? '<span class="comp-acquired-tag">✓ Colecionada</span>' : `<span class="comp-hint-text">📍 ${sourceHint}</span>`}
+						${isOwned ? `<span class="comp-acquired-tag">✓ Colecionada (${ownedCount}/${maxAllowed})</span>` : `<span class="comp-hint-text">📍 ${sourceHint}</span>`}
 					</div>
 				`;
 
@@ -838,54 +1044,52 @@ class StoryMode {
 
 	static openCampaignDeckBuilder() {
 		StoryMode.isCustomizingCampaign = true;
+		StoryMode.syncCollectionAndTokens();
 
-		// Hide story map
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.add("hide");
 
-		// Show deck customization with story-deck-mode applied
 		const deckCustom = document.getElementById("deck-customization");
 		if (deckCustom) {
 			deckCustom.classList.remove("hide");
 			deckCustom.classList.add("story-deck-mode");
 		}
 
-		// Exclusively in Story Mode: hide the Start Game button!
 		const startBtn = document.getElementById("start-game");
 		if (startBtn) {
 			startBtn.classList.add("hide");
 			startBtn.style.display = "none";
 		}
 
-		// Hide opponent preview (opponents are chosen on map nodes)
+		const uploadDeckBtn = document.getElementById("upload-deck");
+		if (uploadDeckBtn) {
+			uploadDeckBtn.classList.add("hide");
+			uploadDeckBtn.style.display = "none";
+		}
+
 		const opPreview = document.getElementById("opponent-preview");
 		if (opPreview) {
 			opPreview.classList.add("hide");
 			opPreview.style.display = "none";
 		}
 
-		// Hide standard menu return button
 		const standardBack = document.getElementById("btn-back-to-menu");
 		if (standardBack) standardBack.classList.add("hide");
 
-		// Show story map return button in top left
 		const storyBackToMap = document.getElementById("btn-story-back-to-map");
 		if (storyBackToMap) {
 			storyBackToMap.classList.remove("hide");
 			storyBackToMap.style.display = "inline-flex";
 		}
 
-		// Show story deck confirm / return button in center column
 		const storyDeckConfirm = document.getElementById("btn-story-deck-confirm");
 		if (storyDeckConfirm) {
 			storyDeckConfirm.classList.remove("hide");
 			storyDeckConfirm.style.display = "flex";
 		}
 
-		// Load campaign deck into DeckMaker
 		if (window.dm && StoryMode.save) {
 			window.dm.elem.classList.remove("hide");
-			// Load player faction
 			window.dm.setFaction(StoryMode.save.playerDeck.faction, true);
 			if (StoryMode.save.playerDeck.leader !== undefined) {
 				window.dm.setLeader(StoryMode.save.playerDeck.leader);
@@ -901,11 +1105,14 @@ class StoryMode {
 
 	static buildCampaignBank(deckMaker) {
 		deckMaker.clear();
-		const faction = StoryMode.save.playerDeck.faction;
+		StoryMode.syncCollectionAndTokens();
+		const faction = deckMaker.faction || StoryMode.save.playerDeck.faction;
 
-		// Filter all cards that can be used by this faction
+		// Filter playable cards for this faction (excluding leaders and 0-count summoned tokens)
 		let cards = card_dict.map((c, i) => ({ card: c, index: i })).filter(
-			p => [faction, "neutral", "weather", "special"].includes(p.card.deck) && p.card.row !== "leader"
+			p => [faction, "neutral", "weather", "special"].includes(p.card.deck)
+				&& p.card.row !== "leader"
+				&& Number(p.card.count) > 0
 		);
 
 		cards.sort(function (id1, id2) {
@@ -915,17 +1122,16 @@ class StoryMode {
 			return Card.compare(c1, c2);
 		});
 
-		// Build deck map from active campaign deck
 		const deckMap = {};
-		if (StoryMode.save.playerDeck.cards) {
+		if (StoryMode.save.playerDeck.faction === faction && StoryMode.save.playerDeck.cards) {
 			StoryMode.save.playerDeck.cards.forEach(([idx, count]) => {
 				deckMap[idx] = count;
 			});
 		}
 
-		// In Campaign Mode, the bank contains ONLY owned cards!
 		cards.forEach(p => {
-			const ownedTotal = StoryMode.save.collection[p.index] || 0;
+			const maxAllowed = StoryMode.getCardMaxCopies(p.index);
+			const ownedTotal = Math.min(maxAllowed, StoryMode.save.collection[p.index] || 0);
 			if (ownedTotal > 0) {
 				const inDeck = Math.min(ownedTotal, deckMap[p.index] || 0);
 				const inBank = ownedTotal - inDeck;
@@ -937,12 +1143,20 @@ class StoryMode {
 
 	static saveCampaignDeckFromCustomization() {
 		if (!window.dm || !StoryMode.save) return;
-		StoryMode.save.playerDeck = {
-			faction: window.dm.faction,
-			leader: window.dm.leader.index,
-			cards: window.dm.deck.filter(x => x.count > 0).map(x => [x.index, x.count])
-		};
-		StoryMode.saveGame();
+		const newCards = window.dm.deck.filter(x => x.count > 0).map(x => [x.index, Math.min(StoryMode.getCardMaxCopies(x.index), x.count)]);
+		const unitCount = newCards.reduce((sum, [idx, cnt]) => {
+			const c = card_dict[idx];
+			return (c && c.deck !== "special" && c.deck !== "weather") ? sum + cnt : sum;
+		}, 0);
+
+		if (unitCount >= 22) {
+			StoryMode.save.playerDeck = {
+				faction: window.dm.faction,
+				leader: window.dm.leader ? window.dm.leader.index : StoryMode.save.playerDeck.leader,
+				cards: newCards
+			};
+			StoryMode.saveGame();
+		}
 	}
 
 	static closeCampaignDeckBuilder() {
@@ -955,11 +1169,16 @@ class StoryMode {
 			deckCustom.classList.remove("story-deck-mode");
 		}
 
-		// Restore standard elements for normal play outside Story Mode
 		const startBtn = document.getElementById("start-game");
 		if (startBtn) {
 			startBtn.classList.remove("hide");
 			startBtn.style.display = "";
+		}
+
+		const uploadDeckBtn = document.getElementById("upload-deck");
+		if (uploadDeckBtn) {
+			uploadDeckBtn.classList.remove("hide");
+			uploadDeckBtn.style.display = "";
 		}
 
 		const opPreview = document.getElementById("opponent-preview");
@@ -1000,7 +1219,6 @@ class StoryMode {
 			opponentName = node.opponent.name;
 		}
 
-		// Active match context
 		StoryMode.activeMatch = {
 			nodeId: nodeId,
 			node: node,
@@ -1010,35 +1228,79 @@ class StoryMode {
 			firstWin: !StoryMode.save.completedNodes.includes(nodeId)
 		};
 
-		// Construct player campaign deck
 		const meDeckData = {
 			faction: StoryMode.save.playerDeck.faction,
 			leader: card_dict[StoryMode.save.playerDeck.leader],
 			cards: StoryMode.save.playerDeck.cards.map(([idx, count]) => ({ index: idx, count: count }))
 		};
 
-		// Construct opponent deck
 		const opDeck = {
 			faction: opDeckData.faction,
 			leader: card_dict[opDeckData.leader],
 			cards: opDeckData.cards.map(c => ({ index: c.index, count: c.count }))
 		};
 
-		// Initialize players
+		// Hide modals & end-screen before starting
+		const outcomeModal = document.getElementById("story-outcome-modal");
+		if (outcomeModal) outcomeModal.classList.add("hide");
+		const endScreen = document.getElementById("end-screen");
+		if (endScreen) endScreen.classList.add("hide");
+
 		player_me = new Player(0, StoryMode.save.playerName, meDeckData);
 		player_op = new Player(1, opponentName, opDeck);
 
-		// Hide story map, show game canvas
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.add("hide");
+
+		const padCursor = document.getElementById("story-gamepad-cursor");
+		if (padCursor) padCursor.classList.add("hide");
 
 		const mainGame = document.querySelector("main");
 		if (mainGame) mainGame.classList.remove("hide");
 
-		// Start game
 		if (typeof game !== "undefined") {
 			game.startGame();
 		}
+	}
+
+	/**
+	 * Immediately transitions from a completed tournament battle to the next consecutive battle
+	 * without returning to the Continent Map.
+	 */
+	static advanceToNextTournamentMatch(nodeId, nextRoundIndex) {
+		const outcomeModal = document.getElementById("story-outcome-modal");
+		if (outcomeModal) outcomeModal.classList.add("hide");
+
+		const endScreen = document.getElementById("end-screen");
+		if (endScreen) endScreen.classList.add("hide");
+
+		if (typeof game !== "undefined") {
+			game.reset();
+			if (typeof player_me !== "undefined") player_me.reset();
+			if (typeof player_op !== "undefined") player_op.reset();
+		}
+
+		StoryMode.startMatch(nodeId, nextRoundIndex);
+	}
+
+	/**
+	 * Called if the player abandons an active match via the pause/exit popup.
+	 * Resets tournament progress to Battle 1 and returns to the Continent Map.
+	 */
+	static onMatchAbandoned() {
+		if (StoryMode.activeMatch && StoryMode.save) {
+			const match = StoryMode.activeMatch;
+			const node = match.node;
+			StoryMode.save.stats.matchesLost = (StoryMode.save.stats.matchesLost || 0) + 1;
+			if (match.isTournament) {
+				StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: 0, active: false };
+			} else {
+				const lossPenalty = node.crownsLoss || 45;
+				StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - lossPenalty);
+			}
+			StoryMode.saveGame();
+		}
+		StoryMode.returnFromMatchToMap();
 	}
 
 	static onMatchEnded(isWin) {
@@ -1049,106 +1311,192 @@ class StoryMode {
 
 		if (isWin) {
 			StoryMode.save.stats.matchesWon = (StoryMode.save.stats.matchesWon || 0) + 1;
+			if (typeof Achievements !== "undefined" && typeof Achievements.checkStoryAchievements === "function") {
+				Achievements.checkStoryAchievements(StoryMode.save, true);
+			}
 
 			if (match.isTournament) {
-				const isFinalRound = match.roundIndex >= (node.rounds.length - 1);
-				if (isFinalRound) {
-					// Tournament Grand Victory!
-					StoryMode.save.crowns += node.grandPrizeCrowns;
-					StoryMode.save.stats.crownsEarned += node.grandPrizeCrowns;
+				const totalRounds = node.rounds.length;
+				const stageKey = `${match.nodeId}_r${match.roundIndex}`;
+				const isFirstStageClear = !(StoryMode.save.tournamentStageCleared && StoryMode.save.tournamentStageCleared[stageKey]);
+				const stageCrowns = isFirstStageClear ? (node.roundWinCrownsFirst || 300) : (node.roundWinCrownsRepeat || 40);
 
-					// Award Grand Prize Card
-					if (node.grandPrizeCard) {
-						StoryMode.save.collection[node.grandPrizeCard.index] = (StoryMode.save.collection[node.grandPrizeCard.index] || 0) + (node.grandPrizeCard.count || 1);
+				if (!StoryMode.save.tournamentStageCleared) StoryMode.save.tournamentStageCleared = {};
+				StoryMode.save.tournamentStageCleared[stageKey] = true;
+
+				const isFinalRound = match.roundIndex >= (totalRounds - 1);
+				if (isFinalRound) {
+					const isFirstChampion = !StoryMode.save.completedNodes.includes(match.nodeId);
+					const grandCrowns = isFirstChampion ? (node.grandPrizeCrowns || 1000) : Math.round((node.grandPrizeCrowns || 1000) * 0.1);
+					const totalCrownsWon = stageCrowns + grandCrowns;
+
+					StoryMode.save.crowns += totalCrownsWon;
+					StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + totalCrownsWon;
+
+					const prizeCards = node.grandPrizeCards || (node.grandPrizeCard ? [node.grandPrizeCard] : []);
+					const awardedCards = [];
+					if (isFirstChampion) {
+						prizeCards.forEach(pc => {
+							StoryMode.awardCardToCollection(pc.index, pc.count || 1);
+							awardedCards.push(pc);
+						});
 					}
 
-					// Award Regional Trophy
 					if (node.trophyId && !StoryMode.save.trophies.includes(node.trophyId)) {
 						StoryMode.save.trophies.push(node.trophyId);
 					}
 
-					// Mark node completed
 					if (!StoryMode.save.completedNodes.includes(match.nodeId)) {
 						StoryMode.save.completedNodes.push(match.nodeId);
 					}
 					StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: 0, active: false };
 
-					// Unlock connected nodes
-					(node.connections || []).forEach(connId => {
-						if (!StoryMode.save.unlockedNodes.includes(connId)) {
-							StoryMode.save.unlockedNodes.push(connId);
-						}
-					});
+					StoryMode.unlockNodeWithConnections(match.nodeId);
+					StoryMode.saveGame();
 
-					StoryMode.saveGame();
-					StoryMode.showVictoryOverlay(node.grandPrizeCrowns, node.grandPrizeCard, node.trophyId, true);
+					StoryMode.showVictoryOverlay({
+						crownsWon: totalCrownsWon,
+						cardsDropped: awardedCards,
+						trophyId: isFirstChampion ? node.trophyId : null,
+						isTourneyChampion: true,
+						nextRoundIndex: null,
+						totalRounds: totalRounds,
+						isFirstStageClear: isFirstStageClear
+					});
 				} else {
-					// Advance tournament round
-					const nextRound = match.roundIndex + 1;
-					StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: nextRound, active: true };
+					// Won current tournament stage -> proceed directly to next battle!
+					const nextRoundIndex = match.roundIndex + 1;
+					StoryMode.save.crowns += stageCrowns;
+					StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + stageCrowns;
+					StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: nextRoundIndex, active: true };
 					StoryMode.saveGame();
-					StoryMode.showVictoryOverlay(150, null, null, false, nextRound);
+
+					StoryMode.showVictoryOverlay({
+						crownsWon: stageCrowns,
+						cardsDropped: [],
+						trophyId: null,
+						isTourneyChampion: false,
+						nextRoundIndex: nextRoundIndex,
+						totalRounds: totalRounds,
+						isFirstStageClear: isFirstStageClear,
+						nextOpponent: node.rounds[nextRoundIndex]
+					});
 				}
 			} else {
-				// Regular battle victory
+				// Standard Battle Node Victory
 				const isFirstWin = !StoryMode.save.completedNodes.includes(match.nodeId);
-				const crownsWon = isFirstWin ? (node.crownsReward || 200) : (node.crownsReplay || 50);
+				const crownsWon = isFirstWin ? (node.crownsReward || 220) : (node.crownsReplay || 55);
 
 				StoryMode.save.crowns += crownsWon;
-				StoryMode.save.stats.crownsEarned += crownsWon;
+				StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + crownsWon;
 				StoryMode.save.winsCount[match.nodeId] = (StoryMode.save.winsCount[match.nodeId] || 0) + 1;
 
-				let droppedCard = null;
+				const awardedCards = [];
 				if (isFirstWin && node.cardDrop) {
-					droppedCard = node.cardDrop;
-					StoryMode.save.collection[node.cardDrop.index] = (StoryMode.save.collection[node.cardDrop.index] || 0) + (node.cardDrop.count || 1);
+					StoryMode.awardCardToCollection(node.cardDrop.index, node.cardDrop.count || 1);
+					awardedCards.push(node.cardDrop);
 				}
 
 				if (!StoryMode.save.completedNodes.includes(match.nodeId)) {
 					StoryMode.save.completedNodes.push(match.nodeId);
 				}
 
-				// Unlock connected nodes
-				(node.connections || []).forEach(connId => {
-					if (!StoryMode.save.unlockedNodes.includes(connId)) {
-						StoryMode.save.unlockedNodes.push(connId);
-					}
-				});
-
+				StoryMode.unlockNodeWithConnections(match.nodeId);
 				StoryMode.saveGame();
-				StoryMode.showVictoryOverlay(crownsWon, droppedCard, null, false);
+
+				StoryMode.showVictoryOverlay({
+					crownsWon: crownsWon,
+					cardsDropped: awardedCards,
+					trophyId: null,
+					isTourneyChampion: false,
+					nextRoundIndex: null,
+					totalRounds: 1
+				});
 			}
 		} else {
-			// Defeat penalty
+			// Defeat
 			StoryMode.save.stats.matchesLost = (StoryMode.save.stats.matchesLost || 0) + 1;
-			const lossPenalty = node.crownsLoss || 50;
-			StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - lossPenalty);
-			StoryMode.saveGame();
+			let lossPenalty = node.crownsLoss || 45;
 
-			StoryMode.showDefeatOverlay(lossPenalty, match.isTournament);
+			if (match.isTournament) {
+				// Reset tournament progress to Battle 1!
+				StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: 0, active: false };
+				lossPenalty = 0; // Entry fee was already paid
+			} else {
+				StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - lossPenalty);
+			}
+
+			StoryMode.saveGame();
+			StoryMode.showDefeatOverlay(lossPenalty, match.isTournament, match.roundIndex + 1, (node.rounds || []).length);
 		}
 	}
 
-	static showVictoryOverlay(crownsWon, cardDrop, trophyId, isTourneyChampion, nextRound) {
+	static showVictoryOverlay(opts) {
 		const modal = document.getElementById("story-outcome-modal");
 		if (!modal) return;
 
-		document.getElementById("story-outcome-title").textContent = isTourneyChampion ? "★ GRANDE CAMPEÃO DO TORNEIO! ★" : "VITÓRIA NO GWENT!";
-		document.getElementById("story-outcome-crowns").textContent = `+${crownsWon} Coroas`;
+		const {
+			crownsWon,
+			cardsDropped = [],
+			trophyId = null,
+			isTourneyChampion = false,
+			nextRoundIndex = null,
+			totalRounds = 1,
+			isFirstStageClear = true,
+			nextOpponent = null
+		} = opts;
+
+		const titleEl = document.getElementById("story-outcome-title");
+		if (titleEl) {
+			if (isTourneyChampion) {
+				titleEl.textContent = "★ GRANDE CAMPEÃO DO TORNEIO! ★";
+			} else if (nextRoundIndex !== null) {
+				titleEl.textContent = `⚔ BATALHA ${nextRoundIndex}/${totalRounds} VENCIDA!`;
+			} else {
+				titleEl.textContent = "VITÓRIA NO GWENT!";
+			}
+		}
+
+		const crownsEl = document.getElementById("story-outcome-crowns");
+		if (crownsEl) {
+			if (nextRoundIndex !== null) {
+				crownsEl.textContent = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas ${isFirstStageClear ? '(Bônus de 1ª Tentativa!)' : '(Fase Repetida)'}`;
+			} else {
+				crownsEl.textContent = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas`;
+			}
+		}
 
 		const cardContainer = document.getElementById("story-outcome-card-box");
 		if (cardContainer) {
-			if (cardDrop && typeof card_dict !== "undefined") {
-				const c = card_dict[cardDrop.index];
-				if (c) {
-					cardContainer.classList.remove("hide");
-					cardContainer.innerHTML = `
-						<span class="gold-text">★ Nova Carta Conquistada!</span>
-						<div class="story-outcome-card-thumb" style="background-image: url(img/lg/${c.deck}_${c.filename}.jpg)"></div>
-						<strong>${c.name}</strong>
-						<small>${c.deck} · ${c.strength ? 'Força ' + c.strength : 'Especial'} · ${c.ability || ''}</small>
+			if (cardsDropped.length > 0 && typeof card_dict !== "undefined") {
+				cardContainer.classList.remove("hide");
+				const headerText = cardsDropped.length === 1
+					? "★ Nova Carta Conquistada!"
+					: `★ ${cardsDropped.length} Novas Cartas Conquistadas!`;
+				const cardsHtml = cardsDropped.map(drop => {
+					const c = card_dict[drop.index];
+					if (!c) return "";
+					return `
+						<div style="display:flex; flex-direction:column; align-items:center; width:135px;">
+							<div class="story-outcome-card-thumb" style="width:120px; height:164px; margin:8px auto; background-image: url(img/lg/${c.deck}_${c.filename}.jpg)"></div>
+							<strong style="color:#fff; font-size:0.88rem;">${c.name}</strong>
+							<small style="color:#c5a059; font-size:0.74rem;">${c.row === 'leader' ? '👑 Líder' : (c.strength ? 'Força ' + c.strength : 'Especial')}</small>
+						</div>
 					`;
-				}
+				}).join("");
+				cardContainer.innerHTML = `
+					<div style="color:#ffd700; font-weight:bold; margin-bottom:6px;">${headerText}</div>
+					<div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap;">${cardsHtml}</div>
+				`;
+			} else if (nextRoundIndex !== null && nextOpponent) {
+				cardContainer.classList.remove("hide");
+				cardContainer.innerHTML = `
+					<div style="background:rgba(20,16,12,0.85); border:1px solid #ffd700; padding:12px 18px; border-radius:6px; margin-top:8px;">
+						<div style="color:#c5a059; font-size:0.82rem; text-transform:uppercase;">Próximo Desafio Consecutivo (${nextRoundIndex + 1}/${totalRounds}):</div>
+						<strong style="color:#fff; font-size:1.15rem; display:block; margin-top:4px;">⚔ ${nextOpponent.opponentName}</strong>
+						<span style="color:#ffd700; font-size:0.85rem;">Facção: ${nextOpponent.faction.toUpperCase()}</span>
+					</div>
+				`;
 			} else {
 				cardContainer.classList.add("hide");
 				cardContainer.innerHTML = "";
@@ -1161,11 +1509,11 @@ class StoryMode {
 				const t = STORY_DATA.TROPHIES[trophyId];
 				trophyBox.classList.remove("hide");
 				trophyBox.innerHTML = `
-					<span class="gold-text">🏆 Troféu Regional Desbloqueado!</span>
-					<div class="story-outcome-trophy-badge">
-						<span class="trophy-big-icon">${t.icon}</span>
-						<strong>${t.title}</strong>
-						<small>${t.desc}</small>
+					<div style="background:radial-gradient(circle, rgba(255,215,0,0.2) 0%, rgba(20,15,10,0.95) 100%); border:2px solid #ffd700; padding:12px 18px; border-radius:6px;">
+						<div style="color:#ffd700; font-weight:bold; font-size:0.9rem;">🏆 INSÍGNIA REGIONAL CONQUISTADA!</div>
+						<div style="font-size:2.2rem; margin:6px 0;">${t.icon}</div>
+						<strong style="color:#fff; font-size:1.05rem; display:block;">${t.title}</strong>
+						<small style="color:#e0d0b0; font-size:0.8rem;">${t.desc}</small>
 					</div>
 				`;
 			} else {
@@ -1176,11 +1524,11 @@ class StoryMode {
 
 		const actionBtn = document.getElementById("story-outcome-action-btn");
 		if (actionBtn) {
-			if (nextRound) {
-				actionBtn.textContent = `Avançar para Batalha ${nextRound}/3`;
+			if (nextRoundIndex !== null && StoryMode.activeMatch) {
+				const targetNodeId = StoryMode.activeMatch.nodeId;
+				actionBtn.textContent = `⚔ Avançar para Batalha ${nextRoundIndex + 1}/${totalRounds}`;
 				actionBtn.onclick = () => {
-					modal.classList.add("hide");
-					StoryMode.startMatch(StoryMode.activeMatch.nodeId, nextRound - 1);
+					StoryMode.advanceToNextTournamentMatch(targetNodeId, nextRoundIndex);
 				};
 			} else {
 				actionBtn.textContent = "Continuar Jornada (Retornar ao Mapa)";
@@ -1193,19 +1541,25 @@ class StoryMode {
 		modal.classList.remove("hide");
 	}
 
-	static showDefeatOverlay(crownsLost, isTournament) {
+	static showDefeatOverlay(crownsLost, isTournament, failedRoundNum = 1, totalRounds = 1) {
 		const modal = document.getElementById("story-outcome-modal");
 		if (!modal) return;
 
-		document.getElementById("story-outcome-title").textContent = "DERROTA NO TABULEIRO";
-		document.getElementById("story-outcome-crowns").textContent = `-${crownsLost} Coroas perdidas na aposta`;
+		document.getElementById("story-outcome-title").textContent = isTournament
+			? "ELIMINADO DO TORNEIO!"
+			: "DERROTA NO TABULEIRO";
+		document.getElementById("story-outcome-crowns").textContent = isTournament
+			? `Derrotado na Batalha ${failedRoundNum}/${totalRounds} · Torneio Reiniciado`
+			: `-${crownsLost} Coroas perdidas na aposta`;
 
 		const cardContainer = document.getElementById("story-outcome-card-box");
 		if (cardContainer) {
 			cardContainer.classList.remove("hide");
 			cardContainer.innerHTML = `
 				<p class="story-defeat-text">
-					${isTournament ? 'Você foi eliminado desta rodada do torneio, mas não desista! Pode tentar novamente quando desejar.' : 'Seu adversário levou a melhor nesta rodada. Revise seu baralho e tente novamente!'}
+					${isTournament
+						? `Você caiu na Batalha ${failedRoundNum} de ${totalRounds}. Como as batalhas do torneio precisam ser vencidas seguidamente, você retornará ao mapa e o torneio reiniciará da 1ª partida.`
+						: 'Seu adversário levou a melhor nesta rodada. Revise seu baralho e tente novamente!'}
 				</p>
 			`;
 		}
@@ -1215,7 +1569,7 @@ class StoryMode {
 
 		const actionBtn = document.getElementById("story-outcome-action-btn");
 		if (actionBtn) {
-			actionBtn.textContent = "Retornar ao Mapa da Campanha";
+			actionBtn.textContent = "Retornar ao Mapa do Continente";
 			actionBtn.onclick = () => {
 				StoryMode.returnFromMatchToMap();
 			};
@@ -1224,35 +1578,26 @@ class StoryMode {
 		modal.classList.remove("hide");
 	}
 
-	// Safe Return from Story Match directly back to the Continent Map
 	static returnFromMatchToMap() {
-		// Close outcome fanfare modal if open
 		const outcomeModal = document.getElementById("story-outcome-modal");
 		if (outcomeModal) outcomeModal.classList.add("hide");
 
-		// Hide gwent end-screen
 		const endScreen = document.getElementById("end-screen");
 		if (endScreen) endScreen.classList.add("hide");
 
-		// Hide gwent main board if visible
 		const mainGame = document.querySelector("main");
 		if (mainGame) mainGame.classList.add("hide");
 
-		// Reset game engine and players cleanly
 		if (typeof game !== "undefined") {
 			game.reset();
 			if (typeof player_me !== "undefined") player_me.reset();
 			if (typeof player_op !== "undefined") player_op.reset();
 		}
 
-		// Clear active match
 		StoryMode.activeMatch = null;
-
-		// Reopen continent story map
 		StoryMode.openMap();
 	}
 
-	// Map Layer Filters (Toggle visibility of Shops, Tournaments, Locked nodes)
 	static toggleFilter(filterType) {
 		if (typeof StoryMode.filters[filterType] === "undefined") return;
 		StoryMode.filters[filterType] = !StoryMode.filters[filterType];
@@ -1291,7 +1636,6 @@ class StoryMode {
 		}
 	}
 
-	// Map Camera & Bounds Engine (Never leaves screen; exact cursor zoom)
 	static getMinZoom() {
 		const viewport = document.getElementById("story-map-viewport");
 		const vW = viewport ? (viewport.clientWidth || window.innerWidth) : window.innerWidth;
@@ -1312,7 +1656,6 @@ class StoryMode {
 		const scaledW = StoryMode.MAP_WIDTH * StoryMode.mapZoom;
 		const scaledH = StoryMode.MAP_HEIGHT * StoryMode.mapZoom;
 
-		// Horizontal bounding: the map never reveals black void on left or right
 		const minPanX = vW - scaledW;
 		const maxPanX = 0;
 		if (minPanX >= 0) {
@@ -1321,7 +1664,6 @@ class StoryMode {
 			StoryMode.mapPanX = Math.min(maxPanX, Math.max(minPanX, StoryMode.mapPanX));
 		}
 
-		// Vertical bounding: the map never reveals black void on top or bottom
 		const minPanY = vH - scaledH;
 		const maxPanY = 0;
 		if (minPanY >= 0) {
@@ -1341,7 +1683,6 @@ class StoryMode {
 		const viewport = document.getElementById("story-map-viewport");
 		const rect = viewport ? viewport.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
 
-		// Pinpoint unscaled map coordinate under cursor
 		const cursorX = (pivotX !== undefined && pivotX !== null) ? (pivotX - rect.left) : (rect.width / 2);
 		const cursorY = (pivotY !== undefined && pivotY !== null) ? (pivotY - rect.top) : (rect.height / 2);
 
@@ -1351,13 +1692,11 @@ class StoryMode {
 		const minZoom = StoryMode.getMinZoom();
 		const maxZoom = 2.8;
 
-		// Smooth exponential zoom factor
 		const factor = delta > 0 ? (1 + Math.abs(delta)) : (1 / (1 + Math.abs(delta)));
 		let newZoom = StoryMode.mapZoom * factor;
 		newZoom = Math.min(maxZoom, Math.max(minZoom, newZoom));
 
 		StoryMode.mapZoom = newZoom;
-		// Keep the exact map point under cursor
 		StoryMode.mapPanX = cursorX - (mapX * newZoom);
 		StoryMode.mapPanY = cursorY - (mapY * newZoom);
 
@@ -1366,7 +1705,8 @@ class StoryMode {
 	}
 
 	static focusCurrentNode() {
-		const currentNodeData = STORY_DATA.NODES[StoryMode.save.currentNode] || STORY_DATA.NODES["wo_tavern"];
+		const defaultStart = (StoryMode.save && STORY_DATA.STARTER_NODES && STORY_DATA.STARTER_NODES[StoryMode.save.faction]) || "nr_white_orchard";
+		const currentNodeData = (StoryMode.save && STORY_DATA.NODES[StoryMode.save.currentNode]) || STORY_DATA.NODES[defaultStart];
 		if (!currentNodeData) return;
 
 		const viewport = document.getElementById("story-map-viewport");
@@ -1374,8 +1714,7 @@ class StoryMode {
 		const vHeight = viewport ? (viewport.clientHeight || window.innerHeight) : window.innerHeight;
 
 		const minZoom = StoryMode.getMinZoom();
-		// Set comfortable zoom centered on current location
-		StoryMode.mapZoom = Math.max(minZoom * 1.35, Math.min(1.2, minZoom + 0.35));
+		StoryMode.mapZoom = Math.max(minZoom * 1.35, Math.min(1.25, minZoom + 0.4));
 
 		StoryMode.mapPanX = (vWidth / 2) - (currentNodeData.x * StoryMode.mapZoom);
 		StoryMode.mapPanY = (vHeight / 2) - (currentNodeData.y * StoryMode.mapZoom);

@@ -775,6 +775,457 @@ const ACHIEVEMENTS_DATA = [
 			es: "Sin relleno ni cartas muertas. Cada carta robada fue una estocada letal al corazón del oponente.",
 			pl: "Żadnego zbędnego balastu. Każda dociągnięta karta była naostrzonym sztyletem prosto w serce wroga."
 		}
+	},
+	// --- STORY MODE ACHIEVEMENTS ---
+	{
+		id: "story_win_1",
+		icon: "🧭",
+		type: "count",
+		target: 1,
+		getProgress: stats => stats.storyOpponentsDefeated || 0,
+		title: {
+			pt: "Primeiro Passo no Continente",
+			en: "First Step on the Continent",
+			es: "Primer Paso en el Continente",
+			pl: "Pierwszy Krok na Kontynencie"
+		},
+		desc: {
+			pt: "Vença seu primeiro adversário no modo história.",
+			en: "Defeat your first opponent in Story Mode.",
+			es: "Derrota a tu primer adversario en el modo historia.",
+			pl: "Pokonaj swojego pierwszego przeciwnika w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Toda grande jornada pelo Continente começa com uma única aposta numa mesa de taverna.",
+			en: "Every grand journey across the Continent begins with a single wager at a tavern table.",
+			es: "Todo gran viaje por el Continente comienza con una sola apuesta en una mesa de taberna.",
+			pl: "Każda wielka podróż przez Kontynent zaczyna się od jednego zakładu przy karczemnym stole."
+		}
+	},
+	{
+		id: "story_win_10",
+		icon: "⚔️",
+		type: "count",
+		target: 10,
+		getProgress: stats => stats.storyOpponentsDefeated || 0,
+		title: {
+			pt: "Desafiante das Estradas",
+			en: "Roadside Challenger",
+			es: "Retador de los Caminos",
+			pl: "Pretendent Gościńców"
+		},
+		desc: {
+			pt: "Vença 10 adversários no modo história.",
+			en: "Defeat 10 opponents in Story Mode.",
+			es: "Derrota a 10 adversarios en el modo historia.",
+			pl: "Pokonaj 10 przeciwników w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Dez oponentes deixados para trás e um baralho que já começa a impor respeito nas fronteiras.",
+			en: "Ten opponents left behind and a deck that already commands respect across the borders.",
+			es: "Diez oponentes atrás y una baraja que ya impone respeto en las fronteras.",
+			pl: "Dziesięciu rywali pokonanych, a twoja talia zaczyna budzić respekt na granicach."
+		}
+	},
+	{
+		id: "story_win_20",
+		icon: "🛡️",
+		type: "count",
+		target: 20,
+		getProgress: stats => stats.storyOpponentsDefeated || 0,
+		title: {
+			pt: "Andarilho Renomado",
+			en: "Renowned Wanderer",
+			es: "Viajero Renombrado",
+			pl: "Słynny Wędrowiec"
+		},
+		desc: {
+			pt: "Vença 20 adversários no modo história.",
+			en: "Defeat 20 opponents in Story Mode.",
+			es: "Derrota a 20 adversarios en el modo historia.",
+			pl: "Pokonaj 20 przeciwników w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Os bardos já cantam sobre o viajante que desafia nobres, bruxos e mercadores sem jamais recuar.",
+			en: "Bards already sing of the traveler who challenges nobles, witchers, and merchants without backing down.",
+			es: "Los bardos ya cantan sobre el viajero que desafía a nobles, brujos y mercaderes sin retroceder.",
+			pl: "Bardowie już śpiewają o wędrowcu, który wyzywa szlachtę, wiedźminów i kupców."
+		}
+	},
+	{
+		id: "story_win_30",
+		icon: "🎖️",
+		type: "count",
+		target: 30,
+		getProgress: stats => stats.storyOpponentsDefeated || 0,
+		title: {
+			pt: "Veterano das Sete Regiões",
+			en: "Veteran of the Seven Regions",
+			es: "Veterano de las Siete Regiones",
+			pl: "Weteran Siedmiu Krain"
+		},
+		desc: {
+			pt: "Vença 30 adversários no modo história.",
+			en: "Defeat 30 opponents in Story Mode.",
+			es: "Derrota a 30 adversarios en el modo historia.",
+			pl: "Pokonaj 30 przeciwników w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Trinta vitórias marcadas no mapa! Das ilhas geladas de Skellige aos vinhedos de Toussaint, todos conhecem sua fama.",
+			en: "Thirty victories marked on the map! From icy Skellige to the vineyards of Toussaint, all know your fame.",
+			es: "¡Treinta victorias marcadas en el mapa! Desde Skellige hasta los viñedos de Toussaint, todos conocen tu fama.",
+			pl: "Trzydzieści zwycięstw na mapie! Od mroźnego Skellige po winnice Toussaint, wszyscy znają twoją sławę."
+		}
+	},
+	{
+		id: "story_win_40",
+		icon: "🏅",
+		type: "count",
+		target: 40,
+		getProgress: stats => stats.storyOpponentsDefeated || 0,
+		title: {
+			pt: "Mestre Tático do Continente",
+			en: "Tactical Master of the Continent",
+			es: "Maestro Táctico del Continente",
+			pl: "Mistrz Taktyki Kontynentu"
+		},
+		desc: {
+			pt: "Vença 40 adversários no modo história.",
+			en: "Defeat 40 opponents in Story Mode.",
+			es: "Derrota a 40 adversarios en el modo historia.",
+			pl: "Pokonaj 40 przeciwników w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Quarenta rivais superados. Reis, feiticeiras e generais caíram diante da precisão da sua estratégia.",
+			en: "Forty rivals overcome. Kings, sorceresses, and generals fell before the precision of your strategy.",
+			es: "Cuarenta rivales superados. Reyes, hechiceras y generales cayeron ante tu estrategia.",
+			pl: "Czterdziestu rywali pokonanych. Królowie, czarodziejki i generałowie ulegli twojej strategii."
+		}
+	},
+	{
+		id: "story_win_50",
+		icon: "👑",
+		type: "count",
+		target: 50,
+		getProgress: stats => stats.storyOpponentsDefeated || 0,
+		title: {
+			pt: "Conquistador Implacável",
+			en: "Relentless Conqueror",
+			es: "Conquistador Implacable",
+			pl: "Nieustępliwy Zdobywca"
+		},
+		desc: {
+			pt: "Vença 50 adversários no modo história.",
+			en: "Defeat 50 opponents in Story Mode.",
+			es: "Derrota a 50 adversarios en el modo historia.",
+			pl: "Pokonaj 50 przeciwników w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Cinquenta adversários derrotados! Poucos no mundo de The Witcher ousariam sentar-se à sua frente agora.",
+			en: "Fifty opponents defeated! Few in the world of The Witcher would dare sit across from you now.",
+			es: "¡Cincuenta adversarios derrotados! Pocos en el mundo de The Witcher osarían enfrentarte ahora.",
+			pl: "Pięćdziesięciu pokonanych przeciwników! Niewielu odważyłoby się teraz usiąść naprzeciw ciebie."
+		}
+	},
+	{
+		id: "story_win_all_opponents",
+		icon: "🗺️",
+		type: "count",
+		target: 63,
+		getProgress: stats => stats.storyAllOpponentsProgress || 0,
+		title: {
+			pt: "Soberano do Mapa",
+			en: "Sovereign of the Map",
+			es: "Soberano del Mapa",
+			pl: "Władca Mapy"
+		},
+		desc: {
+			pt: "Vença todos os adversários do modo história.",
+			en: "Defeat all opponents in Story Mode.",
+			es: "Derrota a todos los adversarios del modo historia.",
+			pl: "Pokonaj wszystkich przeciwników w Trybie Opowieści."
+		},
+		secret: {
+			pt: "De Pontar a Nilfgaard, de Dol Blathanna a Beauclair — não resta um único oponente no Continente que não tenha se curvado ao seu baralho!",
+			en: "From the Pontar to Nilfgaard, from Dol Blathanna to Beauclair — not a single opponent remains who hasn't bowed to your deck!",
+			es: "Desde el Pontar hasta Nilfgaard, de Dol Blathanna a Beauclair: ¡no queda ni un oponente que no se haya inclinado ante tu mazo!",
+			pl: "Od Pontaru po Nilfgaard, od Dol Blathanna po Beauclair — nie został ani jeden rywal, który nie ugiąłby się przed twoją talią!"
+		}
+	},
+	{
+		id: "story_tourney_2",
+		icon: "🥉",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyTourney2 || 0,
+		title: {
+			pt: "Vencedor de Dupla Eliminatória",
+			en: "Two-Match Gauntlet Winner",
+			es: "Ganador de Torneo Doble",
+			pl: "Zwycięzca Dwumeczu"
+		},
+		desc: {
+			pt: "Vença 1 torneio de 2 partidas no modo história.",
+			en: "Win a 2-match tournament in Story Mode.",
+			es: "Gana 1 torneo de 2 partidas en el modo historia.",
+			pl: "Wygraj 1 turniej 2-meczowy w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Duas vitórias consecutivas sem descanso. O primeiro troféu de torneio já brilha na sua estante!",
+			en: "Two consecutive victories without rest. Your first tournament trophy now shines on the shelf!",
+			es: "Dos victorias consecutivas sin descanso. ¡Tu primer trofeo de torneo ya brilla en la vitrina!",
+			pl: "Dwa kolejne zwycięstwa bez wytchnienia. Twoje pierwsze trofeum turniejowe już lśni!"
+		}
+	},
+	{
+		id: "story_tourney_3",
+		icon: "🥈",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyTourney3 || 0,
+		title: {
+			pt: "Campeão da Tríplice Coroa",
+			en: "Triple Round Champion",
+			es: "Campeón de Triple Ronda",
+			pl: "Mistrz Potrójnego Starcia"
+		},
+		desc: {
+			pt: "Vença 1 torneio de 3 partidas no modo história.",
+			en: "Win a 3-match tournament in Story Mode.",
+			es: "Gana 1 torneo de 3 partidas en el modo historia.",
+			pl: "Wygraj 1 turniej 3-meczowy w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Três oponentes seguidos caíram perante sua calma fria. A multidão da taverna ergue os canecos em seu nome!",
+			en: "Three consecutive opponents fell before your cold composure. The tavern crowd raises their mugs to your name!",
+			es: "Tres oponentes seguidos cayeron ante tu temple. ¡La taberna alza sus jarras en tu honor!",
+			pl: "Trzech kolejnych rywali padło przed twoim spokojem. Karczma wznosi kufle na twoją cześć!"
+		}
+	},
+	{
+		id: "story_tourney_5",
+		icon: "🥇",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyTourney5 || 0,
+		title: {
+			pt: "Mestre das Cinco Arenas",
+			en: "Five-Match Gauntlet Master",
+			es: "Maestro de Cinco Arenas",
+			pl: "Mistrz Pięciu Aren"
+		},
+		desc: {
+			pt: "Vença 1 torneio de 5 partidas no modo história.",
+			en: "Win a 5-match tournament in Story Mode.",
+			es: "Gana 1 torneo de 5 partidas en el modo historia.",
+			pl: "Wygraj 1 turniej 5-meczowy w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Cinco duelos consecutivos sem margem para erro! Sua resistência mental é digna de um bruxo da Escola do Lobo.",
+			en: "Five consecutive duels with zero margin for error! Your mental endurance befits a Wolf School witcher.",
+			es: "¡Cinco duelos consecutivos sin margen de error! Tu resistencia mental es digna de la Escuela del Lobo.",
+			pl: "Pięć kolejnych pojedynków bez marginesu na błąd! Twoja wytrwałość przystoi wiedźminowi Szkoły Wilka."
+		}
+	},
+	{
+		id: "story_tourney_7",
+		icon: "🏆",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyTourney7 || 0,
+		title: {
+			pt: "Lenda dos Grandes Torneios",
+			en: "Grand Tournament Legend",
+			es: "Leyenda de los Grandes Torneos",
+			pl: "Legenda Wielkich Turniejów"
+		},
+		desc: {
+			pt: "Vença 1 torneio de 7 partidas no modo história.",
+			en: "Win a 7-match tournament in Story Mode.",
+			es: "Gana 1 torneo de 7 partidas en el modo historia.",
+			pl: "Wygraj 1 turniej 7-meczowy w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Sete batalhas implacáveis em sequência! Você superou a maratona mais difícil do Gwent e entrou para a história.",
+			en: "Seven ruthless battles in a row! You conquered Gwent's hardest marathon and entered history.",
+			es: "¡Siete batallas implacables seguidas! Superaste el maratón más difícil del Gwent e hiciste historia.",
+			pl: "Siedem bezwzględnych bitew z rzędu! Pokonałeś najtrudniejszy maraton Gwinta i przeszedłeś do historii."
+		}
+	},
+	{
+		id: "story_insignia_skellige",
+		icon: "⚓",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyInsigniaSkellige || 0,
+		title: {
+			pt: "Insígnia de Skellige",
+			en: "Insignia of Skellige",
+			es: "Insignia de Skellige",
+			pl: "Insygnia Skellige"
+		},
+		desc: {
+			pt: "Vença o torneio Regional de Skellige e conquiste sua insígnia no modo história.",
+			en: "Win the Skellige Regional Tournament and claim its insignia in Story Mode.",
+			es: "Gana el Torneo Regional de Skellige y consigue su insignia en el modo historia.",
+			pl: "Wygraj Regionalny Turniej Skellige i zdobądź jego insygnia w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Em Kaer Trolde, os jarls batem seus machados nos escudos em sua honra! A Insígnia do Drakkar Dourado pertence a você.",
+			en: "In Kaer Trolde, the jarls clash axes against shields in your honor! The Golden Longship Insignia is yours.",
+			es: "¡En Kaer Trolde, los jarls golpean sus escudos en tu honor! La Insignia de Skellige te pertenece.",
+			pl: "W Kaer Trolde jarlowie uderzają toporami o tarcze na twoją cześć! Insygnia Skellige należą do ciebie."
+		}
+	},
+	{
+		id: "story_insignia_nilfgaard",
+		icon: "☀️",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyInsigniaNilfgaard || 0,
+		title: {
+			pt: "Insígnia de Nilfgaard",
+			en: "Insignia of Nilfgaard",
+			es: "Insignia de Nilfgaard",
+			pl: "Insygnia Nilfgaardu"
+		},
+		desc: {
+			pt: "Vença o torneio Regional de Nilfgaard e conquiste sua insígnia no modo história.",
+			en: "Win the Nilfgaard Regional Tournament and claim its insignia in Story Mode.",
+			es: "Gana el Torneo Regional de Nilfgaard y consigue su insignia en el modo historia.",
+			pl: "Wygraj Regionalny Turniej Nilfgaardu i zdobądź jego insygnia w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Na Cidade dos Torres Douradas, o próprio Imperador reconhece sua supremacia tática com o Grande Sol Imperial.",
+			en: "In the City of Golden Towers, the Emperor himself recognizes your supremacy with the Great Imperial Sun.",
+			es: "En la Ciudad de las Torres Doradas, el propio Emperador reconoce tu supremacía con el Gran Sol Imperial.",
+			pl: "W Mieście Złotych Wież sam Cesarz uznaje twoją supremację Wielkim Imperialnym Słońcem."
+		}
+	},
+	{
+		id: "story_insignia_redania",
+		icon: "🦅",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyInsigniaRedania || 0,
+		title: {
+			pt: "Insígnia da Redânia",
+			en: "Insignia of Redania",
+			es: "Insignia de Redania",
+			pl: "Insygnia Redanii"
+		},
+		desc: {
+			pt: "Vença o torneio Regional de Redânia e conquiste sua insígnia no modo história.",
+			en: "Win the Redania Regional Tournament and claim its insignia in Story Mode.",
+			es: "Gana el Torneo Regional de Redania y consigue su insignia en el modo historia.",
+			pl: "Wygraj Regionalny Turniej Redanii i zdobądź jego insygnia w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Nos salões da Academia de Oxenfurt e nos palácios de Tretogor, a Águia Prateada da Redânia coroa sua mente brilhante.",
+			en: "In the halls of Oxenfurt Academy and the palaces of Tretogor, the Redanian Eagle crowns your brilliant mind.",
+			es: "En los salones de Oxenfurt y los palacios de Tretogor, el Águila de Redania corona tu mente brillante.",
+			pl: "W murach Akademii Oxenfurckiej i pałacach Tretogoru Redański Orzeł wieńczy twój genialny umysł."
+		}
+	},
+	{
+		id: "story_insignia_temeria",
+		icon: "⚜️",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyInsigniaTemeria || 0,
+		title: {
+			pt: "Insígnia da Teméria",
+			en: "Insignia of Temeria",
+			es: "Insignia de Temeria",
+			pl: "Insygnia Temerii"
+		},
+		desc: {
+			pt: "Vença o torneio Regional de Teméria e conquiste sua insígnia no modo história.",
+			en: "Win the Temeria Regional Tournament and claim its insignia in Story Mode.",
+			es: "Gana el Torneo Regional de Temeria y consigue su insignia en el modo historia.",
+			pl: "Wygraj Regionalny Turniej Temerii i zdobądź jego insygnia w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Os Lírios Prateados de Vizima reluzem em seu peito. Sete campeões do Norte tentaram detê-lo, e todos falharam!",
+			en: "The Silver Lilies of Vizima gleam upon your chest. Seven Northern champions tried to stop you, and all failed!",
+			es: "Los Lirios Plateados de Wyzima relucen en tu pecho. ¡Siete campeones del Norte intentaron detenerte y fracasaron!",
+			pl: "Srebrne Lilie Wyzimy lśnią na twojej piersi. Siedmiu mistrzów Północy próbowało cię powstrzymać i wszyscy polegli!"
+		}
+	},
+	{
+		id: "story_insignia_toussaint",
+		icon: "🍷",
+		type: "boolean",
+		target: 1,
+		getProgress: stats => stats.storyInsigniaToussaint || 0,
+		title: {
+			pt: "Insígnia de Toussaint",
+			en: "Insignia of Toussaint",
+			es: "Insignia de Toussaint",
+			pl: "Insygnia Toussaint"
+		},
+		desc: {
+			pt: "Vença o torneio Regional de Toussaint e conquiste sua insígnia no modo história.",
+			en: "Win the Toussaint Regional Tournament and claim its insignia in Story Mode.",
+			es: "Gana el Torneo Regional de Toussaint y consigue su insignia en el modo historia.",
+			pl: "Wygraj Regionalny Turniej Toussaint i zdobądź jego insygnia w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Sob o sol dourado de Beauclair, a Duquesa Anna Henrietta brinda ao grande campeão das Cinco Virtudes Cavaleirescas!",
+			en: "Beneath the golden sun of Beauclair, Duchess Anna Henrietta toasts the grand champion of Toussaint!",
+			es: "Bajo el sol dorado de Beauclair, la Duquesa Anna Henrietta brinda por el gran campeón de Toussaint.",
+			pl: "Pod złotym słońcem Beauclair księżna Anna Henrietta wznosi toast za wielkiego mistrza Toussaint!"
+		}
+	},
+	{
+		id: "story_all_shops",
+		icon: "🏪",
+		type: "count",
+		target: 6,
+		getProgress: stats => stats.storyUnlockedShops || 0,
+		title: {
+			pt: "Cliente VIP do Continente",
+			en: "VIP Patron of the Continent",
+			es: "Cliente VIP del Continente",
+			pl: "Stały Bywalec Kontynentu"
+		},
+		desc: {
+			pt: "Desbloqueie todas as lojas do modo história.",
+			en: "Unlock all shops in Story Mode.",
+			es: "Desbloquea todas las tiendas del modo historia.",
+			pl: "Odblokuj wszystkie sklepy w Trybie Opowieści."
+		},
+		secret: {
+			pt: "De Novigrad a Beauclair, todos os estalajadeiros e mercadores de relíquias abrem suas portas secretas para você.",
+			en: "From Novigrad to Beauclair, every innkeeper and relic merchant opens their secret stock to you.",
+			es: "De Novigrado a Beauclair, todos los posaderos y mercaderes abren sus puertas para ti.",
+			pl: "Od Novigradu po Beauclair każdy karczmarz i kupiec otwiera przed tobą swoje rzadkie zapasy."
+		}
+	},
+	{
+		id: "story_all_cards",
+		icon: "🃏",
+		type: "count",
+		target: 216,
+		getProgress: stats => stats.storyUniqueCards || 0,
+		title: {
+			pt: "Colecionar Todas!",
+			en: "Collect 'Em All!",
+			es: "¡Colecciónalas Todas!",
+			pl: "Pełna Kolekcja!"
+		},
+		desc: {
+			pt: "Conquiste todas as cartas no modo história.",
+			en: "Collect all 216 unique cards in Story Mode.",
+			es: "Consigue todas las cartas en el modo historia.",
+			pl: "Zbierz wszystkie karty w Trybie Opowieści."
+		},
+		secret: {
+			pt: "Todas as 216 cartas reunidas em uma única coleção lendária! Nem mesmo Zoltan ou Dandelion jamais viram tamanha perfeição.",
+			en: "All 216 cards united in one legendary collection! Not even Zoltan or Dandelion have ever seen such perfection.",
+			es: "¡Las 216 cartas reunidas en una colección legendaria! Ni siquiera Zoltan o Jaskier vieron jamás tal perfección.",
+			pl: "Wszystkie 216 kart zebranych w jednej legendarnej kolekcji! Nawet Zoltan czy Jaskier nie widzieli takiej perfekcji."
+		}
 	}
 ];
 
@@ -802,7 +1253,20 @@ class Achievements {
 		comebackWins: 0,
 		chokeDefeats: 0,
 		winRound1Card: 0,
-		deck20Wins: 0
+		deck20Wins: 0,
+		storyOpponentsDefeated: 0,
+		storyAllOpponentsProgress: 0,
+		storyUniqueCards: 0,
+		storyUnlockedShops: 0,
+		storyTourney2: 0,
+		storyTourney3: 0,
+		storyTourney5: 0,
+		storyTourney7: 0,
+		storyInsigniaSkellige: 0,
+		storyInsigniaNilfgaard: 0,
+		storyInsigniaRedania: 0,
+		storyInsigniaTemeria: 0,
+		storyInsigniaToussaint: 0
 	};
 
 	static unlocked = {};
@@ -1022,6 +1486,93 @@ class Achievements {
 			Achievements.saveStats();
 			Achievements.unlock("win_round_1_card");
 		}
+	}
+
+	static checkStoryAchievements(save, matchWon = false) {
+		if (!save) return;
+
+		if (matchWon) {
+			Achievements.stats.storyOpponentsDefeated = (Achievements.stats.storyOpponentsDefeated || 0) + 1;
+		}
+		if (save.stats && (save.stats.matchesWon || 0) > (Achievements.stats.storyOpponentsDefeated || 0)) {
+			Achievements.stats.storyOpponentsDefeated = save.stats.matchesWon;
+		}
+
+		// Unique cards collected in Story Mode (save.collection or save.unlockedCards)
+		const cardMap = save.collection || save.unlockedCards;
+		if (cardMap && typeof cardMap === "object") {
+			const uniqueCount = Object.keys(cardMap).filter(idx => (cardMap[idx] || 0) > 0).length;
+			if (uniqueCount > (Achievements.stats.storyUniqueCards || 0)) {
+				Achievements.stats.storyUniqueCards = uniqueCount;
+			}
+		}
+
+		const completed = Array.isArray(save.completedNodes) ? save.completedNodes : [];
+		const unlocked = Array.isArray(save.unlockedNodes) ? save.unlockedNodes : [];
+		const insignias = Array.isArray(save.trophies)
+			? save.trophies
+			: (Array.isArray(save.insignias) ? save.insignias : []);
+
+		const allNodes = (typeof STORY_DATA !== "undefined" && STORY_DATA.NODES)
+			? Object.values(STORY_DATA.NODES)
+			: ((typeof STORY_NODES !== "undefined" && Array.isArray(STORY_NODES)) ? STORY_NODES : []);
+
+		if (allNodes.length > 0) {
+			// Battle + Boss nodes completed (63 total individual opponent nodes)
+			const battleBossNodes = allNodes.filter(n => n.type === "battle" || n.type === "boss");
+			const completedBattleBoss = battleBossNodes.filter(n => completed.includes(n.id)).length;
+			if (completedBattleBoss > (Achievements.stats.storyAllOpponentsProgress || 0)) {
+				Achievements.stats.storyAllOpponentsProgress = completedBattleBoss;
+			}
+			if (completedBattleBoss > (Achievements.stats.storyOpponentsDefeated || 0)) {
+				Achievements.stats.storyOpponentsDefeated = completedBattleBoss;
+			}
+
+			// Shops unlocked (6 total regional shops)
+			const shopNodes = allNodes.filter(n => n.type === "shop");
+			const unlockedShopsCount = shopNodes.filter(n => unlocked.includes(n.id) || completed.includes(n.id)).length;
+			if (unlockedShopsCount > (Achievements.stats.storyUnlockedShops || 0)) {
+				Achievements.stats.storyUnlockedShops = unlockedShopsCount;
+			}
+
+			// Tournaments by stage/round count (2, 3, 5, 7)
+			const completedTourneys = allNodes.filter(
+				n => (n.type === "tournament" || n.type === "regional_tournament") && completed.includes(n.id)
+			);
+			completedTourneys.forEach(tNode => {
+				const roundsArr = Array.isArray(tNode.rounds) ? tNode.rounds : (Array.isArray(tNode.stages) ? tNode.stages : []);
+				const stageLen = roundsArr.length;
+				if (stageLen === 2) Achievements.stats.storyTourney2 = 1;
+				if (stageLen === 3) Achievements.stats.storyTourney3 = 1;
+				if (stageLen === 5) Achievements.stats.storyTourney5 = 1;
+				if (stageLen === 7) Achievements.stats.storyTourney7 = 1;
+			});
+		}
+
+		// Regional Insignias
+		if (insignias.includes("insignia_skellige")) {
+			Achievements.stats.storyInsigniaSkellige = 1;
+			Achievements.stats.storyTourney7 = 1;
+		}
+		if (insignias.includes("insignia_nilfgaard")) {
+			Achievements.stats.storyInsigniaNilfgaard = 1;
+			Achievements.stats.storyTourney7 = 1;
+		}
+		if (insignias.includes("insignia_redania")) {
+			Achievements.stats.storyInsigniaRedania = 1;
+			Achievements.stats.storyTourney7 = 1;
+		}
+		if (insignias.includes("insignia_temeria")) {
+			Achievements.stats.storyInsigniaTemeria = 1;
+			Achievements.stats.storyTourney7 = 1;
+		}
+		if (insignias.includes("insignia_toussaint")) {
+			Achievements.stats.storyInsigniaToussaint = 1;
+			Achievements.stats.storyTourney7 = 1;
+		}
+
+		Achievements.saveStats();
+		Achievements.checkStats();
 	}
 
 	static getLangKey() {

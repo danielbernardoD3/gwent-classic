@@ -5,9 +5,9 @@
 <head>
 	<title>Gwent Classic from The Witcher 3: Wild Hunt</title>
 	<meta charset="utf-8" />
-	<meta name="author" content="Arun Sundaram" />
+	<meta name="author" content="Daniel Bernardo" />
 	<meta name="description" content="Play the original Gwent minigame from The Witcher 3 in your browser! Includes cards from Hearts of Stone and Blood & Wine!" />
-	<meta name="keywords" content="arun, sundaram, programmer, gwent, tw3, witcher, card, game, gamedev, play" />
+	<meta name="keywords" content="daniel bernardo, gwent, tw3, witcher, card, game, gamedev, play" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<link rel="stylesheet" type="text/css" href="style.css" />
 	<link rel="stylesheet" type="text/css" href="menu.css" />
@@ -24,6 +24,8 @@
 		<div class="brand-divider"></div>
 		<p class="brand-subtitle" data-i18n="game_subtitle">THE WITCHER CARD GAME</p>
 	</div>
+
+	<div class="menu-version-badge" title="Gwent Classic Edition - Daniel Bernardo">v1.1.0</div>
 
 	<!-- Bottom-Right 50% Panel with 30% black opacity -->
 	<div class="menu-panel-bottom-right">
@@ -192,16 +194,13 @@
 					<p class="credit-desc" data-i18n="credits_cdpr_desc">For envisioning the incredible world of Geralt of Rivia and creating the timeless mini-game that captivated millions of players worldwide.</p>
 				</div>
 
-				<div class="credit-card">
-					<h3 class="credit-name" data-i18n="credits_arun_title">Arun Sundaram</h3>
-					<div class="credit-role" data-i18n="credits_arun_role">Web Remake Author (arunsundaram.com)</div>
-					<p class="credit-desc" data-i18n="credits_arun_desc">For painstakingly implementing the full Gwent game logic, AI, card databases and animations for modern web browsers.</p>
-				</div>
-
 				<div class="credit-card highlight-card">
-					<h3 class="credit-name" data-i18n="credits_creator_title">Desktop Project Creator</h3>
-					<div class="credit-role" data-i18n="credits_creator_role">Desktop Edition, Native Launcher & Expansions</div>
-					<p class="credit-desc" data-i18n="credits_creator_desc">For taking this project further: reverse engineering the web bundle, building the native offline Windows executable, adding the offline Witcher 3 OST jukebox, creating the main menu, AI difficulty levels and multi-language support.</p>
+					<h3 class="credit-name" data-i18n="credits_creator_title">Daniel Bernardo</h3>
+					<div class="credit-role" data-i18n="credits_creator_role">Criador do Projeto &amp; Desenvolvedor Principal</div>
+					<p class="credit-desc" data-i18n="credits_creator_desc">Idealizador e desenvolvedor da edição Gwent Classic: Modo História completo pelo Continente, Torneios Regionais e Insígnias, Modo Versus PvP, suporte completo a Gamepad, trilha sonora offline (Jukebox), sistema de Conquistas, níveis de dificuldade de IA e múltiplos idiomas.</p>
+					<div style="margin-top: 10px;">
+						<a href="https://github.com/danielbernardoD3/gwent-classic" target="_blank" rel="noopener noreferrer" class="credit-github-link">🔗 github.com/danielbernardoD3/gwent-classic</a>
+					</div>
 				</div>
 
 			</div>
@@ -829,10 +828,6 @@
 	</div>
 </div>
 
-<div data-i18n-title="menu_settings" data-title="Configurações" id="open-game-settings" class="center settings-button" onclick="MenuController.openSettingsOverlay('game')"><img src="svg/settings.svg" alt="Configurações"></img></div>
-
-<div data-i18n-title="title_toggle_notif" data-title="Toggle game messages" id="toggle-notifications" class="center settings-button"><img src="svg/notification.svg"></img></div>
-
 <!-- STORY MODE: NEW CAMPAIGN SETUP MODAL -->
 <div id="story-setup-view" class="story-modal hide">
 	<div class="story-setup-container">
@@ -859,32 +854,32 @@
 		</div>
 
 		<!-- Faction Selector -->
-		<label style="display:block; margin: 18px 0 8px 0; font-weight: bold; color: #ffd700;">Escolha a Facção Inicial (22 Cartas Iniciais + 1 Líder):</label>
+		<label style="display:block; margin: 18px 0 8px 0; font-weight: bold; color: #ffd700;">Escolha a Facção Inicial (Define sua Região de Partida no Mapa):</label>
 		<div class="story-faction-select-grid">
 			<div class="story-faction-opt active" data-faction="realms">
 				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_realms.png');"></div>
 				<strong>Reinos do Norte</strong>
-				<small style="display:block; font-size:0.75rem; color:#aaa;">Poder de Cerco e Espiões</small>
+				<small style="display:block; font-size:0.75rem; color:#e0c078;">📍 Início: Teméria &amp; Redânia</small>
 			</div>
 			<div class="story-faction-opt" data-faction="nilfgaard">
 				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_nilfgaard.png');"></div>
 				<strong>Nilfgaard</strong>
-				<small style="display:block; font-size:0.75rem; color:#aaa;">Espiões e Médicos</small>
+				<small style="display:block; font-size:0.75rem; color:#e0c078;">📍 Início: Sul (Nilfgaard)</small>
 			</div>
 			<div class="story-faction-opt" data-faction="monsters">
 				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_monsters.png');"></div>
 				<strong>Monstros</strong>
-				<small style="display:block; font-size:0.75rem; color:#aaa;">Enxame e Força Bruta</small>
+				<small style="display:block; font-size:0.75rem; color:#e0c078;">📍 Início: Toussaint (Blood &amp; Wine)</small>
 			</div>
 			<div class="story-faction-opt" data-faction="scoiatael">
 				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_scoiatael.png');"></div>
 				<strong>Scoia'tael</strong>
-				<small style="display:block; font-size:0.75rem; color:#aaa;">Agilidade e Emboscadas</small>
+				<small style="display:block; font-size:0.75rem; color:#e0c078;">📍 Início: Aedirn &amp; Dol Blathanna</small>
 			</div>
 			<div class="story-faction-opt" data-faction="skellige">
 				<div class="story-faction-shield-icon" style="background-image: url('img/icons/deck_shield_skellige.png');"></div>
 				<strong>Skellige</strong>
-				<small style="display:block; font-size:0.75rem; color:#aaa;">Berserkers e Mardroeme</small>
+				<small style="display:block; font-size:0.75rem; color:#e0c078;">📍 Início: Ilhas de Skellige</small>
 			</div>
 		</div>
 
@@ -896,6 +891,9 @@
 				<strong id="story-preview-leader-name" style="font-size:0.85rem; color:#fff; display:block; margin-top:6px;">Foltest</strong>
 			</div>
 			<div>
+				<div id="story-preview-start-region" style="margin-bottom: 8px; padding: 6px 10px; background: rgba(197, 160, 89, 0.14); border-left: 3px solid #ffd700; border-radius: 3px; font-size: 0.82rem; color: #f5e6c4;">
+					📍 <strong>Local de Partida:</strong> <span id="story-preview-region-text">Teméria &amp; Redânia (Pomar Branco)</span>
+				</div>
 				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
 					<span style="font-size:0.85rem; font-weight:bold; color:#ffd700;">Baralho Inicial Padrão (22 Cartas):</span>
 					<span style="font-size:0.8rem; color:#c5a059;">🪙 Coroas Iniciais: 2.000</span>
@@ -924,7 +922,7 @@
 				</div>
 			</div>
 			<!-- Trophies Container -->
-			<div id="story-hud-trophies-container" class="story-trophies-container" title="Troféus Regionais de Campeão"></div>
+			<div id="story-hud-trophies-container" class="story-trophies-container" title="Insígnias Regionais Conquistadas (5 ao todo)"></div>
 		</div>
 
 		<div class="story-hud-right">
@@ -989,6 +987,13 @@
 			<span class="story-filter-label">Bloqueados</span>
 		</button>
 	</div>
+
+	<!-- Modern Gamepad Map Cursor -->
+	<div id="story-gamepad-cursor" class="hide">
+		<div class="story-pad-cursor-ring"></div>
+		<div class="story-pad-cursor-core"></div>
+		<div id="story-gamepad-cursor-label" class="story-pad-cursor-label hide"></div>
+	</div>
 </section>
 
 <!-- STORY MODE: BATTLE / QUEST CONTRACT MODAL -->
@@ -1043,7 +1048,7 @@
 	<div class="story-parchment-frame">
 		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
 		<h2 id="story-tourney-title" class="story-modal-title">Torneio de Pomar Branco</h2>
-		<p class="story-modal-subtitle">Disputa Regional Oficial · Três Batalhas Consecutivas</p>
+		<p id="story-tourney-subtitle" class="story-modal-subtitle">Disputa Regional Oficial · Batalhas Consecutivas</p>
 		<div class="story-modal-divider"></div>
 
 		<div class="story-tourney-overview">
@@ -1299,6 +1304,27 @@
 		<h3 class="versus-alert-title">Adversário Desconectado</h3>
 		<p class="versus-alert-desc">A conexão direta P2P com o adversário foi encerrada ou perdida.</p>
 		<button class="witcher-menu-btn" style="width: 220px; margin: 0 auto;" onclick="VersusMode.exitVersusToMenu()">Voltar ao Menu</button>
+	</div>
+</div>
+
+<!-- IN-GAME BOARD SETTINGS & NOTIFICATION BUTTONS (Placed after all screens so sibling CSS rules apply) -->
+<div data-i18n-title="menu_settings" data-title="Configurações" id="open-game-settings" class="center settings-button deck-menu" onclick="MenuController.openSettingsOverlay('game')"><img src="svg/settings.svg" alt="Configurações"></img></div>
+
+<div data-i18n-title="title_toggle_notif" data-title="Toggle game messages" id="toggle-notifications" class="center settings-button deck-menu"><img src="svg/notification.svg"></img></div>
+
+<!-- IN-GAME DIALOG MODAL (Replaces all browser alert() and confirm() popups) -->
+<div id="ingame-dialog-modal" class="ingame-dialog-overlay hide">
+	<div class="ingame-dialog-box">
+		<div class="ingame-dialog-header">
+			<span id="ingame-dialog-icon" class="ingame-dialog-icon">🐺</span>
+			<h3 id="ingame-dialog-title" class="ingame-dialog-title">AVISO DO CONTINENTE</h3>
+		</div>
+		<div class="ingame-dialog-divider"></div>
+		<p id="ingame-dialog-message" class="ingame-dialog-message"></p>
+		<div class="ingame-dialog-actions">
+			<button id="ingame-dialog-cancel-btn" class="witcher-menu-btn ingame-dialog-btn btn-secondary hide">Cancelar</button>
+			<button id="ingame-dialog-confirm-btn" class="witcher-menu-btn ingame-dialog-btn btn-primary">Confirmar</button>
+		</div>
 	</div>
 </div>
 

@@ -70,6 +70,100 @@ class MenuController {
 		if (typeof StoryMode !== "undefined") {
 			StoryMode.init();
 		}
+
+		// Override native browser alert() so all notifications render in-game
+		window.showInGameAlert = (msg, title, icon, onOk) => MenuController.showAlert(msg, title, icon, onOk);
+		window.showInGameConfirm = (msg, title, onConfirm, onCancel, confirmText, cancelText, icon) =>
+			MenuController.showConfirm(msg, title, onConfirm, onCancel, confirmText, cancelText, icon);
+		window.alert = (msg) => MenuController.showAlert(msg);
+	}
+
+	static showAlert(message, title = "AVISO DO CONTINENTE", icon = "🐺", onOk = null) {
+		const modal = document.getElementById("ingame-dialog-modal");
+		if (!modal) return;
+
+		const titleEl = document.getElementById("ingame-dialog-title");
+		const iconEl = document.getElementById("ingame-dialog-icon");
+		const msgEl = document.getElementById("ingame-dialog-message");
+		const confirmBtn = document.getElementById("ingame-dialog-confirm-btn");
+		const cancelBtn = document.getElementById("ingame-dialog-cancel-btn");
+
+		if (titleEl) titleEl.textContent = title || "AVISO DO CONTINENTE";
+		if (iconEl) iconEl.textContent = icon || "🐺";
+		if (msgEl) msgEl.textContent = String(message || "");
+
+		if (cancelBtn) {
+			cancelBtn.classList.add("hide");
+			cancelBtn.onclick = null;
+		}
+		if (confirmBtn) {
+			confirmBtn.textContent = "Entendido";
+			confirmBtn.onclick = () => {
+				if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+					AudioManager.playSFX("witcher_confirm");
+				}
+				modal.classList.add("hide");
+				if (typeof onOk === "function") onOk();
+			};
+		}
+
+		modal.classList.remove("hide");
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
+		}
+	}
+
+	static showConfirm(
+		message,
+		title = "CONFIRMAÇÃO",
+		onConfirm = null,
+		onCancel = null,
+		confirmText = "Confirmar",
+		cancelText = "Cancelar",
+		icon = "⚔️"
+	) {
+		const modal = document.getElementById("ingame-dialog-modal");
+		if (!modal) {
+			if (typeof onConfirm === "function") onConfirm();
+			return;
+		}
+
+		const titleEl = document.getElementById("ingame-dialog-title");
+		const iconEl = document.getElementById("ingame-dialog-icon");
+		const msgEl = document.getElementById("ingame-dialog-message");
+		const confirmBtn = document.getElementById("ingame-dialog-confirm-btn");
+		const cancelBtn = document.getElementById("ingame-dialog-cancel-btn");
+
+		if (titleEl) titleEl.textContent = title || "CONFIRMAÇÃO";
+		if (iconEl) iconEl.textContent = icon || "⚔️";
+		if (msgEl) msgEl.textContent = String(message || "");
+
+		if (cancelBtn) {
+			cancelBtn.textContent = cancelText || "Cancelar";
+			cancelBtn.classList.remove("hide");
+			cancelBtn.onclick = () => {
+				if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+					AudioManager.playSFX("witcher_back");
+				}
+				modal.classList.add("hide");
+				if (typeof onCancel === "function") onCancel();
+			};
+		}
+		if (confirmBtn) {
+			confirmBtn.textContent = confirmText || "Confirmar";
+			confirmBtn.onclick = () => {
+				if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+					AudioManager.playSFX("witcher_confirm");
+				}
+				modal.classList.add("hide");
+				if (typeof onConfirm === "function") onConfirm();
+			};
+		}
+
+		modal.classList.remove("hide");
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
+		}
 	}
 
 	static openStoryMode() {
@@ -78,14 +172,15 @@ class MenuController {
 		}
 		if (typeof StoryMode !== "undefined") {
 			if (StoryMode.hasSave()) {
-				const confirmContinue = confirm(
-					"Existe uma jornada salva em andamento!\n\nClique em OK para Continuar sua Campanha existente, ou Cancelar para iniciar uma Nova Campanha."
+				MenuController.showConfirm(
+					"Existe uma jornada salva em andamento!\n\nDeseja continuar sua campanha existente ou iniciar uma Nova Jornada do zero?",
+					"JORNADA NO CONTINENTE",
+					() => StoryMode.continueCampaign(),
+					() => StoryMode.startNewGameDialog(),
+					"Continuar Jornada",
+					"Nova Campanha",
+					"🗺️"
 				);
-				if (confirmContinue) {
-					StoryMode.continueCampaign();
-				} else {
-					StoryMode.startNewGameDialog();
-				}
 			} else {
 				StoryMode.startNewGameDialog();
 			}
@@ -151,6 +246,26 @@ class MenuController {
 
 		if (typeof StoryMode !== "undefined") {
 			StoryMode.isCustomizingCampaign = false;
+			StoryMode.activeMatch = null;
+		}
+
+		// Hide Story map if it was open and restore full sandbox collection in DeckMaker
+		const storyMap = document.getElementById("story-map-screen");
+		if (storyMap) storyMap.classList.add("hide");
+
+		const uploadDeckBtn = document.getElementById("upload-deck");
+		if (uploadDeckBtn) {
+			uploadDeckBtn.classList.remove("hide");
+			uploadDeckBtn.style.display = "";
+		}
+
+		if (typeof window.dm !== "undefined" && window.dm) {
+			const lastFac = (typeof Settings !== "undefined" && Settings.lastFaction)
+				? Settings.lastFaction.get()
+				: "realms";
+			window.dm.loadFactionDeck(lastFac || "realms", true);
+			window.dm.updateFilter("all");
+			window.dm.makeVisible();
 		}
 
 		const vsTopBack = document.getElementById("btn-versus-top-back");
@@ -180,6 +295,12 @@ class MenuController {
 		const storyDeckConfirm = document.getElementById("btn-story-deck-confirm");
 		if (storyDeckConfirm) storyDeckConfirm.classList.add("hide");
 
+		// Hide board gear/bell while in deck builder
+		const openSetBtn = document.getElementById("open-game-settings");
+		if (openSetBtn) openSetBtn.classList.add("deck-menu");
+		const toggleNotifBtn = document.getElementById("toggle-notifications");
+		if (toggleNotifBtn) toggleNotifBtn.classList.add("deck-menu");
+
 		// Ensure background music is playing if enabled
 		if (typeof MusicManager !== "undefined") {
 			MusicManager.play();
@@ -194,6 +315,11 @@ class MenuController {
 			deckCustom.classList.remove("story-deck-mode");
 			deckCustom.classList.remove("versus-deck-mode");
 		}
+
+		const openSetBtn = document.getElementById("open-game-settings");
+		if (openSetBtn) openSetBtn.classList.add("deck-menu");
+		const toggleNotifBtn = document.getElementById("toggle-notifications");
+		if (toggleNotifBtn) toggleNotifBtn.classList.add("deck-menu");
 
 		const vsTopBack = document.getElementById("btn-versus-top-back");
 		if (vsTopBack) vsTopBack.classList.add("hide");
