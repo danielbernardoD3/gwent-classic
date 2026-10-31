@@ -343,7 +343,18 @@
 		
 		<div id="pass-button" class="center" data-i18n-title="title_pass_round" data-title="Pass round" data-i18n="btn_pass">Pass</div>
 		<div id="forfeit-button" class="center" data-i18n-title="title_forfeit_game" data-title="Desistir da partida" data-i18n="btn_forfeit">Desistir</div>
+		<div id="btn-versus-emote-trigger" class="center hide" data-title="Menu de Emotes (E / RS)" title="Menu de Emotes (E / RS)">💬 Emotes</div>
 		
+	
+	<!-- VERSUS SPEECH BUBBLES -->
+	<div id="versus-speech-bubble-op" class="versus-speech-bubble op-bubble hide">
+		<span class="bubble-icon">💬</span>
+		<span class="bubble-text"></span>
+	</div>
+	<div id="versus-speech-bubble-me" class="versus-speech-bubble me-bubble hide">
+		<span class="bubble-icon">💬</span>
+		<span class="bubble-text"></span>
+	</div>
 	</section>
 	
 	<section id="panel-mid" class="panel">
@@ -1111,7 +1122,34 @@
 				</table>
 
 				<!-- Card Drop Preview Box -->
+				<!-- Card Drop Preview Box -->
 				<div id="story-battle-card-drop-box"></div>
+
+				<!-- Wager Section for Wagerable Confrontations -->
+				<div id="story-battle-wager-container" class="story-battle-wager-box hide">
+					<div class="story-wager-header">
+						<span class="story-wager-icon">🎲</span>
+						<span class="story-wager-title">Mesa de Apostas de Alto Valor</span>
+						<span class="story-wager-badge">Aposta Opcional</span>
+					</div>
+					<div class="story-wager-subtext">Este adversário aceita apostas em coroas. Ajuste sua aposta antes do duelo:</div>
+					<div class="story-wager-controls">
+						<button type="button" id="story-wager-btn-min" class="story-wager-btn-quick">Mín</button>
+						<button type="button" id="story-wager-btn-minus" class="story-wager-btn-step">−</button>
+						<input type="range" id="story-wager-slider" min="0" max="500" step="25" value="0" />
+						<button type="button" id="story-wager-btn-plus" class="story-wager-btn-step">+</button>
+						<button type="button" id="story-wager-btn-max" class="story-wager-btn-quick">Máx</button>
+					</div>
+					<div class="story-wager-status-row">
+						<div class="story-wager-amount">
+							<span>Aposta:</span>
+							<strong id="story-wager-amount-display">0 Coroas</strong>
+						</div>
+						<div id="story-wager-payout-text" class="story-wager-payout">
+							Sem aposta adicional.
+						</div>
+					</div>
+				</div>
 			</div>
 		</div>
 
@@ -1403,6 +1441,29 @@
 		<div class="ingame-dialog-actions">
 			<button id="ingame-dialog-cancel-btn" class="witcher-menu-btn ingame-dialog-btn btn-secondary hide">Cancelar</button>
 			<button id="ingame-dialog-confirm-btn" class="witcher-menu-btn ingame-dialog-btn btn-primary">Confirmar</button>
+		</div>
+	</div>
+</div>
+
+
+<!-- VERSUS RADIAL EMOTE WHEEL MODAL -->
+<div id="versus-emote-wheel-container" class="versus-emote-wheel-overlay hide">
+	<div class="versus-emote-backdrop" onclick="VersusMode.closeEmoteWheel()"></div>
+	<div class="versus-emote-wheel-wrap">
+		<div class="versus-emote-wheel">
+			<div class="versus-emote-center" id="versus-emote-center">
+				<div class="versus-emote-center-icon" id="versus-emote-center-icon">🐺</div>
+				<div class="versus-emote-center-title" id="versus-emote-center-title">Reações de Taverna</div>
+				<div class="versus-emote-center-sub" id="versus-emote-center-sub">Escolha um Emote</div>
+			</div>
+			<div class="versus-emote-slices" id="versus-emote-slices">
+				<!-- Injected by VersusMode.initEmotes() -->
+			</div>
+		</div>
+		<div class="versus-emote-hint-bar">
+			<span class="emote-hint-key">🎮 (A) / Clique: Enviar</span>
+			<span class="emote-hint-key">🎮 (B) / ESC: Fechar</span>
+			<span class="emote-hint-key">⌨️ Tecla (E) ou 1-8</span>
 		</div>
 	</div>
 </div>

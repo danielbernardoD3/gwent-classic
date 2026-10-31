@@ -1395,6 +1395,9 @@ var STORY_DATA = {
   "NODES": {
     "nr_white_orchard": {
       "id": "nr_white_orchard",
+      "isWagerable": true,
+      "wagerMin": 50,
+      "wagerMax": 300,
       "region": "Teméria",
       "name": "Estalagem de Pomar Branco",
       "lore": "Ponto de partida nos Reinos do Norte. O estudioso Aldert Geert desafia viajantes na estalagem local com táticas clássicas da infantaria temeriana.",
@@ -2728,6 +2731,9 @@ var STORY_DATA = {
     },
     "nr_la_valette": {
       "id": "nr_la_valette",
+      "isWagerable": true,
+      "wagerMin": 100,
+      "wagerMax": 1000,
       "region": "Teméria",
       "name": "Castelo La Valette",
       "lore": "Às margens do rio Pontar, o estrategista Aryan La Valette aposta suas melhores máquinas de cerco.",
@@ -2957,6 +2963,9 @@ var STORY_DATA = {
     },
     "vel_crows_perch": {
       "id": "vel_crows_perch",
+      "isWagerable": true,
+      "wagerMin": 100,
+      "wagerMax": 800,
       "region": "Velen",
       "name": "Poleiro do Corvo (Velen)",
       "lore": "No coração devastado de Velen, o autoproclamado Barão Sanguinário é famoso por jamais recusar uma aposta alta no Gwent.",
@@ -3607,6 +3616,9 @@ var STORY_DATA = {
     },
     "red_novigrad_docks": {
       "id": "red_novigrad_docks",
+      "isWagerable": true,
+      "wagerMin": 50,
+      "wagerMax": 600,
       "region": "Redânia",
       "name": "Porto Livre de Novigrad",
       "lore": "Na maior metrópole do mundo, o bardo Dandelion e Zoltan Chivay comandam mesas de apostas animadas no Camomila e Tomilho.",
@@ -3738,6 +3750,9 @@ var STORY_DATA = {
     },
     "red_rosemarie": {
       "id": "red_rosemarie",
+      "isWagerable": true,
+      "wagerMin": 200,
+      "wagerMax": 1500,
       "region": "Redânia",
       "name": "Salão de Madame Serenity (Novigrad)",
       "lore": "Nos salões dourados de Novigrad, a astuta estrategista Madame Sasha desafia os melhores jogadores com espionagem implacável.",
@@ -6562,6 +6577,9 @@ var STORY_DATA = {
     },
     "aed_flotsam": {
       "id": "aed_flotsam",
+      "isWagerable": true,
+      "wagerMin": 100,
+      "wagerMax": 800,
       "region": "Vale do Pontar",
       "name": "Entreposto Comercial de Flotsam",
       "lore": "Nas densas florestas às margens do Pontar, o comandante Scoia'tael Iorveth aguarda adversários dignos.",
@@ -7309,6 +7327,9 @@ var STORY_DATA = {
     },
     "aed_mahakam": {
       "id": "aed_mahakam",
+      "isWagerable": true,
+      "wagerMin": 150,
+      "wagerMax": 1200,
       "region": "Mahakam",
       "name": "Forjas Subterrâneas do Monte Carbon",
       "lore": "Reduto inexpugnável dos anões de Mahakam. Yarpen Zigrin e Brouver Hoog apostam ouro puro nas tavernas da montanha.",
@@ -7971,6 +7992,9 @@ var STORY_DATA = {
     },
     "skel_kaer_trolde_port": {
       "id": "skel_kaer_trolde_port",
+      "isWagerable": true,
+      "wagerMin": 100,
+      "wagerMax": 1000,
       "region": "Skellige",
       "name": "Porto de Kaer Trolde (Ard Skellig)",
       "lore": "Ponto de partida nas Ilhas de Skellige. Ao pé da grande fortaleza do Clã an Craite, guerreiros e navegadores testam sua coragem no Gwent.",
@@ -8493,6 +8517,9 @@ var STORY_DATA = {
     },
     "skel_spikeroog": {
       "id": "skel_spikeroog",
+      "isWagerable": true,
+      "wagerMin": 100,
+      "wagerMax": 800,
       "region": "Skellige",
       "name": "Povoado de Svorlag (Spikeroog)",
       "lore": "Na ilha ocidental de Spikeroog, a destemida Cerys an Craite lidera suas escudeiras em batalhas implacáveis.",
@@ -9642,6 +9669,9 @@ var STORY_DATA = {
     },
     "tous_corvo_bianco": {
       "id": "tous_corvo_bianco",
+      "isWagerable": true,
+      "wagerMin": 100,
+      "wagerMax": 800,
       "region": "Toussaint",
       "name": "Vinhedo Corvo Bianco",
       "lore": "Ponto de partida do baralho de Monstros em Toussaint (Blood and Wine). Nas adegas escuras da propriedade, criaturas da noite e vampiros espreitam.",
@@ -10024,6 +10054,9 @@ var STORY_DATA = {
     },
     "tous_beauclair_palace": {
       "id": "tous_beauclair_palace",
+      "isWagerable": true,
+      "wagerMin": 250,
+      "wagerMax": 2000,
       "region": "Toussaint",
       "name": "Palácio Ducal de Beauclair",
       "lore": "Nos salões perfumados de Beauclair, a enigmática Orianna esconde segredos imortais por trás de um sorriso encantador.",
@@ -11739,6 +11772,9 @@ var STORY_DATA = {
     },
     "nilf_capital_tavern": {
       "id": "nilf_capital_tavern",
+      "isWagerable": true,
+      "wagerMin": 150,
+      "wagerMax": 1200,
       "region": "Império de Nilfgaard",
       "name": "Praça da Cidade das Torres Douradas",
       "lore": "Ponto de partida do Império de Nilfgaard no extremo sul do continente. O aristocrata General Morvran Voorhis aprecia duelos de alta estratégia.",
@@ -13044,6 +13080,9 @@ var STORY_DATA = {
     },
     "nilf_claremont": {
       "id": "nilf_claremont",
+      "isWagerable": true,
+      "wagerMin": 200,
+      "wagerMax": 1500,
       "region": "Ebbing",
       "name": "Arena de Claremont (Ebbing)",
       "lore": "Em Claremont, o temido caçador de recompensas Leo Bonhart desafia qualquer um que ouse cruzar seu caminho.",

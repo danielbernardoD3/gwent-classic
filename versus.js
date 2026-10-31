@@ -468,6 +468,7 @@ class VersusMode {
 		VersusMode.remoteReady = false;
 		VersusMode.isHost = false;
 		VersusMode.pendingRoundResults = {};
+		VersusMode.resetEmotesUI();
 	}
 
 	// -------------------------------------------------------------
@@ -1128,6 +1129,11 @@ class VersusMode {
 		// Exibe HUD de turno
 		VersusMode.showTurnHUD();
 
+		// Exibe botão de trigger dos emotes no tabuleiro e inicializa listeners
+		const emoteBtn = document.getElementById("btn-versus-emote-trigger");
+		if (emoteBtn) emoteBtn.classList.remove("hide");
+		VersusMode.initEmotes();
+
 		// Inicia o jogo
 		game.reset();
 		game.startGame();
@@ -1235,6 +1241,10 @@ class VersusMode {
 
 			case "RETURN_TO_LOBBY":
 				VersusMode.returnToPreMatchLobby(false);
+				break;
+
+			case "EMOTE":
+				VersusMode.onRemoteEmoteReceived(payload);
 				break;
 		}
 	}
@@ -2032,6 +2042,7 @@ class VersusMode {
 		VersusMode.stopAllTimers();
 		VersusMode.isActive = false;
 		VersusMode.hideTurnHUD();
+		VersusMode.resetEmotesUI();
 
 		if (notifyPeer) {
 			VersusMode.sendPacket("RETURN_TO_LOBBY");
@@ -2063,6 +2074,7 @@ class VersusMode {
 		VersusMode.isActive = false;
 		VersusMode.cleanupPeer();
 		VersusMode.hideTurnHUD();
+		VersusMode.resetEmotesUI();
 
 		// Oculta modal de alerta de desconexão e modal de lobby
 		const alertModal = document.getElementById("versus-alert-modal");
@@ -2095,6 +2107,7 @@ class VersusMode {
 		const wasInMatch = VersusMode.isActive;
 		VersusMode.isActive = false;
 		VersusMode.hideTurnHUD();
+		VersusMode.resetEmotesUI();
 
 		// Se estava apenas na sala pré-jogo (ainda não iniciou a partida), volta às abas do Lobby
 		const lobbyModal = document.getElementById("versus-lobby-modal");
@@ -2113,6 +2126,302 @@ class VersusMode {
 			VersusMode.exitVersusToMenu();
 		}
 	}
+	// -------------------------------------------------------------
+	// SISTEMA DE EMOTES RADIAIS (VERSUS P2P)
+	// -------------------------------------------------------------
+	static VERSUS_EMOTES = [
+		{ id: "well_played", icon: "👏", text: "Boa jogada!", sub: "Elogio" },
+		{ id: "thanks", icon: "🍻", text: "Obrigado.", sub: "Cortesia" },
+		{ id: "luck_decide", icon: "🎲", text: "Que a sorte decida!", sub: "Desafio" },
+		{ id: "another_pint", icon: "🍺", text: "Mais um hidromel?", sub: "Taverna" },
+		{ id: "tough_round", icon: "⚔️", text: "Uma rodada difícil!", sub: "Tensão" },
+		{ id: "damn_spy", icon: "🕵️", text: "Maldito espião!", sub: "Reação" },
+		{ id: "surprise", icon: "⚡", text: "Não contava com isso!", sub: "Surpresa" },
+		{ id: "hmm", icon: "🐺", text: "Hmm...", sub: "Geralt" }
+	];
+
+	static selectedEmoteIndex = 0;
+	static lastEmoteSentTime = 0;
+	static bubbleTimerMe = null;
+	static bubbleTimerOp = null;
+	static emotesInitialized = false;
+
+	static initEmotes() {
+		if (VersusMode.emotesInitialized) return;
+		VersusMode.emotesInitialized = true;
+
+		const slicesContainer = document.getElementById("versus-emote-slices");
+		if (slicesContainer) {
+			slicesContainer.innerHTML = "";
+			const total = VersusMode.VERSUS_EMOTES.length;
+			const radius = 152; // pixels
+
+			VersusMode.VERSUS_EMOTES.forEach((emote, i) => {
+				// -90deg is top (index 0)
+				const angleDeg = -90 + (i * (360 / total));
+				const angleRad = angleDeg * (Math.PI / 180);
+				const x = Math.round(radius * Math.cos(angleRad));
+				const y = Math.round(radius * Math.sin(angleRad));
+
+				const sliceBtn = document.createElement("button");
+				sliceBtn.type = "button";
+				sliceBtn.className = `versus-emote-slice ${i === 0 ? "active" : ""}`;
+				sliceBtn.dataset.index = String(i);
+				sliceBtn.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+
+				sliceBtn.innerHTML = `
+					<span class="versus-emote-slice-icon">${emote.icon}</span>
+					<span class="versus-emote-slice-label">${emote.text}</span>
+				`;
+
+				sliceBtn.addEventListener("mouseenter", () => {
+					VersusMode.selectEmoteByIndex(i);
+				});
+
+				sliceBtn.addEventListener("click", (e) => {
+					e.stopPropagation();
+					VersusMode.selectEmoteByIndex(i);
+					VersusMode.sendSelectedEmote();
+				});
+
+				slicesContainer.appendChild(sliceBtn);
+			});
+		}
+
+		// Polar angle detection when moving mouse over the wheel
+		const wheelEl = document.querySelector(".versus-emote-wheel");
+		if (wheelEl) {
+			wheelEl.addEventListener("mousemove", (e) => {
+				const rect = wheelEl.getBoundingClientRect();
+				const cx = rect.left + rect.width / 2;
+				const cy = rect.top + rect.height / 2;
+				const dx = e.clientX - cx;
+				const dy = e.clientY - cy;
+				const dist = Math.sqrt(dx * dx + dy * dy);
+
+				// Only update if mouse is moved out of deadzone
+				if (dist > 35) {
+					const angleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
+					// Normalize so -90deg (top) is 0:
+					const norm = (angleDeg + 90 + 360 + 22.5) % 360;
+					const idx = Math.floor(norm / 45);
+					if (idx !== VersusMode.selectedEmoteIndex) {
+						VersusMode.selectEmoteByIndex(idx);
+					}
+				}
+			});
+		}
+
+		// Click on trigger button on board
+		const triggerBtn = document.getElementById("btn-versus-emote-trigger");
+		if (triggerBtn) {
+			triggerBtn.onclick = (e) => {
+				e.stopPropagation();
+				VersusMode.toggleEmoteWheel();
+			};
+		}
+
+		// Keyboard shortcut 'E' and number keys 1-8
+		window.addEventListener("keydown", (e) => {
+			if (!VersusMode.isActive) return;
+			// Ignore if user is typing in an input
+			const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+			if (tag === "input" || tag === "textarea") return;
+
+			const wheelModal = document.getElementById("versus-emote-wheel-container");
+			const isOpen = wheelModal && !wheelModal.classList.contains("hide");
+
+			if (e.key === "e" || e.key === "E") {
+				e.preventDefault();
+				VersusMode.toggleEmoteWheel();
+				return;
+			}
+
+			if (isOpen) {
+				if (e.key === "Escape") {
+					e.preventDefault();
+					VersusMode.closeEmoteWheel();
+					return;
+				}
+				if (e.key >= "1" && e.key <= "8") {
+					e.preventDefault();
+					const idx = parseInt(e.key, 10) - 1;
+					VersusMode.selectEmoteByIndex(idx);
+					VersusMode.sendSelectedEmote();
+					return;
+				}
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					VersusMode.sendSelectedEmote();
+					return;
+				}
+			}
+		});
+
+		VersusMode.selectEmoteByIndex(0, false);
+	}
+
+	static openEmoteWheel() {
+		if (!VersusMode.isActive) return;
+		const wheelModal = document.getElementById("versus-emote-wheel-container");
+		if (!wheelModal) return;
+
+		VersusMode.initEmotes();
+		wheelModal.classList.remove("hide");
+		VersusMode.selectEmoteByIndex(VersusMode.selectedEmoteIndex || 0, false);
+
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
+		}
+	}
+
+	static closeEmoteWheel() {
+		const wheelModal = document.getElementById("versus-emote-wheel-container");
+		if (wheelModal && !wheelModal.classList.contains("hide")) {
+			wheelModal.classList.add("hide");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_back");
+			}
+		}
+	}
+
+	static toggleEmoteWheel() {
+		const wheelModal = document.getElementById("versus-emote-wheel-container");
+		if (!wheelModal) return;
+		if (wheelModal.classList.contains("hide")) {
+			VersusMode.openEmoteWheel();
+		} else {
+			VersusMode.closeEmoteWheel();
+		}
+	}
+
+	static selectEmoteByIndex(idx, playSound = true) {
+		const total = VersusMode.VERSUS_EMOTES.length;
+		idx = ((idx % total) + total) % total;
+		VersusMode.selectedEmoteIndex = idx;
+
+		const emote = VersusMode.VERSUS_EMOTES[idx];
+		if (!emote) return;
+
+		// Update slice buttons styling
+		const slices = document.querySelectorAll(".versus-emote-slice");
+		slices.forEach((s, i) => {
+			if (i === idx) {
+				s.classList.add("active");
+			} else {
+				s.classList.remove("active");
+			}
+		});
+
+		// Update center medallion
+		const iconEl = document.getElementById("versus-emote-center-icon");
+		if (iconEl) iconEl.textContent = emote.icon;
+
+		const titleEl = document.getElementById("versus-emote-center-title");
+		if (titleEl) titleEl.textContent = emote.text;
+
+		const subEl = document.getElementById("versus-emote-center-sub");
+		if (subEl) subEl.textContent = emote.sub || "Reação";
+
+		if (playSound && typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_hover");
+		}
+	}
+
+	static sendSelectedEmote() {
+		const emote = VersusMode.VERSUS_EMOTES[VersusMode.selectedEmoteIndex];
+		if (emote) {
+			VersusMode.sendEmote(emote.id);
+		}
+	}
+
+	static sendEmote(emoteId) {
+		if (!VersusMode.isActive) return;
+		const now = Date.now();
+		if (now - VersusMode.lastEmoteSentTime < 1200) {
+			// Anti-spam protection
+			return;
+		}
+		VersusMode.lastEmoteSentTime = now;
+
+		const emote = VersusMode.VERSUS_EMOTES.find(e => e.id === emoteId);
+		if (!emote) return;
+
+		// Transmit via PeerJS packet
+		VersusMode.sendPacket("EMOTE", {
+			emoteId: emote.id,
+			text: emote.text,
+			icon: emote.icon
+		});
+
+		// Render bubble for local player
+		VersusMode.displaySpeechBubble("me", emote);
+
+		// Dismiss wheel
+		VersusMode.closeEmoteWheel();
+	}
+
+	static onRemoteEmoteReceived(payload) {
+		if (!payload || !payload.text) return;
+		VersusMode.displaySpeechBubble("op", payload);
+	}
+
+	static displaySpeechBubble(who, data) {
+		const bubbleId = who === "me" ? "versus-speech-bubble-me" : "versus-speech-bubble-op";
+		const bubble = document.getElementById(bubbleId);
+		if (!bubble) return;
+
+		const iconEl = bubble.querySelector(".bubble-icon");
+		if (iconEl) iconEl.textContent = data.icon || "💬";
+
+		const textEl = bubble.querySelector(".bubble-text");
+		if (textEl) textEl.textContent = `"${data.text}"`;
+
+		bubble.classList.remove("hide");
+		// Reflow to restart animation smoothly
+		void bubble.offsetWidth;
+		bubble.classList.add("bubble-show");
+
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_confirm");
+		}
+
+		if (who === "me") {
+			if (VersusMode.bubbleTimerMe) clearTimeout(VersusMode.bubbleTimerMe);
+			VersusMode.bubbleTimerMe = setTimeout(() => {
+				bubble.classList.remove("bubble-show");
+				setTimeout(() => bubble.classList.add("hide"), 250);
+			}, 3500);
+		} else {
+			if (VersusMode.bubbleTimerOp) clearTimeout(VersusMode.bubbleTimerOp);
+			VersusMode.bubbleTimerOp = setTimeout(() => {
+				bubble.classList.remove("bubble-show");
+				setTimeout(() => bubble.classList.add("hide"), 250);
+			}, 3500);
+		}
+	}
+
+	static resetEmotesUI() {
+		const triggerBtn = document.getElementById("btn-versus-emote-trigger");
+		if (triggerBtn) triggerBtn.classList.add("hide");
+
+		VersusMode.closeEmoteWheel();
+
+		const bMe = document.getElementById("versus-speech-bubble-me");
+		if (bMe) {
+			bMe.classList.remove("bubble-show");
+			bMe.classList.add("hide");
+		}
+		const bOp = document.getElementById("versus-speech-bubble-op");
+		if (bOp) {
+			bOp.classList.remove("bubble-show");
+			bOp.classList.add("hide");
+		}
+
+		if (VersusMode.bubbleTimerMe) clearTimeout(VersusMode.bubbleTimerMe);
+		if (VersusMode.bubbleTimerOp) clearTimeout(VersusMode.bubbleTimerOp);
+	}
+
 }
 
 // Exporta globalmente para o window

@@ -266,7 +266,7 @@ const GamepadManager = {
 
 		// Check if any controller input occurred
 		const anyStick = (Math.abs(a[0] || 0) > 0.18 || Math.abs(a[1] || 0) > 0.18 || rStickMoved);
-		const anyAction = dUp || dDown || dLeft || dRight || anyStick || btnA || btnB || btnX || btnY || btnLB || btnRB || btnLT || btnRT || btnStart;
+		const anyAction = dUp || dDown || dLeft || dRight || anyStick || btnA || btnB || btnX || btnY || btnLB || btnRB || btnLT || btnRT || btnStart || btnRS;
 		if (anyAction) {
 			if (!this.active) {
 				this.setGamepadActive(true);
@@ -324,6 +324,7 @@ const GamepadManager = {
 		checkEdge("LB", btnLB, () => this.handleAction("LB", context));
 		checkEdge("RB", btnRB, () => this.handleAction("RB", context));
 		checkEdge("Start", btnStart, () => this.handleAction("Start", context));
+		checkEdge("RS", btnRS, () => this.handleAction("RS", context));
 	},
 
 	// Sets focus on a DOM element with Witcher gold highlight & audio
@@ -1256,6 +1257,16 @@ const GamepadManager = {
 		const next = (curr + delta + opts.length) % opts.length;
 		opts[next].click();
 		this.setFocus(opts[next]);
+	},
+
+	navVersusEmote(dir) {
+		if (typeof VersusMode === "undefined") return;
+		let cur = VersusMode.selectedEmoteIndex || 0;
+		if (dir === "up") cur = 0;
+		else if (dir === "right") cur = (cur + 1) % 8;
+		else if (dir === "down") cur = 4;
+		else if (dir === "left") cur = (cur - 1 + 8) % 8;
+		VersusMode.selectEmoteByIndex(cur);
 	},
 
 	navVersusAlert(dir) {

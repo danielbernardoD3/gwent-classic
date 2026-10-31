@@ -541,7 +541,7 @@ class StoryMode {
 			const pin = document.createElement("div");
 			pin.id = `node-pin-${node.id}`;
 			pin.dataset.nodeId = node.id;
-			pin.className = `story-map-pin node-type-${node.type} ${isRegional ? 'regional-tourney' : ''} ${isCompleted ? 'completed' : ''} ${isAvailable ? 'available' : ''} ${!isUnlocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`;
+			pin.className = `story-map-pin node-type-${node.type} ${isRegional ? 'regional-tourney' : ''} ${node.isWagerable ? 'wagerable' : ''} ${isCompleted ? 'completed' : ''} ${isAvailable ? 'available' : ''} ${!isUnlocked ? 'locked' : ''} ${isCurrent ? 'current' : ''}`;
 			pin.style.left = node.x + "px";
 			pin.style.top = node.y + "px";
 
@@ -569,6 +569,9 @@ class StoryMode {
 			} else if (!isUnlocked) {
 				pinIcon = "🔒";
 				statusBadge = '<span class="pin-status locked">Bloqueado</span>';
+			} else if (node.isWagerable) {
+				pinIcon = "🎲";
+				statusBadge = '<span class="pin-status wagerable">🎲 Confronto Apostável</span>';
 			} else {
 				pinIcon = "⚔";
 				statusBadge = '<span class="pin-status" style="color:#ffd700;">⚔ Batalha de Gwent</span>';
@@ -679,6 +682,90 @@ class StoryMode {
 		document.getElementById("story-battle-reward-first").textContent = `+${firstWinCrowns} Coroas`;
 		document.getElementById("story-battle-reward-replay").textContent = `+${replayCrowns} Coroas`;
 		document.getElementById("story-battle-loss-penalty").textContent = `-${lossCrowns} Coroas`;
+
+		StoryMode.selectedWager = 0;
+		const wagerBox = document.getElementById("story-battle-wager-container");
+		if (wagerBox) {
+			if (node.isWagerable) {
+				wagerBox.classList.remove("hide");
+				const playerCrowns = StoryMode.save.crowns || 0;
+				const minWager = node.wagerMin || 50;
+				const maxWager = node.wagerMax || 500;
+				const maxAffordable = Math.min(maxWager, playerCrowns);
+				const canAffordMin = playerCrowns >= minWager;
+
+				const slider = document.getElementById("story-wager-slider");
+				const displayEl = document.getElementById("story-wager-amount-display");
+				const payoutEl = document.getElementById("story-wager-payout-text");
+				const btnMin = document.getElementById("story-wager-btn-min");
+				const btnMax = document.getElementById("story-wager-btn-max");
+				const btnMinus = document.getElementById("story-wager-btn-minus");
+				const btnPlus = document.getElementById("story-wager-btn-plus");
+				const step = 25;
+
+				if (slider) {
+					slider.min = "0";
+					slider.max = String(Math.max(0, maxAffordable));
+					slider.step = String(step);
+					slider.value = "0";
+					slider.disabled = !canAffordMin;
+				}
+
+				const updateWagerDisplay = (val) => {
+					val = Math.max(0, Math.min(Number(val), maxAffordable));
+					if (val > 0 && val < minWager) {
+						val = minWager;
+					}
+					StoryMode.selectedWager = val;
+					if (slider) slider.value = String(val);
+
+					if (displayEl) {
+						displayEl.textContent = val > 0 ? `${Number(val).toLocaleString("pt-BR")} Coroas` : `0 Coroas (Sem Aposta)`;
+					}
+
+					if (payoutEl) {
+						if (!canAffordMin) {
+							payoutEl.innerHTML = `<span style="color:#e74c3c;">Coroas insuficientes para apostar (mín. ${minWager}).</span>`;
+						} else if (val === 0) {
+							payoutEl.innerHTML = `<span style="color:#aaa;">Sem aposta adicional. Ganho padrão: +${firstWinCrowns} / +${replayCrowns}.</span>`;
+						} else {
+							const winBase = isCompleted ? replayCrowns : firstWinCrowns;
+							const winTotal = (val * 2) + winBase;
+							payoutEl.innerHTML = `<span style="color:#2ecc71;">Vitória: +${winTotal.toLocaleString("pt-BR")} Coroas</span> <span style="color:#888;">|</span> <span style="color:#e74c3c;">Derrota: -${val.toLocaleString("pt-BR")} Coroas</span>`;
+						}
+					}
+				};
+
+				if (slider) {
+					slider.oninput = (e) => updateWagerDisplay(e.target.value);
+				}
+				if (btnMin) {
+					btnMin.onclick = () => updateWagerDisplay(canAffordMin ? minWager : 0);
+				}
+				if (btnMax) {
+					btnMax.onclick = () => updateWagerDisplay(canAffordMin ? maxAffordable : 0);
+				}
+				if (btnMinus) {
+					btnMinus.onclick = () => {
+						const cur = Number(slider ? slider.value : StoryMode.selectedWager) || 0;
+						let next = cur - step;
+						if (next < minWager) next = 0;
+						updateWagerDisplay(next);
+					};
+				}
+				if (btnPlus) {
+					btnPlus.onclick = () => {
+						const cur = Number(slider ? slider.value : StoryMode.selectedWager) || 0;
+						let next = cur === 0 ? minWager : cur + step;
+						updateWagerDisplay(next);
+					};
+				}
+
+				updateWagerDisplay(0);
+			} else {
+				wagerBox.classList.add("hide");
+			}
+		}
 
 		const cardDropBox = document.getElementById("story-battle-card-drop-box");
 		if (cardDropBox) {
@@ -1219,13 +1306,20 @@ class StoryMode {
 			opponentName = node.opponent.name;
 		}
 
+		const wager = StoryMode.selectedWager || 0;
+		if (wager > 0) {
+			StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - wager);
+			StoryMode.save.stats.crownsSpent = (StoryMode.save.stats.crownsSpent || 0) + wager;
+		}
+
 		StoryMode.activeMatch = {
 			nodeId: nodeId,
 			node: node,
 			isTournament: node.type === "tournament",
 			roundIndex: roundIndex,
 			opponentName: opponentName,
-			firstWin: !StoryMode.save.completedNodes.includes(nodeId)
+			firstWin: !StoryMode.save.completedNodes.includes(nodeId),
+			wager: wager
 		};
 
 		const meDeckData = {
@@ -1385,7 +1479,14 @@ class StoryMode {
 			} else {
 				// Standard Battle Node Victory
 				const isFirstWin = !StoryMode.save.completedNodes.includes(match.nodeId);
-				const crownsWon = isFirstWin ? (node.crownsReward || 220) : (node.crownsReplay || 55);
+				const baseCrowns = isFirstWin ? (node.crownsReward || 220) : (node.crownsReplay || 55);
+				let crownsWon = baseCrowns;
+				let wagerWon = 0;
+
+				if (match.wager > 0) {
+					wagerWon = match.wager * 2;
+					crownsWon = baseCrowns + wagerWon;
+				}
 
 				StoryMode.save.crowns += crownsWon;
 				StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + crownsWon;
@@ -1406,6 +1507,7 @@ class StoryMode {
 
 				StoryMode.showVictoryOverlay({
 					crownsWon: crownsWon,
+					wagerWon: wagerWon,
 					cardsDropped: awardedCards,
 					trophyId: null,
 					isTourneyChampion: false,
@@ -1417,17 +1519,21 @@ class StoryMode {
 			// Defeat
 			StoryMode.save.stats.matchesLost = (StoryMode.save.stats.matchesLost || 0) + 1;
 			let lossPenalty = node.crownsLoss || 45;
+			let wasWager = false;
 
 			if (match.isTournament) {
 				// Reset tournament progress to Battle 1!
 				StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: 0, active: false };
 				lossPenalty = 0; // Entry fee was already paid
+			} else if (match.wager > 0) {
+				lossPenalty = match.wager;
+				wasWager = true;
 			} else {
 				StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - lossPenalty);
 			}
 
 			StoryMode.saveGame();
-			StoryMode.showDefeatOverlay(lossPenalty, match.isTournament, match.roundIndex + 1, (node.rounds || []).length);
+			StoryMode.showDefeatOverlay(lossPenalty, match.isTournament, match.roundIndex + 1, (node.rounds || []).length, wasWager);
 		}
 	}
 
@@ -1459,7 +1565,9 @@ class StoryMode {
 
 		const crownsEl = document.getElementById("story-outcome-crowns");
 		if (crownsEl) {
-			if (nextRoundIndex !== null) {
+			if (opts.wagerWon && opts.wagerWon > 0) {
+				crownsEl.innerHTML = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas <span style="display:block; font-size:0.85rem; color:#2ecc71;">(Inclui prêmio de aposta de +${Number(opts.wagerWon).toLocaleString("pt-BR")} Coroas!)</span>`;
+			} else if (nextRoundIndex !== null) {
 				crownsEl.textContent = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas ${isFirstStageClear ? '(Bônus de 1ª Tentativa!)' : '(Fase Repetida)'}`;
 			} else {
 				crownsEl.textContent = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas`;
@@ -1541,16 +1649,16 @@ class StoryMode {
 		modal.classList.remove("hide");
 	}
 
-	static showDefeatOverlay(crownsLost, isTournament, failedRoundNum = 1, totalRounds = 1) {
+	static showDefeatOverlay(crownsLost, isTournament, failedRoundNum = 1, totalRounds = 1, wasWager = false) {
 		const modal = document.getElementById("story-outcome-modal");
 		if (!modal) return;
 
 		document.getElementById("story-outcome-title").textContent = isTournament
 			? "ELIMINADO DO TORNEIO!"
-			: "DERROTA NO TABULEIRO";
+			: (wasWager ? "DERROTA NA APOSTA!" : "DERROTA NO TABULEIRO");
 		document.getElementById("story-outcome-crowns").textContent = isTournament
 			? `Derrotado na Batalha ${failedRoundNum}/${totalRounds} · Torneio Reiniciado`
-			: `-${crownsLost} Coroas perdidas na aposta`;
+			: (wasWager ? `-${crownsLost} Coroas perdidas na aposta com o adversário` : `-${crownsLost} Coroas perdidas`);
 
 		const cardContainer = document.getElementById("story-outcome-card-box");
 		if (cardContainer) {
