@@ -1243,13 +1243,24 @@
 }
 
 /* 1. Header & Top Bar */
+#deck-customization {
+	display: flex !important;
+	flex-direction: column !important;
+	height: 100vh !important;
+	width: 100vw !important;
+	overflow: hidden !important;
+	box-sizing: border-box !important;
+}
+
 .deck-top-bar {
 	position: relative !important;
 	display: flex !important;
 	justify-content: space-between !important;
 	align-items: flex-start !important;
-	padding: 0.8vw 2vw 0.4vw 2vw !important;
-	height: 9.8vw !important;
+	padding: 0.6vw 2vw 0.35vw 2vw !important;
+	height: auto !important;
+	min-height: 8.5vw !important;
+	flex-shrink: 0 !important;
 	box-sizing: border-box !important;
 	border-bottom: 1px solid rgba(166, 124, 51, 0.25);
 	background: linear-gradient(180deg, rgba(20, 16, 12, 0.9) 0%, rgba(15, 12, 9, 0.4) 100%);
@@ -1370,9 +1381,10 @@
 	grid-template-rows: 1fr !important;
 	gap: 1.2vw !important;
 	justify-content: center !important;
-	padding: 0.5vw 1.5vw 0.6vw 1.5vw !important;
-	height: calc(100vh - 10.2vw) !important;
-	max-height: calc(100vh - 10.2vw) !important;
+	padding: 0.4vw 1.5vw 0.6vw 1.5vw !important;
+	flex: 1 1 0 !important;
+	height: auto !important;
+	max-height: none !important;
 	min-height: 0 !important;
 	box-sizing: border-box !important;
 	overflow: hidden !important;
@@ -1399,7 +1411,7 @@
 	background: transparent !important;
 	border: none !important;
 	box-shadow: none !important;
-	padding: 30px 0 0 0 !important;
+	padding: 0.2vw 0.2vw 1.2vw 0.2vw !important;
 	box-sizing: border-box !important;
 	display: flex !important;
 	flex-direction: column !important;
@@ -1410,6 +1422,19 @@
 	min-height: 0 !important;
 	overflow-y: auto !important;
 	overflow-x: hidden !important;
+	scrollbar-width: thin !important;
+	scrollbar-color: #8d6b2c rgba(14, 11, 8, 0.5) !important;
+}
+
+.deck-column-center::-webkit-scrollbar {
+	width: 0.4vw !important;
+}
+.deck-column-center::-webkit-scrollbar-track {
+	background: rgba(14, 11, 8, 0.5) !important;
+}
+.deck-column-center::-webkit-scrollbar-thumb {
+	background: #8d6b2c !important;
+	border-radius: 0.2vw !important;
 }
 
 /* Column Headers */
@@ -1543,10 +1568,12 @@
 #deck-customization .card-array .card-lg {
 	position: relative !important;
 	width: calc((100% - 1.2vw) / 3) !important;
-	height: 19.2vw !important;
+	aspect-ratio: 410 / 775 !important;
+	height: auto !important;
 	margin: 0 !important;
-	border-radius: 0.4vw !important;
-	background-size: cover !important;
+	border-radius: 2px !important;
+	background-size: 100% 100% !important;
+	background-repeat: no-repeat !important;
 	background-position: center !important;
 	cursor: pointer;
 	box-shadow: 0 0.3vw 0.7vw rgba(0, 0, 0, 0.7) !important;
@@ -1626,58 +1653,148 @@
 
 /* 3. Center Column Components */
 
-/* Leader Card */
+/* Leader Card Box */
 #deck-customization #card-leader {
 	position: relative !important;
 	top: 0 !important;
 	left: 0 !important;
-	width: auto !important;
-	height: auto !important;
+	width: 100% !important;
+	box-sizing: border-box !important;
 	margin: 0 auto !important;
 	cursor: pointer;
 	display: flex !important;
 	flex-direction: column !important;
 	align-items: center !important;
 	flex-shrink: 0 !important;
+	background: rgba(18, 14, 10, 0.88) !important;
+	border: 1.5px solid rgba(166, 124, 51, 0.45) !important;
+	border-radius: 0.4vw !important;
+	padding: 0.5vw 0.6vw !important;
+	box-shadow: inset 0 0 1vw rgba(0, 0, 0, 0.75), 0 0.2vw 0.5vw rgba(0, 0, 0, 0.6) !important;
+	transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s !important;
 }
 
-#deck-customization #card-leader p {
-	position: relative !important;
-	top: auto !important;
-	left: auto !important;
+#deck-customization #card-leader:hover,
+#deck-customization #card-leader.leader-focused,
+#deck-customization #card-leader:focus {
+	border-color: #ffd700 !important;
+	box-shadow: 0 0 1.2vw rgba(255, 215, 0, 0.6), inset 0 0 0.8vw rgba(255, 215, 0, 0.2) !important;
+	outline: none !important;
+}
+
+#deck-customization .leader-box-header {
+	width: 100% !important;
+	display: flex !important;
+	justify-content: space-between !important;
+	align-items: center !important;
+	margin-bottom: 0.35vw !important;
+}
+
+#deck-customization .leader-badge-title {
 	font-family: 'Gwent', 'Cinzel', serif !important;
-	font-size: 0.9vw !important;
-	line-height: 1.3 !important;
-	color: #e5b357 !important;
-	text-align: center !important;
-	margin: 0 0 0.4vw 0 !important;
-	letter-spacing: 0.1vw !important;
-	text-transform: uppercase !important;
+	font-size: 0.78vw !important;
 	font-weight: 700 !important;
-	text-shadow: 0 1px 3px #000000 !important;
-	height: auto !important;
-	z-index: 5 !important;
+	color: #d4a34b !important;
+	letter-spacing: 0.08vw !important;
+	text-transform: uppercase !important;
+	text-shadow: 0 1px 2px #000 !important;
 }
 
+#deck-customization .leader-cycle-badge {
+	font-family: 'Gwent', 'Cinzel', serif !important;
+	font-size: 0.7vw !important;
+	font-weight: 700 !important;
+	color: #ffffff !important;
+	background: rgba(229, 179, 87, 0.2) !important;
+	border: 1px solid rgba(229, 179, 87, 0.5) !important;
+	border-radius: 0.2vw !important;
+	padding: 0.1vw 0.35vw !important;
+}
+
+#deck-customization .leader-card-wrapper {
+	position: relative !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 0.4vw !important;
+	width: 100% !important;
+}
+
+#deck-customization .leader-arrow-btn {
+	background: rgba(25, 20, 14, 0.85) !important;
+	border: 1px solid rgba(166, 124, 51, 0.6) !important;
+	color: #e5b357 !important;
+	font-size: 1.2vw !important;
+	width: 1.6vw !important;
+	height: 2.4vw !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	border-radius: 0.2vw !important;
+	cursor: pointer !important;
+	transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s !important;
+}
+
+#deck-customization .leader-arrow-btn:hover {
+	background: #3d2c18 !important;
+	border-color: #ffd700 !important;
+	color: #ffffff !important;
+	transform: scale(1.1) !important;
+}
+
+#deck-customization #card-leader .leader-card-img,
 #deck-customization #card-leader > div {
 	position: relative !important;
-	top: 0 !important;
-	left: 0 !important;
-	width: 7.8vw !important;
-	height: 13vw !important;
+	width: 6.6vw !important;
+	aspect-ratio: 410 / 775 !important;
+	height: auto !important;
 	margin: 0 !important;
-	background-size: cover !important;
-	background-position: center top !important;
-	border: 2px solid #a67c33 !important;
-	border-radius: 0.4vw !important;
-	box-shadow: 0 0.3vw 0.8vw rgba(0, 0, 0, 0.8), inset 0 0 1vw rgba(0, 0, 0, 0.5) !important;
-	transition: transform 0.22s, box-shadow 0.22s !important;
+	background-size: 100% 100% !important;
+	background-repeat: no-repeat !important;
+	background-position: center !important;
+	border: 1px solid #c5a059 !important;
+	border-radius: 2px !important;
+	box-shadow: 0 0.3vw 0.8vw rgba(0, 0, 0, 0.85) !important;
+	transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s !important;
 }
 
-#deck-customization #card-leader > div:hover {
-	transform: scale(1.04) !important;
-	box-shadow: 0 0 1.2vw rgba(255, 200, 50, 0.9) !important;
+#deck-customization #card-leader:hover .leader-card-img,
+#deck-customization #card-leader.leader-focused .leader-card-img {
 	border-color: #ffd700 !important;
+	box-shadow: 0 0 1vw rgba(255, 215, 0, 0.7) !important;
+	transform: scale(1.03) !important;
+}
+
+#deck-customization .leader-info-block {
+	width: 100% !important;
+	box-sizing: border-box !important;
+	margin-top: 0.4vw !important;
+	text-align: center !important;
+}
+
+#deck-customization .leader-name-text {
+	font-family: 'Gwent', 'Cinzel', serif !important;
+	font-size: 0.82vw !important;
+	font-weight: 700 !important;
+	color: #ffd700 !important;
+	margin: 0 0 0.2vw 0 !important;
+	text-shadow: 0 1px 3px #000 !important;
+	letter-spacing: 0.04vw !important;
+}
+
+#deck-customization .leader-ability-text {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+	font-size: 0.7vw !important;
+	line-height: 1.35 !important;
+	color: #ded1bd !important;
+	margin: 0 !important;
+	background: rgba(0, 0, 0, 0.35) !important;
+	border: 1px solid rgba(166, 124, 51, 0.25) !important;
+	border-radius: 0.25vw !important;
+	padding: 0.3vw 0.45vw !important;
+	text-align: left !important;
+	box-sizing: border-box !important;
+	text-shadow: 0 1px 2px #000 !important;
 }
 
 /* Deck Stats Header */

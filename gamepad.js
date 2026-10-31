@@ -161,6 +161,12 @@ const GamepadManager = {
 		const ingameDialog = document.getElementById("ingame-dialog-modal");
 		if (ingameDialog && !ingameDialog.classList.contains("hide")) return "INGAME_DIALOG";
 
+		const versusAlert = document.getElementById("versus-alert-modal");
+		if (versusAlert && !versusAlert.classList.contains("hide")) return "VERSUS_ALERT";
+
+		const versusLobby = document.getElementById("versus-lobby-modal");
+		if (versusLobby && !versusLobby.classList.contains("hide")) return "VERSUS_LOBBY";
+
 		const popup = document.getElementById("popup");
 		if (popup && !popup.classList.contains("hide")) return "POPUP";
 
@@ -360,6 +366,22 @@ const GamepadManager = {
 				break;
 			case "POPUP":
 				this.navPopup(dir);
+				break;
+			case "VERSUS_LOBBY":
+				items = [
+					{ btn: "D-Pad / LS", text: "Navegar" },
+					{ btn: "A", class: "pad-a", text: "Selecionar" },
+					{ btn: "LB / RB", class: "pad-btn-rect", text: "Abas" },
+					{ btn: "X", class: "pad-x", text: "Baralho / Copiar" },
+					{ btn: "Y", class: "pad-y", text: "Pronto" },
+					{ btn: "Start", class: "pad-btn-rect", text: "Iniciar Batalha" },
+					{ btn: "B", class: "pad-b", text: "Voltar / Sair" }
+				];
+				break;
+			case "VERSUS_ALERT":
+				items = [
+					{ btn: "A / B / Start", class: "pad-a", text: "Voltar ao Menu" }
+				];
 				break;
 			case "CAROUSEL":
 				this.navCarousel(dir);
@@ -1184,6 +1206,70 @@ const GamepadManager = {
 		this.setFocus(opts[next]);
 	},
 
+	navVersusAlert(dir) {
+		const btn = document.querySelector("#versus-alert-modal button");
+		if (btn) this.setFocus(btn);
+	},
+
+	navVersusLobby(dir) {
+		const prematch = document.getElementById("versus-prematch-panel");
+		const isPrematch = prematch && getComputedStyle(prematch).display !== "none";
+
+		if (isPrematch) {
+			const btns = [
+				document.querySelector(".versus-btn-leave-room"),
+				document.querySelector(".versus-btn-deck"),
+				document.getElementById("btn-versus-ready"),
+				document.getElementById("btn-versus-start-match")
+			].filter(b => b && !b.classList.contains("hide") && getComputedStyle(b).display !== "none");
+
+			if (btns.length === 0) return;
+			let idx = btns.indexOf(this.currentFocusedElem);
+			if (idx === -1) idx = 0;
+
+			if (dir === "left" || dir === "up") {
+				idx = Math.max(0, idx - 1);
+			} else if (dir === "right" || dir === "down") {
+				idx = Math.min(btns.length - 1, idx + 1);
+			}
+			this.setFocus(btns[idx]);
+			return;
+		}
+
+		const isHostActive = document.getElementById("tab-versus-host")?.classList.contains("active");
+		const nickInput = document.getElementById("versus-input-player-name");
+		const tabHost = document.getElementById("tab-versus-host");
+		const tabJoin = document.getElementById("tab-versus-join");
+		const closeBtn = document.querySelector(".versus-close-btn");
+
+		let focusables = [];
+		if (isHostActive) {
+			const copyBtn = document.getElementById("btn-versus-copy");
+			focusables = [nickInput, tabHost, tabJoin, copyBtn, closeBtn].filter(Boolean);
+		} else {
+			const roomInput = document.getElementById("versus-input-room-code");
+			const joinBtn = document.querySelector(".versus-join-btn");
+			focusables = [nickInput, tabHost, tabJoin, roomInput, joinBtn, closeBtn].filter(Boolean);
+		}
+
+		if (focusables.length === 0) return;
+		let idx = focusables.indexOf(this.currentFocusedElem);
+		if (idx === -1) idx = 0;
+
+		if (dir === "up") {
+			idx = Math.max(0, idx - 1);
+		} else if (dir === "down") {
+			idx = Math.min(focusables.length - 1, idx + 1);
+		} else if (dir === "left") {
+			if (this.currentFocusedElem === tabJoin) idx = focusables.indexOf(tabHost);
+			else idx = Math.max(0, idx - 1);
+		} else if (dir === "right") {
+			if (this.currentFocusedElem === tabHost) idx = focusables.indexOf(tabJoin);
+			else idx = Math.min(focusables.length - 1, idx + 1);
+		}
+		if (focusables[idx]) this.setFocus(focusables[idx]);
+	},
+
 	navStorySetup(dir) {
 		if (dir === "left") {
 			this.cycleStorySetupFaction(-1);
@@ -1266,6 +1352,27 @@ const GamepadManager = {
 					const idx = Math.max(0, Math.min(cardElems.length - 1, this.navState.matchHandIndex || 0));
 					this.navState.matchHandIndex = idx;
 					this.setFocus(cardElems[idx], false);
+				}
+				break;
+			}
+			case "VERSUS_ALERT": {
+				const btn = document.querySelector("#versus-alert-modal button");
+				if (btn) this.setFocus(btn, false);
+				break;
+			}
+			case "VERSUS_LOBBY": {
+				const prematch = document.getElementById("versus-prematch-panel");
+				const isPrematch = prematch && getComputedStyle(prematch).display !== "none";
+				if (isPrematch) {
+					const readyBtn = document.getElementById("btn-versus-ready");
+					const fallbackBtn = document.querySelector(".versus-prematch-actions button");
+					if (readyBtn) this.setFocus(readyBtn, false);
+					else if (fallbackBtn) this.setFocus(fallbackBtn, false);
+				} else {
+					const nickInput = document.getElementById("versus-input-player-name");
+					const tabHost = document.getElementById("tab-versus-host");
+					if (nickInput) this.setFocus(nickInput, false);
+					else if (tabHost) this.setFocus(tabHost, false);
 				}
 				break;
 			}

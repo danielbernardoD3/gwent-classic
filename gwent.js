@@ -2366,6 +2366,42 @@ class Card {
 
 class MusicManager {
 	static tracks = [
+		// The Witcher 3: Wild Hunt Soundtrack
+		'music/01 The Trail.mp3',
+		'music/02 Geralt of Rivia.mp3',
+		'music/03 Eredin, King of the Hunt.mp3',
+		'music/04 Wake Up, Ciri.mp3',
+		'music/05 Aen Seidhe.mp3',
+		'music/06 Commanding the Fury.mp3',
+		'music/07 Emhyr var Emreis.mp3',
+		'music/08 Spikeroog.mp3',
+		'music/09 King Bran\'s Final Voyage.mp3',
+		'music/10 Silver for Monsters....mp3',
+		'music/11 Whispers of Oxenfurt.mp3',
+		'music/12 The Nightingale.mp3',
+		'music/13 City of Intrigues.mp3',
+		'music/14 The Hunter\'s Path.mp3',
+		'music/16 Kaer Morhen.mp3',
+		'music/17 Eyes of the Wolf.mp3',
+		'music/18 Witch Hunters.mp3',
+		'music/19 ...Steel for Humans.mp3',
+		'music/20 Fate Calls.mp3',
+		'music/21 The Vagabond.mp3',
+		'music/22 Cloak and Dagger.mp3',
+		'music/23 Forged in Fire.mp3',
+		'music/24 Yes, I Do....mp3',
+		'music/25 Welcome, Imlerith.mp3',
+		'music/26 Drink Up, There_s More!.mp3',
+		'music/27 After the Storm.mp3',
+		'music/28 Blood on the Cobblestones.mp3',
+		'music/29 Farewell, Old Friend.mp3',
+		'music/30 The Song of the Sword-Dancer.mp3',
+		'music/31 The Hunt is Coming.mp3',
+		'music/32 The Fields of Ard Skellig.mp3',
+		'music/33 Ladies of the Woods.mp3',
+		'music/34 Merchants of Novigrad.mp3',
+		'music/35 Hunt Or Be Hunted.mp3',
+		// Temas Clássicos Gwent
 		'music/gwent_main.mp3',
 		'music/plots_and_intrigues.mp3',
 		'music/northern_realms.mp3',
@@ -2373,12 +2409,57 @@ class MusicManager {
 		'music/witcher_forest.mp3',
 		'music/witcher_ocean.mp3'
 	];
+
+	static trackTitles = [
+		'01. The Trail',
+		'02. Geralt of Rivia',
+		'03. Eredin, King of the Hunt',
+		'04. Wake Up, Ciri',
+		'05. Aen Seidhe',
+		'06. Commanding the Fury',
+		'07. Emhyr var Emreis',
+		'08. Spikeroog',
+		'09. King Bran\'s Final Voyage',
+		'10. Silver for Monsters...',
+		'11. Whispers of Oxenfurt',
+		'12. The Nightingale',
+		'13. City of Intrigues',
+		'14. The Hunter\'s Path',
+		'15. Kaer Morhen',
+		'16. Eyes of the Wolf',
+		'17. Witch Hunters',
+		'18. ...Steel for Humans',
+		'19. Fate Calls',
+		'20. The Vagabond',
+		'21. Cloak and Dagger',
+		'22. Forged in Fire',
+		'23. Yes, I Do...',
+		'24. Welcome, Imlerith',
+		'25. Drink Up, There\'s More!',
+		'26. After the Storm',
+		'27. Blood on the Cobblestones',
+		'28. Farewell, Old Friend',
+		'29. The Song of the Sword-Dancer',
+		'30. The Hunt is Coming',
+		'31. The Fields of Ard Skellig',
+		'32. Ladies of the Woods',
+		'33. Merchants of Novigrad',
+		'34. Hunt Or Be Hunted',
+		'35. How About a Round of Gwent',
+		'36. Plots and Intrigues',
+		'37. Northern Realms Theme',
+		'38. The Black Clads (Nilfgaard)',
+		'39. Kaer Morhen / Bosques',
+		'40. Mares e Ventos de Skellige'
+	];
+
 	static currTrackIndex = 0;
 	static audio = null;
 	static isPlaying = false;
 	static initialized = false;
 	static selectedMode = 'all';
 	static volume = 0.6;
+	static playedIndices = [];
 
 	static init() {
 		if (MusicManager.initialized) return;
@@ -2387,7 +2468,8 @@ class MusicManager {
 		const saved = localStorage.getItem("gc-jukebox-track") || "all";
 		MusicManager.selectedMode = saved;
 		if (saved !== "all") {
-			MusicManager.currTrackIndex = parseInt(saved, 10) || 0;
+			const idx = parseInt(saved, 10);
+			MusicManager.currTrackIndex = (idx >= 0 && idx < MusicManager.tracks.length) ? idx : 0;
 		}
 
 		const savedVol = localStorage.getItem("gc-music-volume");
@@ -2428,9 +2510,10 @@ class MusicManager {
 			MusicManager.nextTrack();
 		} else {
 			const idx = parseInt(trackId, 10) || 0;
-			MusicManager.currTrackIndex = idx;
+			const safeIdx = Math.max(0, Math.min(MusicManager.tracks.length - 1, idx));
+			MusicManager.currTrackIndex = safeIdx;
 			if (MusicManager.audio) {
-				MusicManager.audio.src = MusicManager.tracks[idx];
+				MusicManager.audio.src = MusicManager.tracks[safeIdx];
 				MusicManager.audio.volume = MusicManager.volume;
 				if (MusicManager.isPlaying) {
 					MusicManager.audio.play().catch(e => console.log(e));
@@ -2440,7 +2523,21 @@ class MusicManager {
 	}
 
 	static nextTrack() {
-		MusicManager.currTrackIndex = (MusicManager.currTrackIndex + 1) % MusicManager.tracks.length;
+		if (MusicManager.selectedMode === "all") {
+			// Shuffle inteligente sem repetição imediata
+			let nextIdx;
+			if (MusicManager.tracks.length > 1) {
+				do {
+					nextIdx = Math.floor(Math.random() * MusicManager.tracks.length);
+				} while (nextIdx === MusicManager.currTrackIndex);
+			} else {
+				nextIdx = 0;
+			}
+			MusicManager.currTrackIndex = nextIdx;
+		} else {
+			MusicManager.currTrackIndex = (MusicManager.currTrackIndex + 1) % MusicManager.tracks.length;
+		}
+
 		if (MusicManager.audio) {
 			MusicManager.audio.src = MusicManager.tracks[MusicManager.currTrackIndex];
 			MusicManager.audio.volume = MusicManager.volume;
@@ -3168,8 +3265,24 @@ class DeckMaker {
 		this.bank_elem = document.getElementById("card-bank");
 		this.deck_elem = document.getElementById("card-deck");
 		this.leader_elem = document.getElementById("card-leader");
-		this.leader_elem.children[1].addEventListener("click", () => this.selectLeader(), false);
-		this.leader_elem.children[1].addEventListener('mouseenter', CLICK_EVENT_SFX);
+		if (this.leader_elem) {
+			this.leader_elem.addEventListener("click", () => this.cycleLeader(1), false);
+			this.leader_elem.addEventListener('mouseenter', CLICK_EVENT_SFX);
+		}
+		const prevLBtn = document.getElementById("btn-leader-prev");
+		if (prevLBtn) {
+			prevLBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				this.cycleLeader(-1);
+			}, false);
+		}
+		const nextLBtn = document.getElementById("btn-leader-next");
+		if (nextLBtn) {
+			nextLBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				this.cycleLeader(1);
+			}, false);
+		}
 
 		this.bankFilter = "all";
 		this.deckFilter = "all";
@@ -3338,21 +3451,115 @@ class DeckMaker {
 		this.leaders = 
 			card_dict.map((c,i) => ({index: i, card:c}) )
 			.filter(c => c.card.deck === faction_name && c.card.row === "leader");
-		if (!this.leader || this.faction !== faction_name) {
-			this.leader = this.leaders[0];
-			this.leader_elem.children[1].style.backgroundImage = largeURL(this.leader.card.deck + "_" + this.leader.card.filename);
-		}
 		this.faction = faction_name;
 		Settings.lastFaction.set(faction_name);
+		const available = this.getAvailableLeaders();
+		if (!this.leader || !available.some(l => l.index === this.leader.index)) {
+			this.leader = available[0] || this.leaders[0];
+		}
+		this.updateLeaderDisplay();
 		return true;
+	}
+
+	getAvailableLeaders() {
+		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+			const owned = (this.leaders || []).filter(c => (StoryMode.save.collection[c.index] || 0) > 0);
+			if (owned.length > 0) return owned;
+		}
+		return this.leaders || [];
+	}
+
+	updateLeaderDisplay() {
+		if (!this.leader_elem) return;
+		const available = this.getAvailableLeaders();
+		if (!this.leader || !available.some(l => l.index === this.leader.index)) {
+			this.leader = available[0] || (this.leaders && this.leaders[0]);
+		}
+		if (!this.leader || !this.leader.card) return;
+
+		const card = this.leader.card;
+		const bg = largeURL(card.deck + "_" + card.filename);
+
+		// Atualiza a arte da carta (ambas as tags possíveis para máxima compatibilidade)
+		const thumbEl = document.getElementById("card-leader-thumb") || this.leader_elem.querySelector(".leader-card-img");
+		if (thumbEl) thumbEl.style.backgroundImage = bg;
+		if (this.leader_elem.children[1] && this.leader_elem.children[1] !== thumbEl) {
+			this.leader_elem.children[1].style.backgroundImage = bg;
+		}
+
+		// Atualiza o nome do líder
+		const nameEl = document.getElementById("card-leader-name");
+		if (nameEl) nameEl.textContent = card.name;
+
+		// Atualiza o texto da habilidade do líder
+		const descEl = document.getElementById("card-leader-ability-desc");
+		if (descEl) {
+			const abilityKey = card.ability;
+			let desc = "";
+			if (typeof I18N !== "undefined") {
+				const i18nDesc = I18N.t("ability_" + abilityKey + "_desc");
+				if (i18nDesc && i18nDesc !== ("ability_" + abilityKey + "_desc")) {
+					desc = i18nDesc;
+				}
+			}
+			if (!desc && typeof ability_dict !== "undefined" && ability_dict[abilityKey]) {
+				desc = ability_dict[abilityKey].description;
+			}
+			descEl.textContent = desc || "Sem habilidade especial.";
+		}
+
+		// Atualiza o contador de líderes disponíveis e setas de navegação
+		const curIdx = available.findIndex(l => l.index === this.leader.index);
+		const indicatorEl = document.getElementById("leader-cycle-indicator");
+		if (indicatorEl) {
+			indicatorEl.textContent = (available.length > 1) ? `${curIdx + 1} / ${available.length}` : "1 / 1";
+			indicatorEl.style.display = (available.length > 1) ? "inline-block" : "none";
+		}
+		const prevBtn = document.getElementById("btn-leader-prev");
+		const nextBtn = document.getElementById("btn-leader-next");
+		if (prevBtn) prevBtn.style.display = (available.length > 1) ? "flex" : "none";
+		if (nextBtn) nextBtn.style.display = (available.length > 1) ? "flex" : "none";
+
+		// Aplica foco visual ao card
+		this.leader_elem.classList.add("leader-focused");
+	}
+
+	cycleLeader(delta = 1) {
+		const available = this.getAvailableLeaders();
+		if (available.length <= 1) {
+			this.updateLeaderDisplay();
+			return;
+		}
+		let curIdx = available.findIndex(l => l.index === this.leader.index);
+		if (curIdx === -1) curIdx = 0;
+		curIdx = (curIdx + delta + available.length) % available.length;
+		this.leader = available[curIdx];
+
+		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+			StoryMode.save.playerDeck.leader = this.leader.index;
+			StoryMode.saveGame();
+		} else {
+			Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+		}
+
+		this.updateLeaderDisplay();
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX('ui_card_bank');
+		}
 	}
 	
 	// Sets current leader and updates UI
 	setLeader(index){
-		this.leader = (this.leaders && this.leaders.find( l => l.index == index)) || (this.leaders && this.leaders[0]);
-		if (this.leader && this.leader.card) {
-			this.leader_elem.children[1].style.backgroundImage = largeURL(this.leader.card.deck + "_" + this.leader.card.filename);
+		const available = this.getAvailableLeaders();
+		this.leader = available.find(l => l.index == index) || (this.leaders && this.leaders.find(l => l.index == index)) || available[0];
+		if (this.leader) {
+			if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+				StoryMode.save.playerDeck.leader = this.leader.index;
+			} else {
+				Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+			}
 		}
+		this.updateLeaderDisplay();
 	}
 	
 	// Constructs a bank of cards that can be used by the faction's deck.
@@ -3487,19 +3694,30 @@ class DeckMaker {
 	
 	// Opens a Carousel to allow the client to select a leader for their deck
 	selectLeader(){
+		const available = this.getAvailableLeaders();
+		if (available.length <= 1) {
+			this.updateLeaderDisplay();
+			return;
+		}
 		let container = new CardContainer();
-		container.cards = this.leaders.map(c => {
+		container.cards = available.map(c => {
 			let card = new Card(c.card, player_me);
 			card.data = c;
 			return card;
 		});
 		
-		let index = this.leaders.indexOf(this.leader);
+		let index = available.findIndex(l => l.index === this.leader?.index);
+		if (index === -1) index = 0;
 		ui.queueCarousel(container, 1, (c,i) => {
 			let data = c.cards[i].data;
 			this.leader = data;
-			this.leader_elem.children[1].style.backgroundImage = largeURL(data.card.deck + "_" + data.card.filename);
-			Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+			if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+				StoryMode.save.playerDeck.leader = this.leader.index;
+				StoryMode.saveGame();
+			} else {
+				Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+			}
+			this.updateLeaderDisplay();
 			AudioManager.playSFX('ui_card_bank');
 		}, () => true, false, true);
 		Carousel.curr.index = index;
@@ -3777,7 +3995,7 @@ class DeckMaker {
 		this.setFaction(loadedDeck.faction, true);
 		if (card_dict[loadedDeck.leader].row === "leader" && loadedDeck.faction === card_dict[loadedDeck.leader].deck){
 			this.leader = this.leaders.filter(c => c.index === loadedDeck.leader)[0];
-			this.leader_elem.children[1].style.backgroundImage = largeURL(this.leader.card.deck + "_" + this.leader.card.filename);
+			this.updateLeaderDisplay();
 		}
 		this.makeBank(deck.faction, loadedDeck.cards);
 		this.update();

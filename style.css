@@ -253,10 +253,11 @@ html {
 .card-lg {
 	height: 30.4vw;
 	width: 16.1vw;
-	border-radius: 1.5vw;
+	border-radius: 3px;
 	
-	background-size: contain;
-	background-position:center;
+	background-size: 100% 100%;
+	background-repeat: no-repeat;
+	background-position: center;
 }
 .card-description {
 	position: absolute;
@@ -1260,7 +1261,7 @@ main { background-image: url('img/boardtest8.png'); }
 .card-array .card-lg {
     width: 9.88vw;
     height: 18.45vw;
-    border-radius: 1vw;
+    border-radius: 2px;
 	margin-bottom: 0.75vw;
 }
 

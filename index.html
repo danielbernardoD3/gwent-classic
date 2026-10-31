@@ -151,13 +151,47 @@
 				<div class="setting-row">
 					<label data-i18n="audio_jukebox">Jukebox Track</label>
 					<select id="setting-jukebox-track" class="witcher-select">
-						<option value="all" data-i18n="track_all">♦ All Tracks (Loop & Shuffle)</option>
-						<option value="0" data-i18n="track_gwent_main">1. How About a Round of Gwent</option>
-						<option value="1" data-i18n="track_plots">2. Plots and Intrigues</option>
-						<option value="2" data-i18n="track_northern">3. Northern Realms Theme</option>
-						<option value="3" data-i18n="track_nilfgaard">4. The Black Clads (Nilfgaard)</option>
-						<option value="4" data-i18n="track_witcher_forest">5. Kaer Morhen / Forest Ambience</option>
-						<option value="5" data-i18n="track_witcher_ocean">6. Skellige Winds & Ocean</option>
+						<option value="all" data-i18n="track_all">♦ Todas as Músicas (Aleatório / Loop)</option>
+						<option value="0">01. The Trail</option>
+						<option value="1">02. Geralt of Rivia</option>
+						<option value="2">03. Eredin, King of the Hunt</option>
+						<option value="3">04. Wake Up, Ciri</option>
+						<option value="4">05. Aen Seidhe</option>
+						<option value="5">06. Commanding the Fury</option>
+						<option value="6">07. Emhyr var Emreis</option>
+						<option value="7">08. Spikeroog</option>
+						<option value="8">09. King Bran's Final Voyage</option>
+						<option value="9">10. Silver for Monsters...</option>
+						<option value="10">11. Whispers of Oxenfurt</option>
+						<option value="11">12. The Nightingale</option>
+						<option value="12">13. City of Intrigues</option>
+						<option value="13">14. The Hunter's Path</option>
+						<option value="14">15. Kaer Morhen</option>
+						<option value="15">16. Eyes of the Wolf</option>
+						<option value="16">17. Witch Hunters</option>
+						<option value="17">18. ...Steel for Humans</option>
+						<option value="18">19. Fate Calls</option>
+						<option value="19">20. The Vagabond</option>
+						<option value="20">21. Cloak and Dagger</option>
+						<option value="21">22. Forged in Fire</option>
+						<option value="22">23. Yes, I Do...</option>
+						<option value="23">24. Welcome, Imlerith</option>
+						<option value="24">25. Drink Up, There's More!</option>
+						<option value="25">26. After the Storm</option>
+						<option value="26">27. Blood on the Cobblestones</option>
+						<option value="27">28. Farewell, Old Friend</option>
+						<option value="28">29. The Song of the Sword-Dancer</option>
+						<option value="29">30. The Hunt is Coming</option>
+						<option value="30">31. The Fields of Ard Skellig</option>
+						<option value="31">32. Ladies of the Woods</option>
+						<option value="32">33. Merchants of Novigrad</option>
+						<option value="33">34. Hunt Or Be Hunted</option>
+						<option value="34">35. How About a Round of Gwent</option>
+						<option value="35">36. Plots and Intrigues</option>
+						<option value="36">37. Northern Realms Theme</option>
+						<option value="37">38. The Black Clads (Nilfgaard)</option>
+						<option value="38">39. Bosques de Kaer Morhen</option>
+						<option value="39">40. Ventos e Mares de Skellige</option>
 					</select>
 				</div>
 
@@ -551,10 +585,21 @@
 		<!-- CENTER COLUMN: Leader, Stats, Opponent Picker, Start Button -->
 		<div class="deck-column deck-column-center">
 			
-			<!-- Leader Box -->
-			<div id="card-leader" class="witcher-leader-box" title="Clique para trocar o Líder">
-				<p data-i18n="leader_label">Leader</p>
-				<div></div>
+			<!-- Leader Box com Foco, Troca e Exibição de Habilidade -->
+			<div id="card-leader" class="witcher-leader-box" title="Clique para focar ou alternar o Líder" tabindex="0">
+				<div class="leader-box-header">
+					<span class="leader-badge-title" data-i18n="leader_label">Líder</span>
+					<span id="leader-cycle-indicator" class="leader-cycle-badge" title="Líderes disponíveis">1 / 1</span>
+				</div>
+				<div class="leader-card-wrapper">
+					<button id="btn-leader-prev" class="leader-arrow-btn left-arrow" title="Líder anterior" type="button">‹</button>
+					<div id="card-leader-thumb" class="leader-card-img"></div>
+					<button id="btn-leader-next" class="leader-arrow-btn right-arrow" title="Próximo líder" type="button">›</button>
+				</div>
+				<div class="leader-info-block">
+					<h4 id="card-leader-name" class="leader-name-text">Líder</h4>
+					<p id="card-leader-ability-desc" class="leader-ability-text">Habilidade do Líder</p>
+				</div>
 			</div>
 
 			<!-- Deck Stats -->
@@ -798,13 +843,47 @@
 			<div class="setting-row">
 				<label data-i18n="audio_jukebox">Jukebox Track</label>
 				<select id="setting-jukebox-track-overlay" class="witcher-select">
-					<option value="all" data-i18n="track_all">♦ All Tracks (Loop & Shuffle)</option>
-					<option value="0" data-i18n="track_gwent_main">1. How About a Round of Gwent</option>
-					<option value="1" data-i18n="track_plots">2. Plots and Intrigues</option>
-					<option value="2" data-i18n="track_northern">3. Northern Realms Theme</option>
-					<option value="3" data-i18n="track_nilfgaard">4. The Black Clads (Nilfgaard)</option>
-					<option value="4" data-i18n="track_witcher_forest">5. Kaer Morhen / Forest Ambience</option>
-					<option value="5" data-i18n="track_witcher_ocean">6. Skellige Winds & Ocean</option>
+					<option value="all" data-i18n="track_all">♦ Todas as Músicas (Aleatório / Loop)</option>
+					<option value="0">01. The Trail</option>
+					<option value="1">02. Geralt of Rivia</option>
+					<option value="2">03. Eredin, King of the Hunt</option>
+					<option value="3">04. Wake Up, Ciri</option>
+					<option value="4">05. Aen Seidhe</option>
+					<option value="5">06. Commanding the Fury</option>
+					<option value="6">07. Emhyr var Emreis</option>
+					<option value="7">08. Spikeroog</option>
+					<option value="8">09. King Bran's Final Voyage</option>
+					<option value="9">10. Silver for Monsters...</option>
+					<option value="10">11. Whispers of Oxenfurt</option>
+					<option value="11">12. The Nightingale</option>
+					<option value="12">13. City of Intrigues</option>
+					<option value="13">14. The Hunter's Path</option>
+					<option value="14">15. Kaer Morhen</option>
+					<option value="15">16. Eyes of the Wolf</option>
+					<option value="16">17. Witch Hunters</option>
+					<option value="17">18. ...Steel for Humans</option>
+					<option value="18">19. Fate Calls</option>
+					<option value="19">20. The Vagabond</option>
+					<option value="20">21. Cloak and Dagger</option>
+					<option value="21">22. Forged in Fire</option>
+					<option value="22">23. Yes, I Do...</option>
+					<option value="23">24. Welcome, Imlerith</option>
+					<option value="24">25. Drink Up, There's More!</option>
+					<option value="25">26. After the Storm</option>
+					<option value="26">27. Blood on the Cobblestones</option>
+					<option value="27">28. Farewell, Old Friend</option>
+					<option value="28">29. The Song of the Sword-Dancer</option>
+					<option value="29">30. The Hunt is Coming</option>
+					<option value="30">31. The Fields of Ard Skellig</option>
+					<option value="31">32. Ladies of the Woods</option>
+					<option value="32">33. Merchants of Novigrad</option>
+					<option value="33">34. Hunt Or Be Hunted</option>
+					<option value="34">35. How About a Round of Gwent</option>
+					<option value="35">36. Plots and Intrigues</option>
+					<option value="36">37. Northern Realms Theme</option>
+					<option value="37">38. The Black Clads (Nilfgaard)</option>
+					<option value="38">39. Bosques de Kaer Morhen</option>
+					<option value="39">40. Ventos e Mares de Skellige</option>
 				</select>
 			</div>
 
