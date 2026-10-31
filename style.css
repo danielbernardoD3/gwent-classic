@@ -1280,33 +1280,7 @@ main { background-image: url('img/boardtest8.png'); }
 	background-size: contain;
 }
 
-#card-leader {
-	position: absolute;
-	height: 27%;
-	width: 6.9%;
-	top: 20.8%;
-	left: 46.6%;
-}
-
-#card-leader p {
-	font-size: 1.1vw;
-	text-align: center;
-	color: #8f6c36;
-	line-height: 0%;
-	margin: 9%;
-}
-
-#card-leader > div {
-	position: relative;
-	height: 84.5%;
-	margin-top: 24.5%;
-	
-	background-size: contain;
-	border-radius: .5vw;
-}
-#card-leader > div:hover {
-	box-shadow: 0 0 .75vw goldenrod;
-}
+/* #card-leader legacy styles neutralized in favor of modern flex layout in menu.css */
 
 #deck-stats {
 	position: absolute;

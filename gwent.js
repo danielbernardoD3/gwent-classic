@@ -3265,8 +3265,19 @@ class DeckMaker {
 		this.bank_elem = document.getElementById("card-bank");
 		this.deck_elem = document.getElementById("card-deck");
 		this.leader_elem = document.getElementById("card-leader");
+		const leaderThumb = document.getElementById("card-leader-thumb");
+		if (leaderThumb) {
+			leaderThumb.addEventListener("click", (e) => {
+				e.stopPropagation();
+				this.cycleLeader(1);
+			}, false);
+			leaderThumb.addEventListener('mouseenter', CLICK_EVENT_SFX);
+		}
 		if (this.leader_elem) {
-			this.leader_elem.addEventListener("click", () => this.cycleLeader(1), false);
+			this.leader_elem.addEventListener("click", (e) => {
+				if (e.target && (e.target.id === "btn-leader-prev" || e.target.id === "btn-leader-next")) return;
+				this.cycleLeader(1);
+			}, false);
 			this.leader_elem.addEventListener('mouseenter', CLICK_EVENT_SFX);
 		}
 		const prevLBtn = document.getElementById("btn-leader-prev");
@@ -3480,11 +3491,10 @@ class DeckMaker {
 		const card = this.leader.card;
 		const bg = largeURL(card.deck + "_" + card.filename);
 
-		// Atualiza a arte da carta (ambas as tags possíveis para máxima compatibilidade)
-		const thumbEl = document.getElementById("card-leader-thumb") || this.leader_elem.querySelector(".leader-card-img");
-		if (thumbEl) thumbEl.style.backgroundImage = bg;
-		if (this.leader_elem.children[1] && this.leader_elem.children[1] !== thumbEl) {
-			this.leader_elem.children[1].style.backgroundImage = bg;
+		// Atualiza a arte estritamente no elemento da carta do líder
+		const thumbEl = document.getElementById("card-leader-thumb") || (this.leader_elem && this.leader_elem.querySelector(".leader-card-img"));
+		if (thumbEl) {
+			thumbEl.style.backgroundImage = bg;
 		}
 
 		// Atualiza o nome do líder

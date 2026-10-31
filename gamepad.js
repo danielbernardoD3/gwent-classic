@@ -367,22 +367,6 @@ const GamepadManager = {
 			case "POPUP":
 				this.navPopup(dir);
 				break;
-			case "VERSUS_LOBBY":
-				items = [
-					{ btn: "D-Pad / LS", text: "Navegar" },
-					{ btn: "A", class: "pad-a", text: "Selecionar" },
-					{ btn: "LB / RB", class: "pad-btn-rect", text: "Abas" },
-					{ btn: "X", class: "pad-x", text: "Baralho / Copiar" },
-					{ btn: "Y", class: "pad-y", text: "Pronto" },
-					{ btn: "Start", class: "pad-btn-rect", text: "Iniciar Batalha" },
-					{ btn: "B", class: "pad-b", text: "Voltar / Sair" }
-				];
-				break;
-			case "VERSUS_ALERT":
-				items = [
-					{ btn: "A / B / Start", class: "pad-a", text: "Voltar ao Menu" }
-				];
-				break;
 			case "CAROUSEL":
 				this.navCarousel(dir);
 				break;
@@ -418,6 +402,12 @@ const GamepadManager = {
 				break;
 			case "STORY_SETUP":
 				this.navStorySetup(dir);
+				break;
+			case "VERSUS_LOBBY":
+				this.navVersusLobby(dir);
+				break;
+			case "VERSUS_ALERT":
+				this.navVersusAlert(dir);
 				break;
 		}
 	},
@@ -681,6 +671,68 @@ const GamepadManager = {
 					}, 40);
 				}
 				break;
+
+			case "VERSUS_ALERT":
+				if (action === "A" || action === "B" || action === "Start") {
+					if (typeof VersusMode !== "undefined" && VersusMode.exitVersusToMenu) {
+						VersusMode.exitVersusToMenu();
+					}
+				}
+				break;
+
+			case "VERSUS_LOBBY": {
+				const prematch = document.getElementById("versus-prematch-panel");
+				const isPrematch = prematch && getComputedStyle(prematch).display !== "none";
+
+				if (isPrematch) {
+					if (action === "A") {
+						if (this.currentFocusedElem) this.currentFocusedElem.click();
+					} else if (action === "B") {
+						if (typeof VersusMode !== "undefined" && VersusMode.leaveRoomToInitialLobby) {
+							VersusMode.leaveRoomToInitialLobby();
+						}
+					} else if (action === "X") {
+						if (typeof VersusMode !== "undefined" && VersusMode.openDeckBuilderForVersus) {
+							VersusMode.openDeckBuilderForVersus();
+						}
+					} else if (action === "Y") {
+						if (typeof VersusMode !== "undefined" && VersusMode.toggleReady) {
+							VersusMode.toggleReady();
+						}
+					} else if (action === "Start") {
+						const startBtn = document.getElementById("btn-versus-start-match");
+						if (startBtn && !startBtn.classList.contains("hide") && !startBtn.disabled) {
+							startBtn.click();
+						}
+					}
+				} else {
+					if (action === "LB") {
+						const tabHost = document.getElementById("tab-versus-host");
+						if (tabHost) tabHost.click();
+						this.applyContextFocus("VERSUS_LOBBY");
+					} else if (action === "RB") {
+						const tabJoin = document.getElementById("tab-versus-join");
+						if (tabJoin) tabJoin.click();
+						this.applyContextFocus("VERSUS_LOBBY");
+					} else if (action === "A") {
+						if (this.currentFocusedElem) {
+							if (this.currentFocusedElem.tagName === "INPUT") {
+								this.currentFocusedElem.focus();
+							} else {
+								this.currentFocusedElem.click();
+							}
+						}
+					} else if (action === "B") {
+						if (typeof VersusMode !== "undefined" && VersusMode.closeLobby) {
+							VersusMode.closeLobby();
+						}
+					} else if (action === "X") {
+						const copyBtn = document.getElementById("btn-versus-copy");
+						if (copyBtn && !copyBtn.classList.contains("hide")) copyBtn.click();
+					}
+				}
+				break;
+			}
 		}
 	},
 
@@ -1447,6 +1499,22 @@ const GamepadManager = {
 					{ btn: "Y", class: "pad-y", text: t("pad_change_faction", "Faction") },
 					{ btn: "Start", class: "pad-btn-rect", text: t("pad_start_game", "Start Game") },
 					{ btn: "B", class: "pad-b", text: t("pad_back", "Back") }
+				];
+				break;
+			case "VERSUS_LOBBY":
+				items = [
+					{ btn: "D-Pad / LS", text: "Navegar" },
+					{ btn: "A", class: "pad-a", text: "Selecionar" },
+					{ btn: "LB / RB", class: "pad-btn-rect", text: "Abas" },
+					{ btn: "X", class: "pad-x", text: "Baralho / Copiar" },
+					{ btn: "Y", class: "pad-y", text: "Pronto" },
+					{ btn: "Start", class: "pad-btn-rect", text: "Iniciar Batalha" },
+					{ btn: "B", class: "pad-b", text: "Voltar / Sair" }
+				];
+				break;
+			case "VERSUS_ALERT":
+				items = [
+					{ btn: "A / B / Start", class: "pad-a", text: "Voltar ao Menu" }
 				];
 				break;
 			case "CAROUSEL":

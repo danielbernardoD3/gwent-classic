@@ -1661,25 +1661,22 @@
 	width: 100% !important;
 	box-sizing: border-box !important;
 	margin: 0 auto !important;
-	cursor: pointer;
 	display: flex !important;
 	flex-direction: column !important;
 	align-items: center !important;
 	flex-shrink: 0 !important;
-	background: rgba(18, 14, 10, 0.88) !important;
-	border: 1.5px solid rgba(166, 124, 51, 0.45) !important;
+	background: rgba(18, 14, 10, 0.9) !important;
+	border: 1px solid rgba(166, 124, 51, 0.38) !important;
 	border-radius: 0.4vw !important;
 	padding: 0.5vw 0.6vw !important;
 	box-shadow: inset 0 0 1vw rgba(0, 0, 0, 0.75), 0 0.2vw 0.5vw rgba(0, 0, 0, 0.6) !important;
-	transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s !important;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-#deck-customization #card-leader:hover,
 #deck-customization #card-leader.leader-focused,
-#deck-customization #card-leader:focus {
-	border-color: #ffd700 !important;
-	box-shadow: 0 0 1.2vw rgba(255, 215, 0, 0.6), inset 0 0 0.8vw rgba(255, 215, 0, 0.2) !important;
-	outline: none !important;
+#deck-customization #card-leader:hover {
+	border-color: rgba(229, 179, 87, 0.85) !important;
+	box-shadow: 0 0 1vw rgba(212, 163, 75, 0.35), inset 0 0 1vw rgba(0, 0, 0, 0.75) !important;
 }
 
 #deck-customization .leader-box-header {
@@ -1688,11 +1685,12 @@
 	justify-content: space-between !important;
 	align-items: center !important;
 	margin-bottom: 0.35vw !important;
+	flex-shrink: 0 !important;
 }
 
 #deck-customization .leader-badge-title {
 	font-family: 'Gwent', 'Cinzel', serif !important;
-	font-size: 0.78vw !important;
+	font-size: 0.76vw !important;
 	font-weight: 700 !important;
 	color: #d4a34b !important;
 	letter-spacing: 0.08vw !important;
@@ -1702,7 +1700,7 @@
 
 #deck-customization .leader-cycle-badge {
 	font-family: 'Gwent', 'Cinzel', serif !important;
-	font-size: 0.7vw !important;
+	font-size: 0.68vw !important;
 	font-weight: 700 !important;
 	color: #ffffff !important;
 	background: rgba(229, 179, 87, 0.2) !important;
@@ -1716,23 +1714,30 @@
 	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
-	gap: 0.4vw !important;
+	gap: 0.5vw !important;
 	width: 100% !important;
+	margin: 0.1vw 0 0.4vw 0 !important;
+	flex-shrink: 0 !important;
+	background: none !important;
+	border: none !important;
+	box-shadow: none !important;
 }
 
 #deck-customization .leader-arrow-btn {
 	background: rgba(25, 20, 14, 0.85) !important;
 	border: 1px solid rgba(166, 124, 51, 0.6) !important;
 	color: #e5b357 !important;
-	font-size: 1.2vw !important;
-	width: 1.6vw !important;
-	height: 2.4vw !important;
+	font-size: 1.3vw !important;
+	width: 1.5vw !important;
+	height: 2.8vw !important;
 	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
 	border-radius: 0.2vw !important;
 	cursor: pointer !important;
 	transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s !important;
+	flex-shrink: 0 !important;
+	user-select: none !important;
 }
 
 #deck-customization .leader-arrow-btn:hover {
@@ -1742,43 +1747,55 @@
 	transform: scale(1.1) !important;
 }
 
-#deck-customization #card-leader .leader-card-img,
-#deck-customization #card-leader > div {
+#deck-customization #card-leader-thumb,
+#deck-customization .leader-card-img {
 	position: relative !important;
-	width: 6.6vw !important;
+	width: 7.2vw !important;
 	aspect-ratio: 410 / 775 !important;
 	height: auto !important;
 	margin: 0 !important;
 	background-size: 100% 100% !important;
 	background-repeat: no-repeat !important;
 	background-position: center !important;
-	border: 1px solid #c5a059 !important;
+	border: 1.5px solid #a67c33 !important;
 	border-radius: 2px !important;
 	box-shadow: 0 0.3vw 0.8vw rgba(0, 0, 0, 0.85) !important;
-	transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s !important;
+	cursor: pointer !important;
+	transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease !important;
+	flex-shrink: 0 !important;
+	z-index: 15 !important;
 }
 
-#deck-customization #card-leader:hover .leader-card-img,
-#deck-customization #card-leader.leader-focused .leader-card-img {
+#deck-customization #card-leader-thumb:hover,
+#deck-customization #card-leader-thumb:focus,
+#deck-customization #card-leader.leader-focused #card-leader-thumb,
+#deck-customization .leader-card-img:hover {
+	transform: scale(1.05) !important;
 	border-color: #ffd700 !important;
-	box-shadow: 0 0 1vw rgba(255, 215, 0, 0.7) !important;
-	transform: scale(1.03) !important;
+	box-shadow: 0 0 1.2vw rgba(255, 215, 0, 0.9), 0 0.4vw 1vw rgba(0, 0, 0, 0.95) !important;
+	outline: none !important;
 }
 
 #deck-customization .leader-info-block {
 	width: 100% !important;
 	box-sizing: border-box !important;
-	margin-top: 0.4vw !important;
+	margin-top: 0.1vw !important;
 	text-align: center !important;
+	flex-shrink: 0 !important;
+	background: rgba(10, 8, 6, 0.75) !important;
+	border: 1px solid rgba(166, 124, 51, 0.25) !important;
+	border-radius: 0.3vw !important;
+	padding: 0.35vw 0.5vw !important;
+	z-index: 5 !important;
 }
 
 #deck-customization .leader-name-text {
 	font-family: 'Gwent', 'Cinzel', serif !important;
-	font-size: 0.82vw !important;
+	font-size: 0.84vw !important;
 	font-weight: 700 !important;
 	color: #ffd700 !important;
 	margin: 0 0 0.2vw 0 !important;
-	text-shadow: 0 1px 3px #000 !important;
+	text-shadow: 0 1px 3px #000000 !important;
 	letter-spacing: 0.04vw !important;
 }
 
@@ -1788,13 +1805,8 @@
 	line-height: 1.35 !important;
 	color: #ded1bd !important;
 	margin: 0 !important;
-	background: rgba(0, 0, 0, 0.35) !important;
-	border: 1px solid rgba(166, 124, 51, 0.25) !important;
-	border-radius: 0.25vw !important;
-	padding: 0.3vw 0.45vw !important;
 	text-align: left !important;
-	box-sizing: border-box !important;
-	text-shadow: 0 1px 2px #000 !important;
+	text-shadow: 0 1px 2px #000000 !important;
 }
 
 /* Deck Stats Header */
