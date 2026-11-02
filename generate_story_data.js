@@ -1964,6 +1964,46 @@ function getCardShopPrice(card) {
     return 250;
 }
 
+const SHOP_REQUIREMENTS = {
+    shop_temeria: {
+        "Foltest - The Steel-Forged": { type: "faction_wins", faction: "realms", count: 2, desc: "Vença 2 duelos contra Reinos do Norte" },
+        "Foltest - Son of Medell": { type: "faction_wins", faction: "realms", count: 4, desc: "Vença 4 duelos contra Reinos do Norte" },
+        "Prince Stennis": { type: "total_wins", count: 5, desc: "Vença 5 duelos no Continente" },
+        "Ballista": { type: "total_wins", count: 3, desc: "Vença 3 duelos no Continente" }
+    },
+    shop_novigrad: {
+        "Mysterious Elf": { type: "total_wins", count: 12, desc: "Vença 12 duelos no Continente" },
+        "Villentretenmerth": { type: "tourneys_won", count: 1, desc: "Vença 1 Torneio no Continente" },
+        "Scorch": { type: "faction_wins", faction: "monsters", count: 3, desc: "Vença 3 duelos contra Monstros" },
+        "Olgierd von Everec": { type: "total_wins", count: 6, desc: "Vença 6 duelos no Continente" },
+        "Commander's Horn": { type: "total_wins", count: 4, desc: "Vença 4 duelos no Continente" }
+    },
+    shop_nilfgaard: {
+        "Emhyr var Emreis - Emperor of Nilfgaard": { type: "faction_wins", faction: "nilfgaard", count: 2, desc: "Vença 2 duelos contra Nilfgaard" },
+        "Emhyr var Emreis - the White Flame": { type: "faction_wins", faction: "nilfgaard", count: 4, desc: "Vença 4 duelos contra Nilfgaard" },
+        "Shilard Fitz-Oesterlen": { type: "total_wins", count: 5, desc: "Vença 5 duelos no Continente" },
+        "Zerrikanian Fire Scorpion": { type: "faction_wins", faction: "nilfgaard", count: 3, desc: "Vença 3 duelos contra Nilfgaard" }
+    },
+    shop_skellige: {
+        "Crach an Craite": { type: "faction_wins", faction: "skellige", count: 3, desc: "Vença 3 duelos contra Skellige" },
+        "Olaf": { type: "total_wins", count: 5, desc: "Vença 5 duelos no Continente" },
+        "War Longship": { type: "faction_wins", faction: "skellige", count: 2, desc: "Vença 2 duelos contra Skellige" },
+        "Blueboy Lugos": { type: "total_wins", count: 3, desc: "Vença 3 duelos no Continente" }
+    },
+    shop_dol_blathanna: {
+        "Francesca Findabair - the Beautiful": { type: "faction_wins", faction: "scoiatael", count: 2, desc: "Vença 2 duelos contra Scoia'tael" },
+        "Francesca Findabair - Pureblood Elf": { type: "faction_wins", faction: "scoiatael", count: 4, desc: "Vença 4 duelos contra Scoia'tael" },
+        "Milva": { type: "faction_wins", faction: "scoiatael", count: 3, desc: "Vença 3 duelos contra Scoia'tael" },
+        "Saesenthessis": { type: "total_wins", count: 8, desc: "Vença 8 duelos no Continente" }
+    },
+    shop_toussaint: {
+        "Eredin - Destroyer of Worlds": { type: "faction_wins", faction: "monsters", count: 2, desc: "Vença 2 duelos contra Monstros" },
+        "Eredin - King of the Wild Hunt": { type: "faction_wins", faction: "monsters", count: 4, desc: "Vença 4 duelos contra Monstros" },
+        "Frightener": { type: "faction_wins", faction: "monsters", count: 3, desc: "Vença 3 duelos contra Monstros" },
+        "Ice Giant": { type: "total_wins", count: 6, desc: "Vença 6 duelos no Continente" }
+    }
+};
+
 const shopConfigs = {
     shop_temeria: {
         id: "shop_temeria",
@@ -2032,12 +2072,15 @@ list.forEach(c => {
     if (neededInShop > 0) {
         const targetShop = Object.values(shopConfigs).find(s => s.decks.includes(c.deck));
         if (targetShop) {
-            targetShop.items.push({
+            const itemObj = {
                 cardIndex: idx,
                 price: getCardShopPrice(c),
                 max: neededInShop,
                 name: c.name
-            });
+            };
+            const req = (SHOP_REQUIREMENTS[targetShop.id] && SHOP_REQUIREMENTS[targetShop.id][c.name]);
+            if (req) itemObj.requirement = req;
+            targetShop.items.push(itemObj);
         }
     }
 });

@@ -525,13 +525,25 @@ var STORY_DATA = {
           "cardIndex": 25,
           "price": 1800,
           "max": 1,
-          "name": "Foltest - The Steel-Forged"
+          "name": "Foltest - The Steel-Forged",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "realms",
+            "count": 2,
+            "desc": "Vença 2 duelos contra Reinos do Norte"
+          }
         },
         {
           "cardIndex": 26,
           "price": 1800,
           "max": 1,
-          "name": "Foltest - Son of Medell"
+          "name": "Foltest - Son of Medell",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "realms",
+            "count": 4,
+            "desc": "Vença 4 duelos contra Reinos do Norte"
+          }
         },
         {
           "cardIndex": 28,
@@ -573,7 +585,12 @@ var STORY_DATA = {
           "cardIndex": 41,
           "price": 950,
           "max": 1,
-          "name": "Prince Stennis"
+          "name": "Prince Stennis",
+          "requirement": {
+            "type": "total_wins",
+            "count": 5,
+            "desc": "Vença 5 duelos no Continente"
+          }
         },
         {
           "cardIndex": 42,
@@ -633,7 +650,12 @@ var STORY_DATA = {
           "cardIndex": 215,
           "price": 400,
           "max": 1,
-          "name": "Ballista"
+          "name": "Ballista",
+          "requirement": {
+            "type": "total_wins",
+            "count": 3,
+            "desc": "Vença 3 duelos no Continente"
+          }
         }
       ]
     },
@@ -652,7 +674,12 @@ var STORY_DATA = {
           "cardIndex": 0,
           "price": 1400,
           "max": 1,
-          "name": "Mysterious Elf"
+          "name": "Mysterious Elf",
+          "requirement": {
+            "type": "total_wins",
+            "count": 12,
+            "desc": "Vença 12 duelos no Continente"
+          }
         },
         {
           "cardIndex": 1,
@@ -676,7 +703,12 @@ var STORY_DATA = {
           "cardIndex": 5,
           "price": 450,
           "max": 3,
-          "name": "Commander's Horn"
+          "name": "Commander's Horn",
+          "requirement": {
+            "type": "total_wins",
+            "count": 4,
+            "desc": "Vença 4 duelos no Continente"
+          }
         },
         {
           "cardIndex": 7,
@@ -694,7 +726,13 @@ var STORY_DATA = {
           "cardIndex": 10,
           "price": 450,
           "max": 3,
-          "name": "Scorch"
+          "name": "Scorch",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "monsters",
+            "count": 3,
+            "desc": "Vença 3 duelos contra Monstros"
+          }
         },
         {
           "cardIndex": 11,
@@ -712,7 +750,12 @@ var STORY_DATA = {
           "cardIndex": 14,
           "price": 400,
           "max": 1,
-          "name": "Villentretenmerth"
+          "name": "Villentretenmerth",
+          "requirement": {
+            "type": "tourneys_won",
+            "count": 1,
+            "desc": "Vença 1 Torneio no Continente"
+          }
         },
         {
           "cardIndex": 16,
@@ -724,7 +767,12 @@ var STORY_DATA = {
           "cardIndex": 17,
           "price": 400,
           "max": 1,
-          "name": "Olgierd von Everec"
+          "name": "Olgierd von Everec",
+          "requirement": {
+            "type": "total_wins",
+            "count": 6,
+            "desc": "Vença 6 duelos no Continente"
+          }
         },
         {
           "cardIndex": 18,
@@ -777,7 +825,13 @@ var STORY_DATA = {
           "cardIndex": 140,
           "price": 1800,
           "max": 1,
-          "name": "Francesca Findabair - the Beautiful"
+          "name": "Francesca Findabair - the Beautiful",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "scoiatael",
+            "count": 2,
+            "desc": "Vença 2 duelos contra Scoia'tael"
+          }
         },
         {
           "cardIndex": 141,
@@ -789,7 +843,13 @@ var STORY_DATA = {
           "cardIndex": 142,
           "price": 1800,
           "max": 1,
-          "name": "Francesca Findabair - Pureblood Elf"
+          "name": "Francesca Findabair - Pureblood Elf",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "scoiatael",
+            "count": 4,
+            "desc": "Vença 4 duelos contra Scoia'tael"
+          }
         },
         {
           "cardIndex": 143,
@@ -885,7 +945,13 @@ var STORY_DATA = {
           "cardIndex": 173,
           "price": 650,
           "max": 1,
-          "name": "Milva"
+          "name": "Milva",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "scoiatael",
+            "count": 3,
+            "desc": "Vença 3 duelos contra Scoia'tael"
+          }
         },
         {
           "cardIndex": 174,
@@ -897,7 +963,12 @@ var STORY_DATA = {
           "cardIndex": 175,
           "price": 1400,
           "max": 1,
-          "name": "Saesenthessis"
+          "name": "Saesenthessis",
+          "requirement": {
+            "type": "total_wins",
+            "count": 8,
+            "desc": "Vença 8 duelos no Continente"
+          }
         },
         {
           "cardIndex": 176,
@@ -944,7 +1015,12 @@ var STORY_DATA = {
           "cardIndex": 183,
           "price": 400,
           "max": 1,
-          "name": "Blueboy Lugos"
+          "name": "Blueboy Lugos",
+          "requirement": {
+            "type": "total_wins",
+            "count": 3,
+            "desc": "Vença 3 duelos no Continente"
+          }
         },
         {
           "cardIndex": 185,
@@ -1004,7 +1080,12 @@ var STORY_DATA = {
           "cardIndex": 203,
           "price": 650,
           "max": 1,
-          "name": "Olaf"
+          "name": "Olaf",
+          "requirement": {
+            "type": "total_wins",
+            "count": 5,
+            "desc": "Vença 5 duelos no Continente"
+          }
         },
         {
           "cardIndex": 205,
@@ -1022,7 +1103,13 @@ var STORY_DATA = {
           "cardIndex": 209,
           "price": 400,
           "max": 3,
-          "name": "War Longship"
+          "name": "War Longship",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "skellige",
+            "count": 2,
+            "desc": "Vença 2 duelos contra Skellige"
+          }
         },
         {
           "cardIndex": 210,
@@ -1034,7 +1121,13 @@ var STORY_DATA = {
           "cardIndex": 211,
           "price": 1800,
           "max": 1,
-          "name": "Crach an Craite"
+          "name": "Crach an Craite",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "skellige",
+            "count": 3,
+            "desc": "Vença 3 duelos contra Skellige"
+          }
         }
       ]
     },
@@ -1057,13 +1150,25 @@ var STORY_DATA = {
           "cardIndex": 95,
           "price": 1800,
           "max": 1,
-          "name": "Eredin - Destroyer of Worlds"
+          "name": "Eredin - Destroyer of Worlds",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "monsters",
+            "count": 2,
+            "desc": "Vença 2 duelos contra Monstros"
+          }
         },
         {
           "cardIndex": 96,
           "price": 1800,
           "max": 1,
-          "name": "Eredin - King of the Wild Hunt"
+          "name": "Eredin - King of the Wild Hunt",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "monsters",
+            "count": 4,
+            "desc": "Vença 4 duelos contra Monstros"
+          }
         },
         {
           "cardIndex": 98,
@@ -1159,7 +1264,13 @@ var STORY_DATA = {
           "cardIndex": 115,
           "price": 400,
           "max": 1,
-          "name": "Frightener"
+          "name": "Frightener",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "monsters",
+            "count": 3,
+            "desc": "Vença 3 duelos contra Monstros"
+          }
         },
         {
           "cardIndex": 116,
@@ -1207,7 +1318,12 @@ var STORY_DATA = {
           "cardIndex": 123,
           "price": 400,
           "max": 1,
-          "name": "Ice Giant"
+          "name": "Ice Giant",
+          "requirement": {
+            "type": "total_wins",
+            "count": 6,
+            "desc": "Vença 6 duelos no Continente"
+          }
         },
         {
           "cardIndex": 127,
@@ -1272,13 +1388,25 @@ var STORY_DATA = {
           "cardIndex": 57,
           "price": 1800,
           "max": 1,
-          "name": "Emhyr var Emreis - Emperor of Nilfgaard"
+          "name": "Emhyr var Emreis - Emperor of Nilfgaard",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "nilfgaard",
+            "count": 2,
+            "desc": "Vença 2 duelos contra Nilfgaard"
+          }
         },
         {
           "cardIndex": 58,
           "price": 1800,
           "max": 1,
-          "name": "Emhyr var Emreis - the White Flame"
+          "name": "Emhyr var Emreis - the White Flame",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "nilfgaard",
+            "count": 4,
+            "desc": "Vença 4 duelos contra Nilfgaard"
+          }
         },
         {
           "cardIndex": 60,
@@ -1362,7 +1490,12 @@ var STORY_DATA = {
           "cardIndex": 81,
           "price": 950,
           "max": 1,
-          "name": "Shilard Fitz-Oesterlen"
+          "name": "Shilard Fitz-Oesterlen",
+          "requirement": {
+            "type": "total_wins",
+            "count": 5,
+            "desc": "Vença 5 duelos no Continente"
+          }
         },
         {
           "cardIndex": 85,
@@ -1392,7 +1525,13 @@ var STORY_DATA = {
           "cardIndex": 92,
           "price": 400,
           "max": 1,
-          "name": "Zerrikanian Fire Scorpion"
+          "name": "Zerrikanian Fire Scorpion",
+          "requirement": {
+            "type": "faction_wins",
+            "faction": "nilfgaard",
+            "count": 3,
+            "desc": "Vença 3 duelos contra Nilfgaard"
+          }
         }
       ]
     }
@@ -16636,7 +16775,3 @@ var STORY_DATA = {
     }
   }
 };
-
-if (typeof module !== "undefined" && module.exports) {
-	module.exports = STORY_DATA;
-}

@@ -160,6 +160,20 @@ class StoryMode {
 				if (!StoryMode.save.stats) {
 					StoryMode.save.stats = { matchesWon: 0, matchesLost: 0, crownsEarned: 0, crownsSpent: 0 };
 				}
+				if (!StoryMode.save.stats.factionWins) {
+					StoryMode.save.stats.factionWins = { realms: 0, nilfgaard: 0, monsters: 0, scoiatael: 0, skellige: 0 };
+					if (Array.isArray(StoryMode.save.completedNodes)) {
+						StoryMode.save.completedNodes.forEach(nodeId => {
+							const n = STORY_DATA.NODES[nodeId];
+							if (n && n.type === "battle" && n.opponent && n.opponent.faction) {
+								const f = n.opponent.faction;
+								if (StoryMode.save.stats.factionWins[f] !== undefined) {
+									StoryMode.save.stats.factionWins[f] = (StoryMode.save.stats.factionWins[f] || 0) + (StoryMode.save.winsCount[nodeId] || 1);
+								}
+							}
+						});
+					}
+				}
 
 				const faction = StoryMode.save.faction || (StoryMode.save.playerDeck && StoryMode.save.playerDeck.faction) || "realms";
 				const defaultStartNode = (STORY_DATA.STARTER_NODES && STORY_DATA.STARTER_NODES[faction]) || "nr_white_orchard";
@@ -249,7 +263,14 @@ class StoryMode {
 				matchesWon: 0,
 				matchesLost: 0,
 				crownsEarned: 0,
-				crownsSpent: 0
+				crownsSpent: 0,
+				factionWins: {
+					realms: 0,
+					nilfgaard: 0,
+					monsters: 0,
+					scoiatael: 0,
+					skellige: 0
+				}
 			}
 		};
 
@@ -506,6 +527,12 @@ class StoryMode {
 				trophiesEl.appendChild(badge);
 			});
 		}
+
+		// Refresh player statistics drawer if open
+		const drawer = document.getElementById("story-player-stats-drawer");
+		if (drawer && !drawer.classList.contains("hide")) {
+			StoryMode.updateStatsDrawer();
+		}
 	}
 
 	static openAchievementsModal() {
@@ -582,7 +609,7 @@ class StoryMode {
 					statusBadge = `<span class="pin-status tourney">★ Torneio (${numRounds} Lutas)</span>`;
 				}
 			} else if (node.type === "shop") {
-				pinIcon = "💰";
+				pinIcon = `<img class="pin-icon-img shop-pin-img" src="img/hud-icons/shop.png" alt="Loja" />`;
 				statusBadge = '<span class="pin-status shop">🪙 Mercador Regional</span>';
 			} else if (isCompleted) {
 				pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Checked.png" alt="Concluído" />`;
@@ -599,8 +626,8 @@ class StoryMode {
 			}
 
 			pin.innerHTML = `
+				${isCurrent ? '<div class="pin-wolf-avatar" title="Posição Atual do Geralt"></div>' : ''}
 				<div class="pin-badge">
-					${isCurrent ? '<div class="pin-wolf-avatar" title="Posição Atual do Geralt"></div>' : ''}
 					<span class="pin-icon">${pinIcon}</span>
 				</div>
 				<div class="pin-label">
@@ -700,9 +727,10 @@ class StoryMode {
 		const replayCrowns = node.crownsReplay || 55;
 		const lossCrowns = node.crownsLoss || 45;
 
-		document.getElementById("story-battle-reward-first").textContent = `+${firstWinCrowns} Coroas`;
-		document.getElementById("story-battle-reward-replay").textContent = `+${replayCrowns} Coroas`;
-		document.getElementById("story-battle-loss-penalty").textContent = `-${lossCrowns} Coroas`;
+		const coinImg = '<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="Coroas" />';
+		document.getElementById("story-battle-reward-first").innerHTML = `${coinImg} +${Number(firstWinCrowns).toLocaleString("pt-BR")} Coroas`;
+		document.getElementById("story-battle-reward-replay").innerHTML = `${coinImg} +${Number(replayCrowns).toLocaleString("pt-BR")} Coroas`;
+		document.getElementById("story-battle-loss-penalty").innerHTML = `${coinImg} -${Number(lossCrowns).toLocaleString("pt-BR")} Coroas`;
 
 		StoryMode.selectedWager = 0;
 		const wagerBox = document.getElementById("story-battle-wager-container");
@@ -847,8 +875,9 @@ class StoryMode {
 		}
 
 		document.getElementById("story-tourney-lore").textContent = node.lore;
-		document.getElementById("story-tourney-fee").textContent = `${Number(node.entryFee || 0).toLocaleString("pt-BR")} Coroas`;
-		document.getElementById("story-tourney-prize").textContent = `${Number(node.grandPrizeCrowns || 0).toLocaleString("pt-BR")} Coroas`;
+		const tourneyCoinImg = '<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="Coroas" />';
+		document.getElementById("story-tourney-fee").innerHTML = `${tourneyCoinImg} ${Number(node.entryFee || 0).toLocaleString("pt-BR")} Coroas`;
+		document.getElementById("story-tourney-prize").innerHTML = `${tourneyCoinImg} ${Number(node.grandPrizeCrowns || 0).toLocaleString("pt-BR")} Coroas`;
 
 		// Support multiple Grand Prize Cards (1 card for 2-match, 2 cards for 3-match, 3 cards for 5-match, 1 Leader for 7-match Regional)
 		const prizeCards = node.grandPrizeCards || (node.grandPrizeCard ? [node.grandPrizeCard] : []);
@@ -984,7 +1013,7 @@ class StoryMode {
 
 		StoryMode.syncCollectionAndTokens();
 
-		document.getElementById("story-shop-title").textContent = shopData.name;
+		document.getElementById("story-shop-title").innerHTML = `<img src="img/hud-icons/shop.png" class="modal-title-icon-img" alt="Loja" /> ${shopData.name}`;
 		document.getElementById("story-shop-region").textContent = `${shopData.region} · Mercado Livre`;
 		document.getElementById("story-shop-greeting").textContent = `"${shopData.greeting}"`;
 		document.getElementById("story-shop-player-crowns").textContent = Number(StoryMode.save.crowns || 0).toLocaleString("pt-BR");
@@ -1007,27 +1036,57 @@ class StoryMode {
 				const isSoldOut = remainingStock <= 0;
 				const isLeader = card.row === "leader";
 
+				const reqStatus = StoryMode.checkItemRequirement(item);
+				const isLockedReq = !reqStatus.met;
+
 				const itemEl = document.createElement("div");
-				itemEl.className = `story-shop-card ${isSoldOut ? 'sold-out' : ''}`;
+				itemEl.className = `story-shop-card ${isSoldOut ? 'sold-out' : ''} ${isLockedReq ? 'locked-req' : ''}`;
+				itemEl.title = "Clique na carta para inspecionar arte e detalhes";
+
+				let reqBadgeHtml = "";
+				if (item.requirement) {
+					reqBadgeHtml = `<div class="shop-card-req" title="${reqStatus.desc}">${reqStatus.met ? '✓ Liberado' : '🔒 ' + reqStatus.desc + ' (' + reqStatus.current + '/' + reqStatus.target + ')'}</div>`;
+				}
+
+				let btnText = "Comprar";
+				let btnDisabled = false;
+				if (isSoldOut) {
+					btnText = (ownedCount >= maxAllowed) ? "Coleção Cheia" : "Esgotado";
+					btnDisabled = true;
+				} else if (isLockedReq) {
+					btnText = "Bloqueado 🔒";
+					btnDisabled = true;
+				} else if (!canAfford) {
+					btnText = "Sem Coroas";
+					btnDisabled = true;
+				}
+
 				itemEl.innerHTML = `
 					<div class="shop-card-preview" style="background-image: url(img/sm/${card.deck}_${card.filename}.jpg)">
 						<span class="shop-card-power">${isLeader ? '👑' : (card.strength || '★')}</span>
 					</div>
 					<div class="shop-card-info">
 						<strong class="shop-card-name">${card.name}</strong>
-						<span class="shop-card-faction">${card.deck} · ${isLeader ? 'Líder' : (card.ability || 'Unidade')}</span>
-						<div class="shop-card-price">🪙 ${item.price} Coroas</div>
-						<div class="shop-card-stock">${isSoldOut ? (ownedCount >= maxAllowed ? 'COLEÇÃO MÁXIMA' : 'ESGOTADO') : `Disponível: ${remainingStock} (Você tem: ${ownedCount}/${maxAllowed})`}</div>
+						<span class="shop-card-faction">${card.deck.toUpperCase()} · ${isLeader ? 'Líder' : (card.ability || 'Unidade')}</span>
+						<div class="shop-card-price"><img src="img/hud-icons/Coin.png" class="shop-coin-img" alt="Coroas" /> ${Number(item.price).toLocaleString("pt-BR")} Coroas</div>
+						${reqBadgeHtml}
+						<div class="shop-card-stock">${isSoldOut ? (ownedCount >= maxAllowed ? 'COLEÇÃO MÁXIMA' : 'ESGOTADO') : `Estoque: ${remainingStock} (Você: ${ownedCount}/${maxAllowed})`}</div>
 					</div>
-					<button class="witcher-menu-btn shop-buy-btn" ${(!canAfford || isSoldOut) ? 'disabled' : ''}>
-						${isSoldOut ? 'Adquirido' : 'Comprar'}
+					<button class="witcher-menu-btn shop-buy-btn" ${btnDisabled ? 'disabled' : ''}>
+						${btnText}
 					</button>
 				`;
 
+				// Clicking the card anywhere opens the inspection view
+				itemEl.addEventListener("click", () => {
+					StoryMode.inspectShopCard(card, item, shopData.id, itemIdx);
+				});
+
 				const buyBtn = itemEl.querySelector(".shop-buy-btn");
-				if (buyBtn && !isSoldOut) {
-					buyBtn.addEventListener("click", () => {
-						StoryMode.buyShopItem(shopData.id, itemIdx, item);
+				if (buyBtn && !btnDisabled) {
+					buyBtn.addEventListener("click", (e) => {
+						e.stopPropagation();
+						StoryMode.promptBuyConfirmation(shopData.id, itemIdx, item, card);
 					});
 				}
 
@@ -1041,12 +1100,43 @@ class StoryMode {
 		}
 	}
 
+	static promptBuyConfirmation(shopId, itemIdx, item, card) {
+		const reqStatus = StoryMode.checkItemRequirement(item);
+		if (!reqStatus.met) {
+			StoryMode.showAlert(
+				`Esta carta está bloqueada!\n\nCritério necessário:\n${reqStatus.desc} (${reqStatus.current}/${reqStatus.target})`,
+				"REQUISITO BLOQUEADO",
+				"🔒"
+			);
+			return;
+		}
+
+		if (StoryMode.save.crowns < item.price) {
+			StoryMode.showAlert("Coroas insuficientes para adquirir esta carta!", "COROAS INSUFICIENTES", "img/hud-icons/Coin.png");
+			return;
+		}
+
+		if (typeof MenuController !== "undefined" && typeof MenuController.showConfirm === "function") {
+			MenuController.showConfirm(
+				`Deseja comprar a carta "${card.name}" por ${Number(item.price).toLocaleString("pt-BR")} Coroas?\n\nEla será adicionada à sua coleção permanente do Continente.`,
+				"CONFIRMAR COMPRA",
+				() => StoryMode.buyShopItem(shopId, itemIdx, item),
+				null,
+				"Comprar Carta",
+				"Cancelar",
+				"img/hud-icons/Coin.png"
+			);
+		} else {
+			StoryMode.buyShopItem(shopId, itemIdx, item);
+		}
+	}
+
 	static buyShopItem(shopId, itemIdx, item) {
 		if (StoryMode.save.crowns < item.price) {
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 				AudioManager.playSFX("warning");
 			}
-			StoryMode.showAlert("Coroas insuficientes para adquirir esta carta!", "COROAS INSUFICIENTES", "🪙");
+			StoryMode.showAlert("Coroas insuficientes para adquirir esta carta!", "COROAS INSUFICIENTES", "img/hud-icons/Coin.png");
 			return;
 		}
 
@@ -1078,6 +1168,449 @@ class StoryMode {
 		}
 
 		StoryMode.openShopModal(shopId);
+
+		// If inspect modal is open, refresh it as well
+		const inspectModal = document.getElementById("story-card-inspect-modal");
+		if (inspectModal && !inspectModal.classList.contains("hide") && typeof card_dict !== "undefined") {
+			const card = card_dict[item.cardIndex];
+			if (card) {
+				StoryMode.inspectShopCard(card, item, shopId, itemIdx);
+			}
+		}
+	}
+
+	static checkItemRequirement(item) {
+		if (!item || !item.requirement) {
+			return { met: true, current: 0, target: 0, desc: "" };
+		}
+		const req = item.requirement;
+		const stats = (StoryMode.save && StoryMode.save.stats) || {};
+		const factionWins = stats.factionWins || {};
+
+		let current = 0;
+		let target = req.count || 1;
+		let met = false;
+
+		switch (req.type) {
+			case "faction_wins":
+				current = factionWins[req.faction] || 0;
+				met = current >= target;
+				break;
+			case "total_wins":
+				current = stats.matchesWon || 0;
+				met = current >= target;
+				break;
+			case "tourneys_won":
+				const tourneysWon = (StoryMode.save.completedNodes || []).filter(id => {
+					const n = STORY_DATA.NODES[id];
+					return n && n.type === "tournament";
+				}).length;
+				current = tourneysWon;
+				met = current >= target;
+				break;
+			case "trophy":
+				const hasTrophy = (StoryMode.save.trophies || []).includes(req.trophy);
+				current = hasTrophy ? 1 : 0;
+				target = 1;
+				met = hasTrophy;
+				break;
+			default:
+				met = true;
+				break;
+		}
+
+		return {
+			met: met,
+			current: current,
+			target: target,
+			desc: req.desc || ""
+		};
+	}
+
+	static getCardAbilityDescription(card) {
+		if (!card) return { title: "Carta", desc: "Sem informações." };
+
+		if (card.row === "leader") {
+			const leaderDescKey = `ability_${card.ability}_desc`;
+			let leaderDesc = (typeof I18N !== "undefined" && I18N.t) ? I18N.t(leaderDescKey) : "";
+			if (!leaderDesc || leaderDesc === leaderDescKey) {
+				const leaderFallbacks = {
+					foltest_king: "Pega uma carta Névoa Impenetrável do seu baralho e joga-a instantaneamente.",
+					foltest_lord: "Limpa quaisquer efeitos climáticos (Frio Congelante, Chuva Torrencial ou Névoa Impenetrável) em jogo.",
+					foltest_siegemaster: "Dobra a força de todas as suas unidades de cerco (a menos que uma Corneta do Comandante já esteja presente nessa fileira).",
+					foltest_steelforged: "Destrói a(s) unidade(s) de cerco mais forte(s) do inimigo se a força total de cerco dele for 10 ou mais.",
+					foltest_son: "Destrói a(s) unidade(s) de longa distância mais forte(s) do inimigo se a força total dessa fileira for 10 ou mais.",
+					emhyr_imperial: "Pega uma carta Chuva Torrencial do seu baralho e joga-a instantaneamente.",
+					emhyr_emperor: "Olha 3 cartas aleatórias da mão do seu adversário.",
+					emhyr_whiteflame: "Cancela a habilidade de líder do seu adversário.",
+					emhyr_relentless: "Compra uma carta da pilha de descarte do adversário.",
+					emhyr_invader: "Habilidades que ressuscitam uma unidade no campo ressuscitam uma unidade aleatória. Afeta ambos os jogadores.",
+					eredin_commander: "Dobra a força de todas as suas unidades de combate corpo a corpo (a menos que uma Corneta do Comandante já esteja presente nessa fileira).",
+					eredin_bringer_of_death: "Devolve uma carta da sua pilha de descarte para a sua mão.",
+					eredin_destroyer: "Descarta 2 cartas e compra 1 carta à sua escolha do seu baralho.",
+					eredin_king: "Pega qualquer carta climática do seu baralho e joga-a instantaneamente.",
+					eredin_treacherous: "Dobra a força de todas as cartas de espião (afeta ambos os jogadores).",
+					francesca_queen: "Destrói a(s) unidade(s) de combate corpo a corpo mais forte(s) do inimigo se a força total corpo a corpo dele for 10 ou mais.",
+					francesca_beautiful: "Dobra a força de todas as suas unidades de combate à distância (a menos que uma Corneta do Comandante já esteja presente nessa fileira).",
+					francesca_daisy: "Compra uma carta extra no início da batalha.",
+					francesca_pureblood: "Pega uma carta Frio Congelante do seu baralho e joga-a instantaneamente.",
+					francesca_hope: "Move unidades ágeis para a fileira que maximiza sua força.",
+					crach_an_craite: "Embaralha todas as cartas dos cemitérios de ambos os jogadores de volta para seus baralhos.",
+					king_bran: "Unidades perdem apenas metade da sua Força sob condições climáticas adversas."
+				};
+				leaderDesc = leaderFallbacks[card.ability] || "Habilidade tática única exercida pelo comandante do exército.";
+			}
+			return {
+				title: "Habilidade de Líder",
+				desc: leaderDesc
+			};
+		}
+
+		if (!card.ability || card.ability.trim() === "") {
+			return {
+				title: "Tropa Regular",
+				desc: "Esta unidade não possui habilidades mágicas ou especiais adicionais. Seu valor em combate baseia-se exclusivamente em sua pontuação de Força."
+			};
+		}
+
+		const abilityTokens = card.ability.trim().split(/\s+/);
+		const titles = [];
+		const descs = [];
+
+		const abilityDictionary = {
+			hero: {
+				name: "Herói Lendário",
+				desc: "Não é afetado por nenhuma carta especial, clima ou habilidades de outras cartas."
+			},
+			spy: {
+				name: "Espião",
+				desc: "Colocado no campo de batalha do oponente (adiciona força a ele), mas permite que você compre 2 cartas do seu baralho imediatamente."
+			},
+			medic: {
+				name: "Médico de Campo",
+				desc: "Permite escolher uma carta não-herói da sua pilha de descarte e jogá-la imediatamente no campo de batalha."
+			},
+			morale: {
+				name: "Moral do Comandante",
+				desc: "Adiciona +1 de Força a todas as unidades nesta mesma fileira (exceto a si mesma)."
+			},
+			bond: {
+				name: "Elo Estreito",
+				desc: "Posicione ao lado de outra carta com o mesmo nome para dobrar a força de ambas."
+			},
+			muster: {
+				name: "Reunir as Tropas",
+				desc: "Procura todas as cartas de mesmo grupo/nome no seu baralho ou mão e as invoca para a batalha instantaneamente."
+			},
+			scorch: {
+				name: "Queimar",
+				desc: "Descarta após jogar. Destrói a(s) unidade(s) de maior força no campo de batalha de ambos os jogadores."
+			},
+			scorch_c: {
+				name: "Queimar Corpo a Corpo",
+				desc: "Destrói a(s) unidade(s) de combate corpo a corpo mais forte(s) do inimigo se a força total dessa fileira for 10 ou mais."
+			},
+			scorch_r: {
+				name: "Queimar Longa Distância",
+				desc: "Destrói a(s) unidade(s) de combate à distância mais forte(s) do inimigo se a força total dessa fileira for 10 ou mais."
+			},
+			scorch_s: {
+				name: "Queimar Cerco",
+				desc: "Destrói a(s) unidade(s) de cerco mais forte(s) do inimigo se a força total dessa fileira for 10 ou mais."
+			},
+			decoy: {
+				name: "Isca de Treinamento",
+				desc: "Troque por qualquer carta de unidade sua já em campo para devolvê-la intacta para a sua mão."
+			},
+			horn: {
+				name: "Corneta do Comandante",
+				desc: "Dobra a força de todas as unidades nesta fileira (limite de 1 por fileira)."
+			},
+			agile: {
+				name: "Ágil",
+				desc: "Pode ser posicionada na fileira de combate corpo a corpo ou na fileira de longa distância conforme sua estratégia."
+			},
+			berserker: {
+				name: "Berserker",
+				desc: "Transforma-se em um urso feroz quando uma carta Mardroeme está na sua fileira."
+			},
+			mardroeme: {
+				name: "Mardroeme",
+				desc: "Provoca a transformação de todas as cartas Berserker na mesma fileira em ursos Vildkaarl."
+			},
+			avenger: {
+				name: "Vingador",
+				desc: "Quando esta unidade for destruída ou enviada ao cemitério, invoca um poderoso Chort de 8 de força em seu lugar."
+			},
+			frost: {
+				name: "Frio Congelante",
+				desc: "Reduz a força de todas as unidades de combate corpo a corpo para 1 para ambos os jogadores."
+			},
+			fog: {
+				name: "Névoa Impenetrável",
+				desc: "Reduz a força de todas as unidades de combate à distância para 1 para ambos os jogadores."
+			},
+			rain: {
+				name: "Chuva Torrencial",
+				desc: "Reduz a força de todas as unidades de cerco para 1 para ambos os jogadores."
+			},
+			storm: {
+				name: "Tempestade de Skellige",
+				desc: "Reduz a força de todas as unidades de combate à distância e de cerco para 1 para ambos os jogadores."
+			},
+			clear: {
+				name: "Tempo Limpo",
+				desc: "Remove instantaneamente todas as condições climáticas adversas em campo."
+			}
+		};
+
+		abilityTokens.forEach(token => {
+			if (abilityDictionary[token]) {
+				titles.push(abilityDictionary[token].name);
+				descs.push(`★ ${abilityDictionary[token].name}:\n${abilityDictionary[token].desc}`);
+			} else {
+				titles.push(token);
+			}
+		});
+
+		return {
+			title: titles.join(" · ") || "Habilidade Especial",
+			desc: descs.join("\n\n") || "Habilidade especial em campo."
+		};
+	}
+
+	static inspectShopCard(card, item, shopId, itemIdx) {
+		const modal = document.getElementById("story-card-inspect-modal");
+		if (!modal || !card) return;
+
+		const isLeader = card.row === "leader";
+		const maxAllowed = StoryMode.getCardMaxCopies(item.cardIndex);
+		const ownedCount = StoryMode.save.collection[item.cardIndex] || 0;
+		const purchaseKey = `${shopId}_${itemIdx}`;
+		const boughtCount = StoryMode.save.purchasedShopItems[purchaseKey] || 0;
+		const remainingStock = Math.max(0, Math.min(item.max - boughtCount, maxAllowed - ownedCount));
+		const isSoldOut = remainingStock <= 0;
+		const canAfford = StoryMode.save.crowns >= item.price;
+		const reqStatus = StoryMode.checkItemRequirement(item);
+		const isLockedReq = !reqStatus.met;
+
+		document.getElementById("inspect-card-title").textContent = card.name;
+		const factionNames = {
+			realms: "Reinos do Norte",
+			nilfgaard: "Império de Nilfgaard",
+			monsters: "Monstros",
+			scoiatael: "Scoia'tael",
+			skellige: "Skellige",
+			neutral: "Neutro",
+			special: "Especial",
+			weather: "Clima"
+		};
+		const factionName = factionNames[card.deck] || card.deck.toUpperCase();
+		const typeSub = isLeader ? "Carta de Líder" : (card.ability && card.ability.includes("hero") ? "Carta de Herói Lendário" : "Unidade de Combate");
+		document.getElementById("inspect-card-subtitle").textContent = `${factionName} · ${typeSub}`;
+
+		const artEl = document.getElementById("inspect-card-art");
+		if (artEl) {
+			artEl.style.backgroundImage = `url(img/lg/${card.deck}_${card.filename}.jpg)`;
+		}
+
+		const ownershipEl = document.getElementById("inspect-card-ownership");
+		if (ownershipEl) {
+			ownershipEl.textContent = `Você possui: ${ownedCount} / ${maxAllowed} (Estoque do Mercador: ${remainingStock})`;
+		}
+
+		const powerEl = document.getElementById("inspect-card-power");
+		if (powerEl) powerEl.textContent = isLeader ? "—" : (card.strength || "★");
+
+		const rowNames = {
+			close: "Corpo a Corpo",
+			ranged: "Longa Distância",
+			siege: "Cerco",
+			agile: "Ágil (Corpo / Longa)",
+			leader: "Comandante",
+			"": "Especial / Clima"
+		};
+		const rowEl = document.getElementById("inspect-card-row");
+		if (rowEl) rowEl.textContent = rowNames[card.row] || card.row || "Especial";
+
+		const typeEl = document.getElementById("inspect-card-type");
+		if (typeEl) {
+			typeEl.textContent = isLeader ? "Líder" : (card.ability && card.ability.includes("hero") ? "Herói" : (card.deck === "weather" ? "Clima" : (card.deck === "special" ? "Especial" : "Unidade")));
+		}
+
+		const abilityInfo = StoryMode.getCardAbilityDescription(card);
+		const abilityNameEl = document.getElementById("inspect-ability-name");
+		if (abilityNameEl) abilityNameEl.textContent = abilityInfo.title;
+		const abilityDescEl = document.getElementById("inspect-ability-desc");
+		if (abilityDescEl) abilityDescEl.textContent = abilityInfo.desc;
+
+		const reqBox = document.getElementById("inspect-requirement-box");
+		if (reqBox) {
+			if (item.requirement) {
+				reqBox.classList.remove("hide");
+				document.getElementById("inspect-requirement-desc").textContent = reqStatus.desc;
+				const fillPct = Math.min(100, Math.round((reqStatus.current / reqStatus.target) * 100));
+				document.getElementById("inspect-req-progress-fill").style.width = `${fillPct}%`;
+				document.getElementById("inspect-req-progress-text").textContent = `${reqStatus.current} / ${reqStatus.target} Concluído ${reqStatus.met ? '(Liberado ✓)' : '(Bloqueado 🔒)'}`;
+			} else {
+				reqBox.classList.add("hide");
+			}
+		}
+
+		const priceEl = document.getElementById("inspect-card-price");
+		if (priceEl) priceEl.textContent = Number(item.price).toLocaleString("pt-BR");
+
+		const buyBtn = document.getElementById("inspect-card-buy-btn");
+		if (buyBtn) {
+			if (isSoldOut) {
+				buyBtn.disabled = true;
+				buyBtn.innerHTML = (ownedCount >= maxAllowed) ? "Coleção Máxima" : "Esgotado";
+			} else if (isLockedReq) {
+				buyBtn.disabled = true;
+				buyBtn.innerHTML = `🔒 Bloqueado (${reqStatus.current}/${reqStatus.target})`;
+			} else if (!canAfford) {
+				buyBtn.disabled = true;
+				buyBtn.innerHTML = "Coroas Insuficientes";
+			} else {
+				buyBtn.disabled = false;
+				buyBtn.innerHTML = `<img src="img/hud-icons/Coin.png" class="btn-hud-icon" alt="Comprar" /> Comprar Carta (${Number(item.price).toLocaleString("pt-BR")} Coroas)`;
+				buyBtn.onclick = () => {
+					StoryMode.promptBuyConfirmation(shopId, itemIdx, item, card);
+				};
+			}
+		}
+
+		modal.classList.remove("hide");
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
+		}
+	}
+
+	static closeCardInspectModal() {
+		const modal = document.getElementById("story-card-inspect-modal");
+		if (modal) modal.classList.add("hide");
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_back");
+		}
+	}
+
+	static toggleStatsDrawer(forceState) {
+		const drawer = document.getElementById("story-player-stats-drawer");
+		const chevron = document.getElementById("story-stats-chevron");
+		if (!drawer) return;
+
+		const isCurrentlyHidden = drawer.classList.contains("hide");
+		const shouldShow = (typeof forceState === "boolean") ? forceState : isCurrentlyHidden;
+
+		if (shouldShow) {
+			StoryMode.updateStatsDrawer();
+			drawer.classList.remove("hide");
+			if (chevron) chevron.classList.add("open");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_tab_open");
+			}
+		} else {
+			drawer.classList.add("hide");
+			if (chevron) chevron.classList.remove("open");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_back");
+			}
+		}
+	}
+
+	static updateStatsDrawer() {
+		if (!StoryMode.save) return;
+
+		const save = StoryMode.save;
+		const stats = save.stats || {};
+		const factionWins = stats.factionWins || { realms: 0, nilfgaard: 0, monsters: 0, scoiatael: 0, skellige: 0 };
+
+		const nameEl = document.getElementById("stats-drawer-player-name");
+		if (nameEl) nameEl.textContent = save.playerName || "Geralt de Rívia";
+
+		const factionMap = {
+			realms: "Reinos do Norte",
+			nilfgaard: "Império de Nilfgaard",
+			monsters: "Monstros",
+			scoiatael: "Scoia'tael",
+			skellige: "Skellige"
+		};
+		const diffMap = {
+			easy: "Fácil",
+			medium: "Média",
+			hard: "Difícil"
+		};
+		const subEl = document.getElementById("stats-drawer-faction-diff");
+		if (subEl) {
+			subEl.textContent = `${factionMap[save.faction] || save.faction} · Dificuldade ${diffMap[save.difficulty] || "Média"}`;
+		}
+
+		const allNodes = Object.values(STORY_DATA.NODES || {});
+		const battleNodes = allNodes.filter(n => n.type === "battle");
+		const completedBattleNodes = battleNodes.filter(n => save.completedNodes.includes(n.id));
+		const battlesLeft = battleNodes.length - completedBattleNodes.length;
+
+		const tourneyNodes = allNodes.filter(n => n.type === "tournament");
+		const completedTourneys = tourneyNodes.filter(n => save.completedNodes.includes(n.id));
+		const availableTourneys = tourneyNodes.filter(n => save.unlockedNodes.includes(n.id) && !save.completedNodes.includes(n.id));
+
+		const shopNodes = allNodes.filter(n => n.type === "shop");
+		const unlockedShops = shopNodes.filter(n => save.completedNodes.includes(n.id));
+
+		const bEl = document.getElementById("stat-battles-val");
+		if (bEl) bEl.textContent = `${completedBattleNodes.length} / ${battleNodes.length}`;
+		const blEl = document.getElementById("stat-battles-left-val");
+		if (blEl) blEl.textContent = `${battlesLeft}`;
+
+		const tEl = document.getElementById("stat-tourneys-val");
+		if (tEl) tEl.textContent = `${completedTourneys.length} / ${tourneyNodes.length}`;
+		const tlEl = document.getElementById("stat-tourneys-left-val");
+		if (tlEl) tlEl.textContent = `${availableTourneys.length}`;
+
+		const trophEl = document.getElementById("stat-trophies-val");
+		if (trophEl) trophEl.textContent = `${(save.trophies || []).length} / 5`;
+
+		const shEl = document.getElementById("stat-shops-val");
+		if (shEl) shEl.textContent = `${unlockedShops.length} / ${shopNodes.length}`;
+
+		const wins = stats.matchesWon || 0;
+		const losses = stats.matchesLost || 0;
+		const totalMatches = wins + losses;
+		const winrate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 100;
+
+		const wEl = document.getElementById("stat-wins-val");
+		if (wEl) wEl.textContent = String(wins);
+		const lEl = document.getElementById("stat-losses-val");
+		if (lEl) lEl.textContent = String(losses);
+		const wrEl = document.getElementById("stat-winrate-val");
+		if (wrEl) wrEl.textContent = `${winrate}%`;
+
+		const fnr = document.getElementById("stat-fac-nr");
+		if (fnr) fnr.textContent = String(factionWins.realms || 0);
+		const fnilf = document.getElementById("stat-fac-nilf");
+		if (fnilf) fnilf.textContent = String(factionWins.nilfgaard || 0);
+		const fmon = document.getElementById("stat-fac-mon");
+		if (fmon) fmon.textContent = String(factionWins.monsters || 0);
+		const fsco = document.getElementById("stat-fac-sco");
+		if (fsco) fsco.textContent = String(factionWins.scoiatael || 0);
+		const fskel = document.getElementById("stat-fac-skel");
+		if (fskel) fskel.textContent = String(factionWins.skellige || 0);
+
+		const crEl = document.getElementById("stat-crowns-val");
+		if (crEl) crEl.textContent = Number(save.crowns || 0).toLocaleString("pt-BR");
+		const ceEl = document.getElementById("stat-crowns-earned-val");
+		if (ceEl) ceEl.textContent = `+${Number(stats.crownsEarned || 0).toLocaleString("pt-BR")}`;
+		const csEl = document.getElementById("stat-crowns-spent-val");
+		if (csEl) csEl.textContent = `-${Number(stats.crownsSpent || 0).toLocaleString("pt-BR")}`;
+
+		const totalCards = 216;
+		const ownedUnique = Object.keys(save.collection || {}).filter(k => (save.collection[k] || 0) > 0).length;
+		const pct = Math.round((ownedUnique / totalCards) * 100);
+
+		const cdEl = document.getElementById("stat-cards-val");
+		if (cdEl) cdEl.textContent = `${ownedUnique} / ${totalCards}`;
+		const cpEl = document.getElementById("stat-compendium-pct-val");
+		if (cpEl) cpEl.textContent = `${pct}%`;
 	}
 
 	static openCompendiumModal(filterFaction = "all", filterStatus = "all") {
@@ -1154,6 +1687,7 @@ class StoryMode {
 
 	static closeAllModals() {
 		document.querySelectorAll(".story-modal").forEach(m => m.classList.add("hide"));
+		StoryMode.toggleStatsDrawer(false);
 	}
 
 	static openCampaignDeckBuilder() {
@@ -1345,6 +1879,7 @@ class StoryMode {
 			isTournament: node.type === "tournament",
 			roundIndex: roundIndex,
 			opponentName: opponentName,
+			opponentFaction: opDeckData.faction,
 			firstWin: !StoryMode.save.completedNodes.includes(nodeId),
 			wager: wager
 		};
@@ -1432,6 +1967,13 @@ class StoryMode {
 
 		if (isWin) {
 			StoryMode.save.stats.matchesWon = (StoryMode.save.stats.matchesWon || 0) + 1;
+			if (!StoryMode.save.stats.factionWins) {
+				StoryMode.save.stats.factionWins = { realms: 0, nilfgaard: 0, monsters: 0, scoiatael: 0, skellige: 0 };
+			}
+			const opFaction = match.opponentFaction;
+			if (opFaction && StoryMode.save.stats.factionWins[opFaction] !== undefined) {
+				StoryMode.save.stats.factionWins[opFaction] = (StoryMode.save.stats.factionWins[opFaction] || 0) + 1;
+			}
 			if (typeof Achievements !== "undefined" && typeof Achievements.checkStoryAchievements === "function") {
 				Achievements.checkStoryAchievements(StoryMode.save, true);
 			}
@@ -1592,12 +2134,13 @@ class StoryMode {
 
 		const crownsEl = document.getElementById("story-outcome-crowns");
 		if (crownsEl) {
+			const coinImg = '<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="Coroas" />';
 			if (opts.wagerWon && opts.wagerWon > 0) {
-				crownsEl.innerHTML = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas <span style="display:block; font-size:0.85rem; color:#2ecc71;">(Inclui prêmio de aposta de +${Number(opts.wagerWon).toLocaleString("pt-BR")} Coroas!)</span>`;
+				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas <span style="display:block; font-size:0.85rem; color:#2ecc71;">(Inclui prêmio de aposta de +${Number(opts.wagerWon).toLocaleString("pt-BR")} Coroas!)</span>`;
 			} else if (nextRoundIndex !== null) {
-				crownsEl.textContent = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas ${isFirstStageClear ? '(Bônus de 1ª Tentativa!)' : '(Fase Repetida)'}`;
+				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas ${isFirstStageClear ? '(Bônus de 1ª Tentativa!)' : '(Fase Repetida)'}`;
 			} else {
-				crownsEl.textContent = `+${Number(crownsWon).toLocaleString("pt-BR")} Coroas`;
+				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas`;
 			}
 		}
 
@@ -1683,9 +2226,10 @@ class StoryMode {
 		document.getElementById("story-outcome-title").textContent = isTournament
 			? "ELIMINADO DO TORNEIO!"
 			: (wasWager ? "DERROTA NA APOSTA!" : "DERROTA NO TABULEIRO");
-		document.getElementById("story-outcome-crowns").textContent = isTournament
+		const coinLossImg = '<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="Coroas" />';
+		document.getElementById("story-outcome-crowns").innerHTML = isTournament
 			? `Derrotado na Batalha ${failedRoundNum}/${totalRounds} · Torneio Reiniciado`
-			: (wasWager ? `-${crownsLost} Coroas perdidas na aposta com o adversário` : `-${crownsLost} Coroas perdidas`);
+			: (wasWager ? `${coinLossImg} -${Number(crownsLost).toLocaleString("pt-BR")} Coroas perdidas na aposta com o adversário` : `${coinLossImg} -${Number(crownsLost).toLocaleString("pt-BR")} Coroas perdidas`);
 
 		const cardContainer = document.getElementById("story-outcome-card-box");
 		if (cardContainer) {

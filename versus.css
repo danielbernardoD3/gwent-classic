@@ -300,6 +300,11 @@
 }
 
 .versus-pulse-icon {
+	width: 36px;
+	height: 36px;
+	object-fit: contain;
+	display: inline-block;
+	vertical-align: middle;
 	animation: versusPulse 1.6s infinite ease-in-out;
 }
 

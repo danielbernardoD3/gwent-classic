@@ -968,12 +968,13 @@
 	<!-- Top HUD Bar -->
 	<header class="story-hud-bar">
 		<div class="story-hud-left">
-			<div class="story-player-badge">
-				<div class="story-wolf-icon"></div>
+			<div class="story-player-badge clickable" onclick="StoryMode.toggleStatsDrawer()" title="Clique para ver Estatísticas do Jogador">
+				<div class="story-wolf-icon" title="Medalhão de Lobo de Geralt"></div>
 				<div class="story-player-info">
 					<span id="story-hud-player-name" class="story-hud-player-title">Geralt de Rívia</span>
 					<span id="story-hud-location-name" class="story-hud-location">Pomar Branco · Taverna</span>
 				</div>
+				<span id="story-stats-chevron" class="story-stats-chevron" title="Abrir estatísticas">▼</span>
 			</div>
 			<!-- Trophies Container -->
 			<div id="story-hud-trophies-container" class="story-trophies-container" title="Insígnias Regionais Conquistadas (5 ao todo)"></div>
@@ -982,14 +983,14 @@
 		<div class="story-hud-right">
 			<!-- Crowns Balance -->
 			<div class="story-crowns-box" title="Suas Coroas (Dinheiro de The Witcher)">
-				<span class="crowns-icon">🪙</span>
+				<img src="img/hud-icons/Coin.png" class="hud-coin-img" alt="Coroas" />
 				<span id="story-hud-crowns-val" class="crowns-text">2.000</span>
 				<span style="font-size:0.8rem; color:#c5a059;">Coroas</span>
 			</div>
 
 			<!-- Compendium Summary -->
 			<button class="story-hud-btn" onclick="StoryMode.openCompendiumModal('all', 'all')" title="Abrir Compêndio de Cartas do Continente">
-				<span>📖</span>
+				<img class="story-hud-btn-icon" src="img/hud-icons/Collection.png" alt="Coleção" />
 				<span>Coleção:</span>
 				<strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong>
 			</button>
@@ -1002,7 +1003,7 @@
 
 			<!-- Deck Builder -->
 			<button class="story-hud-btn" onclick="StoryMode.openCampaignDeckBuilder()" title="Organizar seu baralho com as cartas colecionadas">
-				<span>🃏</span>
+				<img class="story-hud-btn-icon" src="img/hud-icons/Deck-Config.png" alt="Organizar Baralho" />
 				<span>Organizar Baralho</span>
 			</button>
 
@@ -1013,6 +1014,121 @@
 			</button>
 		</div>
 	</header>
+
+	<!-- Player Statistics Drawer (Gaveta de Estatísticas) -->
+	<div id="story-player-stats-drawer" class="story-stats-drawer hide">
+		<div class="story-stats-drawer-inner">
+			<div class="stats-drawer-header">
+				<div class="stats-drawer-title-box">
+					<img src="img/hud-icons/Medallion.png" class="stats-drawer-medallion" alt="Medalhão" />
+					<div>
+						<h3 id="stats-drawer-player-name" class="stats-drawer-name">Geralt de Rívia</h3>
+						<span id="stats-drawer-faction-diff" class="stats-drawer-sub">Reinos do Norte · Dificuldade Média</span>
+					</div>
+				</div>
+				<button class="stats-drawer-close-btn" onclick="StoryMode.toggleStatsDrawer(false)" title="Fechar Gaveta">✕</button>
+			</div>
+
+			<div class="stats-drawer-divider"></div>
+
+			<!-- Grid of Stats Sections -->
+			<div class="stats-drawer-grid">
+				<!-- Section 1: Campanha & Desafios -->
+				<div class="stats-drawer-card">
+					<div class="stats-card-header">
+						<img src="img/hud-icons/Map.png" class="stats-icon-small" alt="Mapa" />
+						<span>Jornada no Continente</span>
+					</div>
+					<div class="stats-card-body">
+						<div class="stats-row">
+							<span class="stats-label">Batalhas de Gwent:</span>
+							<strong id="stat-battles-val" class="stats-val">0 / 0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Batalhas Faltantes:</span>
+							<strong id="stat-battles-left-val" class="stats-val highlight">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Torneios Vencidos:</span>
+							<strong id="stat-tourneys-val" class="stats-val">0 / 0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Torneios Disponíveis:</span>
+							<strong id="stat-tourneys-left-val" class="stats-val highlight">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Insígnias Regionais:</span>
+							<strong id="stat-trophies-val" class="stats-val gold">0 / 5</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Lojas Desbloqueadas:</span>
+							<strong id="stat-shops-val" class="stats-val">0 / 6</strong>
+						</div>
+					</div>
+				</div>
+
+				<!-- Section 2: Combate & Aproveitamento -->
+				<div class="stats-drawer-card">
+					<div class="stats-card-header">
+						<img src="img/hud-icons/Duel.png" class="stats-icon-small" alt="Duelo" />
+						<span>Histórico de Duelos</span>
+					</div>
+					<div class="stats-card-body">
+						<div class="stats-row">
+							<span class="stats-label">Total de Vitórias:</span>
+							<strong id="stat-wins-val" class="stats-val green">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Total de Derrotas:</span>
+							<strong id="stat-losses-val" class="stats-val red">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Aproveitamento:</span>
+							<strong id="stat-winrate-val" class="stats-val gold">0%</strong>
+						</div>
+						<div class="stats-faction-wins-title">Vitórias por Facção:</div>
+						<div class="stats-faction-grid">
+							<div class="stats-fac-item" title="Reinos do Norte"><span class="fac-tag nr">NR</span> <strong id="stat-fac-nr">0</strong></div>
+							<div class="stats-fac-item" title="Império de Nilfgaard"><span class="fac-tag nilf">NG</span> <strong id="stat-fac-nilf">0</strong></div>
+							<div class="stats-fac-item" title="Monstros"><span class="fac-tag mon">MON</span> <strong id="stat-fac-mon">0</strong></div>
+							<div class="stats-fac-item" title="Scoia'tael"><span class="fac-tag sco">SCO</span> <strong id="stat-fac-sco">0</strong></div>
+							<div class="stats-fac-item" title="Skellige"><span class="fac-tag skel">SKEL</span> <strong id="stat-fac-skel">0</strong></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Section 3: Economia & Coleção -->
+				<div class="stats-drawer-card">
+					<div class="stats-card-header">
+						<img src="img/hud-icons/Coin.png" class="stats-icon-small" alt="Economia" />
+						<span>Economia & Coleção</span>
+					</div>
+					<div class="stats-card-body">
+						<div class="stats-row">
+							<span class="stats-label">Coroas em Posse:</span>
+							<strong id="stat-crowns-val" class="stats-val gold">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Coroas Ganhas:</span>
+							<strong id="stat-crowns-earned-val" class="stats-val green">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Coroas Gastas:</span>
+							<strong id="stat-crowns-spent-val" class="stats-val">0</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Cartas Colecionadas:</span>
+							<strong id="stat-cards-val" class="stats-val gold">0 / 216</strong>
+						</div>
+						<div class="stats-row">
+							<span class="stats-label">Compêndio Completo:</span>
+							<strong id="stat-compendium-pct-val" class="stats-val highlight">0%</strong>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
 	<!-- Map Viewport -->
 	<div id="story-map-viewport">
@@ -1035,7 +1151,7 @@
 	<div class="story-map-filters">
 		<span class="story-filter-title">Filtros:</span>
 		<button id="story-filter-shops" class="story-filter-btn active" onclick="StoryMode.toggleFilter('shops')" title="Exibir/Ocultar Lojas no Mapa">
-			<span class="story-filter-icon">💰</span>
+			<span class="story-filter-icon"><img src="img/hud-icons/shop.png" class="filter-icon-img" alt="Lojas" /></span>
 			<span class="story-filter-label">Lojas</span>
 		</button>
 		<button id="story-filter-tourneys" class="story-filter-btn active" onclick="StoryMode.toggleFilter('tourneys')" title="Exibir/Ocultar Torneios no Mapa">
@@ -1173,18 +1289,20 @@
 <div id="story-shop-modal" class="story-modal hide">
 	<div class="story-parchment-frame">
 		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
-		<h2 id="story-shop-title" class="story-modal-title">Mercador de Valetorta</h2>
+		<h2 id="story-shop-title" class="story-modal-title"><img src="img/hud-icons/shop.png" class="modal-title-icon-img" alt="Loja" /> Mercador de Valetorta</h2>
 		<p id="story-shop-region" class="story-modal-subtitle">Velen · Mercado Livre</p>
 		<div class="story-modal-divider"></div>
 
 		<div class="story-shop-header">
 			<em id="story-shop-greeting" style="color: #e0d0b0;">"Saudações, viajante..."</em>
 			<div class="story-crowns-box">
-				<span class="crowns-icon">🪙</span>
+				<img src="img/hud-icons/Coin.png" class="hud-coin-img" alt="Coroas" />
 				<span id="story-shop-player-crowns" class="crowns-text">2.000</span>
 				<span style="font-size:0.8rem; color:#c5a059;">Coroas</span>
 			</div>
 		</div>
+
+		<p class="story-shop-hint">💡 Clique sobre qualquer carta para inspecionar seus detalhes, habilidades e critérios de compra.</p>
 
 		<div id="story-shop-items-grid" class="story-shop-grid"></div>
 
@@ -1194,11 +1312,78 @@
 	</div>
 </div>
 
+<!-- STORY MODE: CARD INSPECT / DESCRIPTION MODAL -->
+<div id="story-card-inspect-modal" class="story-modal hide">
+	<div class="story-parchment-frame card-inspect-frame">
+		<button class="story-modal-close-btn" onclick="StoryMode.closeCardInspectModal()">✕</button>
+		<h2 id="inspect-card-title" class="story-modal-title">Nome da Carta</h2>
+		<p id="inspect-card-subtitle" class="story-modal-subtitle">Facção · Tipo de Tropa</p>
+		<div class="story-modal-divider"></div>
+
+		<div class="card-inspect-body">
+			<div class="card-inspect-art-column">
+				<div id="inspect-card-art" class="card-inspect-big-art"></div>
+				<div id="inspect-card-ownership" class="inspect-ownership-badge">Você possui: 0 / 1</div>
+			</div>
+
+			<div class="card-inspect-details-column">
+				<div class="inspect-stats-box">
+					<div class="inspect-stat-pill">
+						<span class="pill-label">Poder:</span>
+						<strong id="inspect-card-power" class="pill-val">10</strong>
+					</div>
+					<div class="inspect-stat-pill">
+						<span class="pill-label">Fileira:</span>
+						<strong id="inspect-card-row" class="pill-val">Corpo a Corpo</strong>
+					</div>
+					<div class="inspect-stat-pill">
+						<span class="pill-label">Tipo:</span>
+						<strong id="inspect-card-type" class="pill-val">Herói</strong>
+					</div>
+				</div>
+
+				<div class="inspect-ability-section">
+					<h4 id="inspect-ability-name" class="inspect-ability-title">Habilidade</h4>
+					<p id="inspect-ability-desc" class="inspect-ability-desc">Descrição da habilidade...</p>
+				</div>
+
+				<div id="inspect-requirement-box" class="inspect-requirement-box hide">
+					<div class="inspect-req-title">
+						<span class="req-icon">🔒</span>
+						<strong>Critério de Desbloqueio:</strong>
+					</div>
+					<p id="inspect-requirement-desc" class="inspect-req-desc">Vença X duelos contra Y</p>
+					<div class="inspect-req-progress-bar">
+						<div id="inspect-req-progress-fill" class="inspect-req-fill" style="width: 0%;"></div>
+					</div>
+					<small id="inspect-req-progress-text" class="inspect-req-status-text">0 / 0 Concluído</small>
+				</div>
+
+				<div class="inspect-price-box">
+					<span class="inspect-price-label">Preço do Mercador:</span>
+					<div class="inspect-price-val">
+						<img src="img/hud-icons/Coin.png" class="shop-coin-img" alt="Coroas" />
+						<strong id="inspect-card-price">1.800</strong>
+						<span>Coroas</span>
+					</div>
+				</div>
+
+				<div class="inspect-actions-row">
+					<button class="witcher-menu-btn" style="width: 130px;" onclick="StoryMode.closeCardInspectModal()">Voltar</button>
+					<button id="inspect-card-buy-btn" class="witcher-menu-btn shop-buy-btn" style="min-width: 220px; border-color: #ffd700;">
+						<img src="img/hud-icons/Coin.png" class="btn-hud-icon" alt="Comprar" /> Comprar Carta
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
 <!-- STORY MODE: COMPENDIUM / CARD COLLECTION MODAL -->
 <div id="story-compendium-modal" class="story-modal hide">
 	<div class="story-parchment-frame" style="max-width: 900px;">
 		<button class="story-modal-close-btn" onclick="StoryMode.closeAllModals()">✕</button>
-		<h2 class="story-modal-title">COMPÊNDIO DE CARTAS DO CONTINENTE</h2>
+		<h2 class="story-modal-title"><img src="img/hud-icons/Collection.png" class="modal-title-icon-img" alt="Coleção" /> COMPÊNDIO DE CARTAS DO CONTINENTE</h2>
 		<p class="story-modal-subtitle">Guia Miraculoso do Colecionador de Gwent</p>
 		<div class="story-modal-divider"></div>
 
@@ -1318,7 +1503,7 @@
 						</button>
 					</div>
 					<div class="versus-status-pulse">
-						<span class="versus-pulse-icon">🐺</span>
+						<img src="img/hud-icons/Medallion.png" class="versus-pulse-icon" alt="Medalhão" />
 						<span id="versus-host-status">Aguardando oponente conectar...</span>
 					</div>
 				</div>
