@@ -222,6 +222,7 @@ class MenuController {
 	}
 
 	static startGame(difficulty = "medium") {
+		if (typeof MusicManager !== "undefined") MusicManager.playGameMusic();
 		if (typeof Settings !== "undefined" && Settings.difficulty) {
 			Settings.difficulty.set(difficulty);
 		} else {
@@ -374,6 +375,9 @@ class MenuController {
 		if (menu) menu.classList.remove("hide");
 
 		MenuController.showView("nav");
+		if (typeof MusicManager !== "undefined") {
+			MusicManager.playMenuMusic();
+		}
 	}
 
 	static openSettingsOverlay(context = "deck") {

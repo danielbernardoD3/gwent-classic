@@ -2365,44 +2365,29 @@ class Card {
 }
 
 class MusicManager {
+	static MENU_TRACK = 'music/gwent_main.mp3';
+
 	static tracks = [
-		// The Witcher 3: Wild Hunt Soundtrack
-		'music/01 The Trail.mp3',
-		'music/02 Geralt of Rivia.mp3',
-		'music/03 Eredin, King of the Hunt.mp3',
-		'music/04 Wake Up, Ciri.mp3',
+		// Tema Principal
+		'music/gwent_main.mp3',
+		// The Witcher 3: Wild Hunt - Trilhas de Gwent & Taverna
 		'music/05 Aen Seidhe.mp3',
 		'music/06 Commanding the Fury.mp3',
-		'music/07 Emhyr var Emreis.mp3',
-		'music/08 Spikeroog.mp3',
-		'music/09 King Bran\'s Final Voyage.mp3',
 		'music/10 Silver for Monsters....mp3',
-		'music/11 Whispers of Oxenfurt.mp3',
 		'music/12 The Nightingale.mp3',
 		'music/13 City of Intrigues.mp3',
-		'music/14 The Hunter\'s Path.mp3',
 		'music/16 Kaer Morhen.mp3',
 		'music/17 Eyes of the Wolf.mp3',
-		'music/18 Witch Hunters.mp3',
-		'music/19 ...Steel for Humans.mp3',
-		'music/20 Fate Calls.mp3',
-		'music/21 The Vagabond.mp3',
 		'music/22 Cloak and Dagger.mp3',
-		'music/23 Forged in Fire.mp3',
-		'music/24 Yes, I Do....mp3',
 		'music/25 Welcome, Imlerith.mp3',
 		'music/26 Drink Up, There_s More!.mp3',
-		'music/27 After the Storm.mp3',
 		'music/28 Blood on the Cobblestones.mp3',
-		'music/29 Farewell, Old Friend.mp3',
 		'music/30 The Song of the Sword-Dancer.mp3',
 		'music/31 The Hunt is Coming.mp3',
-		'music/32 The Fields of Ard Skellig.mp3',
 		'music/33 Ladies of the Woods.mp3',
 		'music/34 Merchants of Novigrad.mp3',
 		'music/35 Hunt Or Be Hunted.mp3',
 		// Temas Clássicos Gwent
-		'music/gwent_main.mp3',
 		'music/plots_and_intrigues.mp3',
 		'music/northern_realms.mp3',
 		'music/the_black_clads.mp3',
@@ -2411,46 +2396,28 @@ class MusicManager {
 	];
 
 	static trackTitles = [
-		'01. The Trail',
-		'02. Geralt of Rivia',
-		'03. Eredin, King of the Hunt',
-		'04. Wake Up, Ciri',
+		'Tema Principal: How About a Round of Gwent',
 		'05. Aen Seidhe',
 		'06. Commanding the Fury',
-		'07. Emhyr var Emreis',
-		'08. Spikeroog',
-		'09. King Bran\'s Final Voyage',
 		'10. Silver for Monsters...',
-		'11. Whispers of Oxenfurt',
 		'12. The Nightingale',
 		'13. City of Intrigues',
-		'14. The Hunter\'s Path',
-		'15. Kaer Morhen',
-		'16. Eyes of the Wolf',
-		'17. Witch Hunters',
-		'18. ...Steel for Humans',
-		'19. Fate Calls',
-		'20. The Vagabond',
-		'21. Cloak and Dagger',
-		'22. Forged in Fire',
-		'23. Yes, I Do...',
-		'24. Welcome, Imlerith',
-		'25. Drink Up, There\'s More!',
-		'26. After the Storm',
-		'27. Blood on the Cobblestones',
-		'28. Farewell, Old Friend',
-		'29. The Song of the Sword-Dancer',
-		'30. The Hunt is Coming',
-		'31. The Fields of Ard Skellig',
-		'32. Ladies of the Woods',
-		'33. Merchants of Novigrad',
-		'34. Hunt Or Be Hunted',
-		'35. How About a Round of Gwent',
-		'36. Plots and Intrigues',
-		'37. Northern Realms Theme',
-		'38. The Black Clads (Nilfgaard)',
-		'39. Kaer Morhen / Bosques',
-		'40. Mares e Ventos de Skellige'
+		'16. Kaer Morhen',
+		'17. Eyes of the Wolf',
+		'22. Cloak and Dagger',
+		'25. Welcome, Imlerith',
+		'26. Drink Up, There\'s More!',
+		'28. Blood on the Cobblestones',
+		'30. The Song of the Sword-Dancer',
+		'31. The Hunt is Coming',
+		'33. Ladies of the Woods',
+		'34. Merchants of Novigrad',
+		'35. Hunt Or Be Hunted',
+		'Gwent: Plots and Intrigues',
+		'Gwent: Reinos do Norte',
+		'Gwent: Nilfgaard (The Black Clads)',
+		'Gwent: Bosques de Kaer Morhen',
+		'Gwent: Ventos e Mares de Skellige'
 	];
 
 	static currTrackIndex = 0;
@@ -2459,7 +2426,7 @@ class MusicManager {
 	static initialized = false;
 	static selectedMode = 'all';
 	static volume = 0.6;
-	static playedIndices = [];
+	static isMenuMode = true;
 
 	static init() {
 		if (MusicManager.initialized) return;
@@ -2469,17 +2436,27 @@ class MusicManager {
 		MusicManager.selectedMode = saved;
 		if (saved !== "all") {
 			const idx = parseInt(saved, 10);
-			MusicManager.currTrackIndex = (idx >= 0 && idx < MusicManager.tracks.length) ? idx : 0;
+			if (isNaN(idx) || idx < 0 || idx >= MusicManager.tracks.length) {
+				MusicManager.selectedMode = "all";
+				MusicManager.currTrackIndex = 0;
+				localStorage.setItem("gc-jukebox-track", "all");
+			} else {
+				MusicManager.currTrackIndex = idx;
+			}
 		}
 
 		const savedVol = localStorage.getItem("gc-music-volume");
 		MusicManager.volume = (savedVol !== null) ? (parseFloat(savedVol) / 100) : 0.6;
 
-		MusicManager.audio = new Audio(MusicManager.tracks[MusicManager.currTrackIndex]);
+		MusicManager.audio = new Audio(MusicManager.MENU_TRACK);
 		MusicManager.audio.volume = MusicManager.volume;
+		MusicManager.audio.loop = true;
 
 		MusicManager.audio.addEventListener('ended', () => {
-			if (MusicManager.selectedMode === "all") {
+			if (MusicManager.isMenuMode) {
+				MusicManager.audio.currentTime = 0;
+				if (MusicManager.isPlaying) MusicManager.audio.play().catch(e => console.log(e));
+			} else if (MusicManager.selectedMode === "all") {
 				MusicManager.nextTrack();
 			} else {
 				MusicManager.audio.currentTime = 0;
@@ -2488,8 +2465,10 @@ class MusicManager {
 		});
 
 		MusicManager.audio.addEventListener('error', (e) => {
-			console.warn("Track failed to load, moving to next:", MusicManager.tracks[MusicManager.currTrackIndex]);
-			MusicManager.nextTrack();
+			console.warn("Track failed to load, moving to next:", MusicManager.audio ? MusicManager.audio.src : "unknown");
+			if (!MusicManager.isMenuMode) {
+				MusicManager.nextTrack();
+			}
 		});
 	}
 
@@ -2503,17 +2482,70 @@ class MusicManager {
 		localStorage.setItem("gc-music-volume", percent);
 	}
 
+	static playMenuMusic() {
+		MusicManager.init();
+		MusicManager.isMenuMode = true;
+		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
+
+		if (MusicManager.audio) {
+			const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
+			if (currentSrc.includes('gwent_main.mp3') && !MusicManager.audio.paused) {
+				MusicManager.isPlaying = true;
+				MusicManager.audio.loop = true;
+				return;
+			}
+			MusicManager.audio.src = MusicManager.MENU_TRACK;
+			MusicManager.audio.loop = true;
+			MusicManager.audio.volume = MusicManager.volume;
+			MusicManager.isPlaying = true;
+			MusicManager.audio.play().catch(e => {
+				console.log("Menu music waiting for user gesture:", e);
+			});
+		}
+	}
+
+	static playGameMusic() {
+		MusicManager.init();
+		MusicManager.isMenuMode = false;
+		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
+
+		if (MusicManager.audio) {
+			MusicManager.audio.loop = (MusicManager.selectedMode !== "all");
+
+			if (MusicManager.selectedMode === "all") {
+				const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
+				if (currentSrc.includes('gwent_main.mp3') || MusicManager.audio.paused) {
+					MusicManager.nextTrack();
+				} else {
+					MusicManager.isPlaying = true;
+					MusicManager.audio.play().catch(e => console.log(e));
+				}
+			} else {
+				const idx = parseInt(MusicManager.selectedMode, 10) || 0;
+				const safeIdx = Math.max(0, Math.min(MusicManager.tracks.length - 1, idx));
+				MusicManager.currTrackIndex = safeIdx;
+				MusicManager.audio.src = MusicManager.tracks[safeIdx];
+				MusicManager.audio.volume = MusicManager.volume;
+				MusicManager.isPlaying = true;
+				MusicManager.audio.play().catch(e => console.log(e));
+			}
+		}
+	}
+
 	static setTrack(trackId) {
 		MusicManager.init();
 		MusicManager.selectedMode = trackId;
 		if (trackId === "all") {
-			MusicManager.nextTrack();
+			if (!MusicManager.isMenuMode) {
+				MusicManager.nextTrack();
+			}
 		} else {
 			const idx = parseInt(trackId, 10) || 0;
 			const safeIdx = Math.max(0, Math.min(MusicManager.tracks.length - 1, idx));
 			MusicManager.currTrackIndex = safeIdx;
 			if (MusicManager.audio) {
 				MusicManager.audio.src = MusicManager.tracks[safeIdx];
+				MusicManager.audio.loop = true;
 				MusicManager.audio.volume = MusicManager.volume;
 				if (MusicManager.isPlaying) {
 					MusicManager.audio.play().catch(e => console.log(e));
@@ -2541,6 +2573,7 @@ class MusicManager {
 		if (MusicManager.audio) {
 			MusicManager.audio.src = MusicManager.tracks[MusicManager.currTrackIndex];
 			MusicManager.audio.volume = MusicManager.volume;
+			MusicManager.audio.loop = (MusicManager.selectedMode !== "all");
 			if (MusicManager.isPlaying) {
 				MusicManager.audio.play().catch(e => console.log(e));
 			}
@@ -2548,12 +2581,12 @@ class MusicManager {
 	}
 
 	static play() {
-		MusicManager.init();
-		MusicManager.isPlaying = true;
-		MusicManager.audio.volume = MusicManager.volume;
-		MusicManager.audio.play().catch(e => {
-			console.log("Autoplay waiting for user gesture:", e);
-		});
+		const isMainMenuVisible = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
+		if (isMainMenuVisible) {
+			MusicManager.playMenuMusic();
+		} else {
+			MusicManager.playGameMusic();
+		}
 	}
 
 	static pause() {
@@ -2575,7 +2608,6 @@ class MusicManager {
 	}
 }
 
-// Handles notifications and client interration with menus
 class UI {
 	constructor() {
 		this.carousels = [];
@@ -2654,10 +2686,12 @@ class UI {
 		const enabled = Settings.music.isEnabled();
 		if (enabled) {
 			if (this.toggleMusic_elem) this.toggleMusic_elem.classList.remove("fade");
-			MusicManager.play();
+			const isMenu = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
+			if (isMenu) MusicManager.playMenuMusic(); else MusicManager.playGameMusic();
 			document.addEventListener('click', () => {
 				if (Settings.music.isEnabled() && (!MusicManager.audio || MusicManager.audio.paused)) {
-					MusicManager.play();
+					const isMenuNow = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
+					if (isMenuNow) MusicManager.playMenuMusic(); else MusicManager.playGameMusic();
 				}
 			}, { once: true });
 		} else {

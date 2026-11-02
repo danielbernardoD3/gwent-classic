@@ -1030,6 +1030,7 @@ class VersusMode {
 	}
 
 	static startActualGame(iStartFirst, hostDeckOrder = null, guestDeckOrder = null) {
+		if (typeof MusicManager !== "undefined") MusicManager.playGameMusic();
 		VersusMode.stopAllTimers();
 		VersusMode.isActive = true;
 		VersusMode.isFirstTurn = iStartFirst;

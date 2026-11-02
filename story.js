@@ -454,6 +454,7 @@ class StoryMode {
 		if (typeof MenuController !== "undefined") {
 			MenuController.showView("nav");
 		}
+		if (typeof MusicManager !== "undefined") MusicManager.playMenuMusic();
 	}
 
 	static updateHUD() {
