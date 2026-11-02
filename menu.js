@@ -191,19 +191,7 @@ class MenuController {
 			AudioManager.playSFX("witcher_click");
 		}
 		if (typeof StoryMode !== "undefined") {
-			if (StoryMode.hasSave()) {
-				MenuController.showConfirm(
-					"Existe uma jornada salva em andamento!\n\nDeseja continuar sua campanha existente ou iniciar uma Nova Jornada do zero?",
-					"JORNADA NO CONTINENTE",
-					() => StoryMode.continueCampaign(),
-					() => StoryMode.startNewGameDialog(),
-					"Continuar Jornada",
-					"Nova Campanha",
-					"🗺️"
-				);
-			} else {
-				StoryMode.startNewGameDialog();
-			}
+			StoryMode.startNewCampaignFromMenu();
 		}
 	}
 
@@ -370,6 +358,7 @@ class MenuController {
 		if (typeof StoryMode !== "undefined") {
 			StoryMode.closeAllModals();
 			StoryMode.isCustomizingCampaign = false;
+			StoryMode.updateContinueButton();
 		}
 
 		if (typeof VersusMode !== "undefined") {

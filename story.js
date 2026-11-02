@@ -7,7 +7,10 @@
  * regional merchants, card compendium (216 cards with strict max copy caps), and deck builder.
  */
 class StoryMode {
+	static MAX_SLOTS = 5;
 	static SAVE_KEY = "gc-story-save";
+	static activeSlot = 1;
+	static targetSlotForNewGame = 1;
 	static activeMatch = null;
 	static isCustomizingCampaign = false;
 	static MAP_WIDTH = 2894;
@@ -33,12 +36,9 @@ class StoryMode {
 		if (STORY_DATA.MAP_WIDTH) StoryMode.MAP_WIDTH = STORY_DATA.MAP_WIDTH;
 		if (STORY_DATA.MAP_HEIGHT) StoryMode.MAP_HEIGHT = STORY_DATA.MAP_HEIGHT;
 
+		StoryMode.migrateLegacySave();
 		StoryMode.setupEventListeners();
-
-		if (StoryMode.hasSave()) {
-			const continueBtn = document.getElementById("btn-story-continue");
-			if (continueBtn) continueBtn.classList.remove("hide");
-		}
+		StoryMode.updateContinueButton();
 	}
 
 	/**
@@ -140,16 +140,106 @@ class StoryMode {
 		});
 	}
 
-	static hasSave() {
-		const raw = localStorage.getItem(StoryMode.SAVE_KEY);
+	static getSlotKey(slotId = null) {
+		const s = Number(slotId !== null ? slotId : (StoryMode.activeSlot || 1));
+		return "gc-story-save-slot-" + s;
+	}
+
+	static migrateLegacySave() {
+		try {
+			const legacy = localStorage.getItem(StoryMode.SAVE_KEY);
+			const slot1 = localStorage.getItem("gc-story-save-slot-1");
+			if (!slot1 && legacy && legacy.length > 10) {
+				const parsed = JSON.parse(legacy);
+				parsed.slotId = 1;
+				if (!parsed.updatedAt) parsed.updatedAt = Date.now();
+				localStorage.setItem("gc-story-save-slot-1", JSON.stringify(parsed));
+			}
+			const savedActive = localStorage.getItem("gc-story-active-slot");
+			if (savedActive) {
+				const num = Number(savedActive);
+				if (num >= 1 && num <= StoryMode.MAX_SLOTS) {
+					StoryMode.activeSlot = num;
+				}
+			}
+		} catch (e) {
+			console.error("Error migrating legacy save:", e);
+		}
+	}
+
+	static hasSave(slotId = null) {
+		const targetSlot = slotId !== null ? Number(slotId) : StoryMode.activeSlot;
+		let raw = localStorage.getItem(StoryMode.getSlotKey(targetSlot));
+		if (!raw && targetSlot === 1) {
+			raw = localStorage.getItem(StoryMode.SAVE_KEY);
+		}
 		return !!(raw && raw.length > 10);
 	}
 
-	static loadSave() {
+	static hasAnySave() {
+		for (let s = 1; s <= StoryMode.MAX_SLOTS; s++) {
+			if (StoryMode.hasSave(s)) return true;
+		}
+		const legacy = localStorage.getItem(StoryMode.SAVE_KEY);
+		return !!(legacy && legacy.length > 10);
+	}
+
+	static getFirstEmptySlot() {
+		for (let s = 1; s <= StoryMode.MAX_SLOTS; s++) {
+			if (!StoryMode.hasSave(s)) return s;
+		}
+		return null;
+	}
+
+	static getAllSaves() {
+		const saves = [];
+		for (let s = 1; s <= StoryMode.MAX_SLOTS; s++) {
+			let raw = localStorage.getItem(StoryMode.getSlotKey(s));
+			if (!raw && s === 1) {
+				raw = localStorage.getItem(StoryMode.SAVE_KEY);
+			}
+			if (raw && raw.length > 10) {
+				try {
+					const data = JSON.parse(raw);
+					saves.push({ slot: s, empty: false, data: data });
+				} catch (e) {
+					saves.push({ slot: s, empty: true, data: null });
+				}
+			} else {
+				saves.push({ slot: s, empty: true, data: null });
+			}
+		}
+		return saves;
+	}
+
+	static updateContinueButton() {
+		const continueBtn = document.getElementById("btn-story-continue");
+		if (continueBtn) {
+			if (StoryMode.hasAnySave()) {
+				continueBtn.classList.remove("hide");
+				continueBtn.onclick = () => StoryMode.openSavesModal();
+				const textSpan = continueBtn.querySelector(".btn-text");
+				if (textSpan) textSpan.textContent = "Carregar Jornada";
+			} else {
+				continueBtn.classList.add("hide");
+			}
+		}
+	}
+
+	static loadSave(slotId = null) {
 		try {
-			const raw = localStorage.getItem(StoryMode.SAVE_KEY);
+			if (slotId !== null) {
+				StoryMode.activeSlot = Number(slotId);
+				localStorage.setItem("gc-story-active-slot", String(StoryMode.activeSlot));
+			}
+			let raw = localStorage.getItem(StoryMode.getSlotKey(StoryMode.activeSlot));
+			if (!raw && StoryMode.activeSlot === 1) {
+				raw = localStorage.getItem(StoryMode.SAVE_KEY);
+			}
 			if (raw) {
 				StoryMode.save = JSON.parse(raw);
+				StoryMode.save.slotId = StoryMode.activeSlot;
+				if (!StoryMode.save.playerName) StoryMode.save.playerName = "Geralt de Rívia";
 				if (!StoryMode.save.collection) StoryMode.save.collection = {};
 				if (!StoryMode.save.trophies) StoryMode.save.trophies = [];
 				if (!StoryMode.save.completedNodes) StoryMode.save.completedNodes = [];
@@ -193,6 +283,7 @@ class StoryMode {
 				}
 
 				StoryMode.syncCollectionAndTokens();
+				StoryMode.updateContinueButton();
 				return true;
 			}
 		} catch (e) {
@@ -211,7 +302,18 @@ class StoryMode {
 		if (!StoryMode.save) return;
 		try {
 			StoryMode.syncCollectionAndTokens();
-			localStorage.setItem(StoryMode.SAVE_KEY, JSON.stringify(StoryMode.save));
+			const slot = StoryMode.activeSlot || StoryMode.save.slotId || 1;
+			StoryMode.save.slotId = slot;
+			StoryMode.save.updatedAt = Date.now();
+			const jsonStr = JSON.stringify(StoryMode.save);
+			localStorage.setItem(StoryMode.getSlotKey(slot), jsonStr);
+			if (slot === 1) {
+				localStorage.setItem(StoryMode.SAVE_KEY, jsonStr);
+			}
+			localStorage.setItem("gc-story-active-slot", String(slot));
+
+			StoryMode.updateContinueButton();
+
 			if (typeof Achievements !== "undefined" && typeof Achievements.checkStoryAchievements === "function") {
 				Achievements.checkStoryAchievements(StoryMode.save);
 			}
@@ -220,12 +322,16 @@ class StoryMode {
 		}
 	}
 
-	static createNewCampaign(playerName, difficulty, faction) {
+	static createNewCampaign(playerName, difficulty, faction, slotId = 1) {
 		const starter = STORY_DATA.STARTER_DECKS[faction];
 		if (!starter) {
 			StoryMode.showAlert("Facção inválida: " + faction, "ERRO DE FACÇÃO", "⚠️");
 			return;
 		}
+
+		const targetSlot = Number(slotId || StoryMode.targetSlotForNewGame || 1);
+		StoryMode.activeSlot = targetSlot;
+		localStorage.setItem("gc-story-active-slot", String(targetSlot));
 
 		// Determine faction-specific starting node on the Continent Map
 		const startNodeId = (STORY_DATA.STARTER_NODES && STORY_DATA.STARTER_NODES[faction]) || "nr_white_orchard";
@@ -245,6 +351,7 @@ class StoryMode {
 		};
 
 		StoryMode.save = {
+			slotId: targetSlot,
 			playerName: playerName || "Geralt de Rívia",
 			difficulty: difficulty || "medium",
 			faction: faction,
@@ -259,10 +366,12 @@ class StoryMode {
 			purchasedShopItems: {},
 			tournamentStates: {},
 			tournamentStageCleared: {},
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
 			stats: {
 				matchesWon: 0,
 				matchesLost: 0,
-				crownsEarned: 0,
+				crownsEarned: 2000,
 				crownsSpent: 0,
 				factionWins: {
 					realms: 0,
@@ -274,12 +383,11 @@ class StoryMode {
 			}
 		};
 
+		StoryMode.unlockNodeWithConnections(startNodeId);
 		StoryMode.syncCollectionAndTokens();
 		StoryMode.saveGame();
 
-		const continueBtn = document.getElementById("btn-story-continue");
-		if (continueBtn) continueBtn.classList.remove("hide");
-
+		StoryMode.updateContinueButton();
 		StoryMode.openMap();
 	}
 
@@ -373,9 +481,42 @@ class StoryMode {
 		}
 	}
 
-	static startNewGameDialog() {
+	static startNewCampaignFromMenu() {
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_click");
+		}
+		const emptySlot = StoryMode.getFirstEmptySlot();
+		if (emptySlot !== null) {
+			StoryMode.startNewGameDialog(emptySlot);
+		} else {
+			StoryMode.showAlert(
+				"Todos os 5 slots de salvamento estão ocupados! Escolha uma campanha para continuar ou exclua um salvamento para liberar espaço para uma nova jornada.",
+				"SLOTS ESGOTADOS",
+				"img/hud-icons/Map.png"
+			);
+			StoryMode.openSavesModal();
+		}
+	}
+
+	static startNewGameDialog(targetSlot = null) {
+		const emptySlot = targetSlot !== null ? Number(targetSlot) : (StoryMode.getFirstEmptySlot() || 1);
+		StoryMode.targetSlotForNewGame = emptySlot;
+
 		const menu = document.getElementById("main-menu");
 		if (menu) menu.classList.add("hide");
+
+		const savesModal = document.getElementById("story-saves-modal");
+		if (savesModal) savesModal.classList.add("hide");
+
+		const slotIndicator = document.getElementById("story-setup-slot-indicator");
+		if (slotIndicator) {
+			slotIndicator.textContent = `Salvando no Slot ${emptySlot} de ${StoryMode.MAX_SLOTS}`;
+		}
+
+		const nameInput = document.getElementById("story-player-name-input");
+		if (nameInput) {
+			nameInput.value = "Geralt de Rívia";
+		}
 
 		const setupView = document.getElementById("story-setup-view");
 		if (setupView) {
@@ -405,23 +546,206 @@ class StoryMode {
 			AudioManager.playSFX("witcher_slash");
 		}
 
-		StoryMode.createNewCampaign(name, difficulty, faction);
+		const slot = StoryMode.targetSlotForNewGame || StoryMode.getFirstEmptySlot() || 1;
+		StoryMode.createNewCampaign(name, difficulty, faction, slot);
 	}
 
 	static continueCampaign() {
-		if (!StoryMode.loadSave()) {
-			StoryMode.showAlert("Nenhum jogo salvo encontrado.", "MODO HISTÓRIA", "📜");
-			return;
-		}
+		StoryMode.openSavesModal();
+	}
+
+	static openSavesModal() {
+		const modal = document.getElementById("story-saves-modal");
+		if (!modal) return;
 
 		const menu = document.getElementById("main-menu");
 		if (menu) menu.classList.add("hide");
 
+		StoryMode.renderSavesSlots();
+		modal.classList.remove("hide");
+
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
-			AudioManager.playSFX("witcher_confirm");
+			AudioManager.playSFX("witcher_tab_open");
+		}
+	}
+
+	static closeSavesModal() {
+		const modal = document.getElementById("story-saves-modal");
+		if (modal) modal.classList.add("hide");
+
+		const menu = document.getElementById("main-menu");
+		if (menu) menu.classList.remove("hide");
+
+		if (typeof MenuController !== "undefined") {
+			MenuController.showView("nav");
+		}
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_back");
+		}
+	}
+
+	static renderSavesSlots() {
+		const listEl = document.getElementById("story-saves-slots-list");
+		if (!listEl) return;
+		listEl.innerHTML = "";
+
+		const saves = StoryMode.getAllSaves();
+		const factionNames = {
+			realms: "Reinos do Norte",
+			nilfgaard: "Império de Nilfgaard",
+			monsters: "Monstros de Toussaint",
+			scoiatael: "Scoia'tael",
+			skellige: "Clãs de Skellige"
+		};
+		const factionBadges = {
+			realms: "img/hud-icons/Temeria-Badge.png",
+			nilfgaard: "img/hud-icons/Nilfgaard-Badge.png",
+			monsters: "img/hud-icons/Toussaint-badge.png",
+			scoiatael: "img/hud-icons/Medallion.png",
+			skellige: "img/hud-icons/Skellige-Badge.png"
+		};
+		const diffNames = {
+			easy: "Fácil",
+			medium: "Normal",
+			hard: "Difícil"
+		};
+
+		saves.forEach(s => {
+			const card = document.createElement("div");
+			if (s.empty) {
+				card.className = "story-save-slot-card empty-slot";
+				card.innerHTML = `
+					<div class="slot-left-info">
+						<span class="slot-badge empty">SLOT ${s.slot}</span>
+						<div class="slot-details">
+							<span style="font-size:0.92rem; color:#888; font-style:italic;">Slot Disponível — Nenhum progresso salvo</span>
+						</div>
+					</div>
+					<div class="slot-actions">
+						<button class="slot-create-btn" onclick="StoryMode.startNewGameDialog(${s.slot})">+ Nova Campanha</button>
+					</div>
+				`;
+			} else {
+				const d = s.data;
+				const isActive = StoryMode.activeSlot === s.slot;
+				card.className = `story-save-slot-card ${isActive ? 'active-slot' : ''}`;
+				const fBadge = factionBadges[d.faction] || "img/hud-icons/Player.png";
+				const fName = factionNames[d.faction] || d.faction || "Reinos do Norte";
+				const diffName = diffNames[d.difficulty] || "Normal";
+				const nodeName = (STORY_DATA.NODES[d.currentNode] && STORY_DATA.NODES[d.currentNode].name) || "Continente";
+				const cardCount = d.collection ? Object.keys(d.collection).length : 22;
+				const trophiesCount = Array.isArray(d.trophies) ? d.trophies.length : 0;
+				const crownsFormatted = Number(d.crowns || 0).toLocaleString("pt-BR");
+				const dateFormatted = d.updatedAt ? new Date(d.updatedAt).toLocaleDateString("pt-BR") : "Recente";
+
+				card.innerHTML = `
+					<div class="slot-left-info">
+						<span class="slot-badge">SLOT ${s.slot}</span>
+						<img src="${fBadge}" class="slot-crest-img" alt="${fName}" />
+						<div class="slot-details">
+							<div class="slot-player-name-row">
+								<span class="slot-player-name">${d.playerName || 'Geralt de Rívia'}</span>
+								${isActive ? '<span class="slot-active-tag">Ativo</span>' : ''}
+							</div>
+							<div class="slot-meta-row">
+								<span>🛡️ ${fName}</span>
+								<span>⚔️ ${diffName}</span>
+								<span>📍 ${nodeName}</span>
+								<span>📅 ${dateFormatted}</span>
+							</div>
+							<div class="slot-chips-row">
+								<span class="slot-chip"><img src="img/hud-icons/Coin.png" alt="" /> <strong>${crownsFormatted}</strong> Coroas</span>
+								<span class="slot-chip"><img src="img/hud-icons/Collection.png" alt="" /> <strong>${cardCount}</strong> / 216 Cartas</span>
+								<span class="slot-chip"><img src="img/hud-icons/Tournament.png" alt="" /> <strong>${trophiesCount}</strong> / 5 Insígnias</span>
+							</div>
+						</div>
+					</div>
+					<div class="slot-actions">
+						<button class="slot-play-btn" onclick="StoryMode.loadSlotAndPlay(${s.slot})">Continuar ⚔</button>
+						<button class="slot-del-btn" onclick="StoryMode.promptDeleteSlot(${s.slot})" title="Excluir este salvamento">🗑</button>
+					</div>
+				`;
+			}
+			listEl.appendChild(card);
+		});
+	}
+
+	static loadSlotAndPlay(slotId) {
+		const s = Number(slotId);
+		if (StoryMode.loadSave(s)) {
+			const modal = document.getElementById("story-saves-modal");
+			if (modal) modal.classList.add("hide");
+
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_confirm");
+			}
+
+			StoryMode.openMap();
+		} else {
+			StoryMode.showAlert("Falha ao carregar o salvamento do Slot " + s, "ERRO AO CARREGAR", "⚠️");
+		}
+	}
+
+	static promptDeleteSlot(slotId) {
+		const s = Number(slotId);
+		const raw = localStorage.getItem(StoryMode.getSlotKey(s)) || (s === 1 ? localStorage.getItem(StoryMode.SAVE_KEY) : null);
+		let pName = "Campanha";
+		if (raw) {
+			try {
+				const d = JSON.parse(raw);
+				if (d.playerName) pName = d.playerName;
+			} catch (e) {}
 		}
 
-		StoryMode.openMap();
+		if (typeof MenuController !== "undefined" && typeof MenuController.showConfirm === "function") {
+			MenuController.showConfirm(
+				`Tem certeza de que deseja EXCLUIR permanentemente o Salvamento do Slot ${s} (${pName})?\n\nTodo o progresso, cartas colecionadas e coroas desta jornada serão perdidos.`,
+				"EXCLUIR JORNADA",
+				() => StoryMode.deleteSlot(s),
+				null,
+				"Sim, Excluir",
+				"Cancelar",
+				"img/hud-icons/Tournament.png"
+			);
+		} else {
+			if (confirm(`Excluir permanentemente o Slot ${s} (${pName})?`)) {
+				StoryMode.deleteSlot(s);
+			}
+		}
+	}
+
+	static deleteSlot(slotId) {
+		const s = Number(slotId);
+		try {
+			localStorage.removeItem(StoryMode.getSlotKey(s));
+			if (s === 1) {
+				localStorage.removeItem(StoryMode.SAVE_KEY);
+			}
+			if (StoryMode.activeSlot === s) {
+				StoryMode.save = null;
+				let nextActive = 1;
+				for (let i = 1; i <= StoryMode.MAX_SLOTS; i++) {
+					if (StoryMode.hasSave(i)) {
+						nextActive = i;
+						break;
+					}
+				}
+				StoryMode.activeSlot = nextActive;
+				localStorage.setItem("gc-story-active-slot", String(nextActive));
+				if (StoryMode.hasSave(nextActive)) {
+					StoryMode.loadSave(nextActive);
+				}
+			}
+
+			StoryMode.updateContinueButton();
+			StoryMode.renderSavesSlots();
+
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_slash");
+			}
+		} catch (e) {
+			console.error("Error deleting slot:", e);
+		}
 	}
 
 	static openMap() {
@@ -610,7 +934,7 @@ class StoryMode {
 				}
 			} else if (node.type === "shop") {
 				pinIcon = `<img class="pin-icon-img shop-pin-img" src="img/hud-icons/shop.png" alt="Loja" />`;
-				statusBadge = '<span class="pin-status shop">🪙 Mercador Regional</span>';
+				statusBadge = '<span class="pin-status shop"><img class="pin-status-icon-img" src="img/hud-icons/shop.png" alt="" /> Mercador Regional</span>';
 			} else if (isCompleted) {
 				pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Checked.png" alt="Concluído" />`;
 				statusBadge = '<span class="pin-status">✓ Concluído</span>';
@@ -952,7 +1276,7 @@ class StoryMode {
 				const stageCrowns = stageAlreadyCleared ? (node.roundWinCrownsRepeat || 40) : (node.roundWinCrownsFirst || 300);
 				const statusIcon = stageAlreadyCleared
 					? `<img src="img/hud-icons/Checked.png" class="round-status-icon-img" alt="Vencida" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;" />`
-					: `🪙 `;
+					: `<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="" /> `;
 
 				const roundBox = document.createElement("div");
 				roundBox.className = `story-tourney-round-box ${stageAlreadyCleared ? 'won' : ''}`;
@@ -983,7 +1307,7 @@ class StoryMode {
 					StoryMode.showAlert(
 						`Coroas insuficientes! Você precisa de ${node.entryFee} Coroas para pagar a taxa de inscrição deste torneio.`,
 						"COROAS INSUFICIENTES",
-						"🪙"
+						"img/hud-icons/Coin.png"
 					);
 					return;
 				}

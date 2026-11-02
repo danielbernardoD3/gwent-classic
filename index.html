@@ -32,9 +32,9 @@
 		
 		<!-- 1. Navigation View -->
 		<div id="menu-nav" class="menu-view active">
-			<button id="btn-story-continue" class="witcher-menu-btn hide" style="border-color: #ffd700;" onclick="StoryMode.continueCampaign()">
-				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Player.png" alt="Continuar Jornada" /></span>
-				<span class="btn-text" data-i18n="menu_continue_story">Continuar Jornada</span>
+			<button id="btn-story-continue" class="witcher-menu-btn hide" style="border-color: #ffd700;" onclick="StoryMode.openSavesModal()">
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Player.png" alt="Carregar Jornada" /></span>
+				<span class="btn-text" data-i18n="menu_continue_story">Carregar Jornada</span>
 			</button>
 			<button class="witcher-menu-btn story-mode-entry-btn" onclick="MenuController.openStoryMode()">
 				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Map.png" alt="Modo História" /></span>
@@ -888,13 +888,16 @@
 		<button class="story-modal-close-btn" onclick="document.getElementById('story-setup-view').classList.add('hide'); MenuController.returnToMainMenu();">✕</button>
 		<h2 class="story-modal-title">NOVA JORNADA NO CONTINENTE</h2>
 		<p class="story-modal-subtitle">Escolha seu nome, nível de desafio e baralho inicial de 22 cartas</p>
+		<div style="display:flex; justify-content:center; margin-top: 6px;">
+			<span id="story-setup-slot-indicator" class="story-setup-slot-badge">Salvando no Slot 1 de 5</span>
+		</div>
 		<div class="story-modal-divider"></div>
 
 		<!-- Name & Difficulty Row -->
 		<div class="story-setup-row">
 			<div>
-				<label style="display:block; margin-bottom: 6px; font-weight: bold; color: #c5a059;">Nome do Bruxo / Jogador:</label>
-				<input type="text" id="story-player-name-input" class="story-setup-input" value="Geralt de Rívia" maxlength="28" />
+				<label style="display:block; margin-bottom: 6px; font-weight: bold; color: #ffd700;">Nome do Bruxo / Jogador:</label>
+				<input type="text" id="story-player-name-input" class="story-setup-input" value="Geralt de Rívia" maxlength="28" placeholder="Digite o nome do seu Bruxo" />
 			</div>
 			<div>
 				<label style="display:block; margin-bottom: 6px; font-weight: bold; color: #c5a059;">Dificuldade da Campanha:</label>
@@ -950,7 +953,7 @@
 				</div>
 				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
 					<span style="font-size:0.85rem; font-weight:bold; color:#ffd700;">Baralho Inicial Padrão (22 Cartas):</span>
-					<span style="font-size:0.8rem; color:#c5a059;">🪙 Coroas Iniciais: 2.000</span>
+					<span style="font-size:0.82rem; color:#ffd700; display:flex; align-items:center; gap:4px;"><img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="" /> Coroas Iniciais: 2.000</span>
 				</div>
 				<div id="story-preview-cards-list" class="story-preview-cards-list"></div>
 			</div>
@@ -959,6 +962,25 @@
 		<div style="display: flex; justify-content: flex-end; gap: 14px;">
 			<button class="witcher-menu-btn" style="width: 140px;" onclick="document.getElementById('story-setup-view').classList.add('hide'); MenuController.returnToMainMenu();">Voltar</button>
 			<button class="witcher-menu-btn" style="width: 280px; border-color: #ffd700;" onclick="StoryMode.confirmStartCampaign()">Iniciar Jornada (2.000 Coroas) ⚔</button>
+		</div>
+	</div>
+</div>
+
+<!-- STORY MODE: SAVE SLOTS MANAGER MODAL (Até 5 Slots) -->
+<div id="story-saves-modal" class="story-modal hide">
+	<div class="story-parchment-frame saves-modal-frame">
+		<button class="story-modal-close-btn" onclick="StoryMode.closeSavesModal()">✕</button>
+		<h2 class="story-modal-title"><img src="img/hud-icons/Map.png" class="modal-title-icon-img" alt="Salvar" /> SALVAMENTOS DA JORNADA</h2>
+		<p class="story-modal-subtitle">Selecione uma campanha para continuar ou gerencie seus 5 slots de jogo</p>
+		<div class="story-modal-divider"></div>
+
+		<div id="story-saves-slots-list" class="story-saves-slots-grid">
+			<!-- Renderizado dinamicamente via StoryMode.renderSavesSlots() -->
+		</div>
+
+		<div class="saves-modal-actions">
+			<button class="witcher-menu-btn" style="width: 160px;" onclick="StoryMode.closeSavesModal()">Voltar ao Menu</button>
+			<button id="story-saves-new-game-btn" class="witcher-menu-btn" style="min-width: 240px; border-color: #ffd700;" onclick="StoryMode.startNewCampaignFromMenu()">+ Nova Campanha</button>
 		</div>
 	</div>
 </div>
@@ -989,26 +1011,26 @@
 			</div>
 
 			<!-- Compendium Summary -->
-			<button class="story-hud-btn" onclick="StoryMode.openCompendiumModal('all', 'all')" title="Abrir Compêndio de Cartas do Continente">
+			<button class="story-hud-btn hud-btn-collection" onclick="StoryMode.openCompendiumModal('all', 'all')" title="Abrir Compêndio de Cartas do Continente">
 				<img class="story-hud-btn-icon" src="img/hud-icons/Collection.png" alt="Coleção" />
 				<span>Coleção:</span>
 				<strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong>
 			</button>
 
 			<!-- Achievements Button -->
-			<button class="story-hud-btn" onclick="StoryMode.openAchievementsModal()" title="Ver Conquistas da Campanha e do Jogo">
+			<button class="story-hud-btn hud-btn-achievements" onclick="StoryMode.openAchievementsModal()" title="Ver Conquistas da Campanha e do Jogo">
 				<img class="story-hud-btn-icon" src="img/hud-icons/Achievements.png" alt="Conquistas" />
 				<span>Conquistas</span>
 			</button>
 
 			<!-- Deck Builder -->
-			<button class="story-hud-btn" onclick="StoryMode.openCampaignDeckBuilder()" title="Organizar seu baralho com as cartas colecionadas">
+			<button class="story-hud-btn hud-btn-deck" onclick="StoryMode.openCampaignDeckBuilder()" title="Organizar seu baralho com as cartas colecionadas">
 				<img class="story-hud-btn-icon" src="img/hud-icons/Deck-Config.png" alt="Organizar Baralho" />
 				<span>Organizar Baralho</span>
 			</button>
 
 			<!-- Return to Menu -->
-			<button class="story-hud-btn btn-close" onclick="StoryMode.closeMapToMenu()" title="Salvar e voltar ao Menu Principal">
+			<button class="story-hud-btn btn-close hud-btn-menu" onclick="StoryMode.closeMapToMenu()" title="Salvar e voltar ao Menu Principal">
 				<span>✕</span>
 				<span>Menu</span>
 			</button>
