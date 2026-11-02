@@ -54,10 +54,17 @@
 }
 
 .story-wolf-icon {
-	width: 44px;
-	height: 44px;
-	background: url("img/icons/cursor.png") center/contain no-repeat;
-	filter: drop-shadow(0 0 6px rgba(226, 165, 55, 0.7));
+	width: 46px;
+	height: 46px;
+	background: url("img/hud-icons/Medallion.png") center/contain no-repeat;
+	filter: drop-shadow(0 0 8px rgba(226, 165, 55, 0.75));
+	flex-shrink: 0;
+	transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.story-player-badge:hover .story-wolf-icon {
+	transform: scale(1.08) rotate(3deg);
+	filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.95));
 }
 
 .story-player-info {
@@ -78,39 +85,63 @@
 	color: #c5a059;
 }
 
-/* Trophies in HUD */
+/* Trophies / Regional Insignias in HUD */
 .story-trophies-container {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: 8px;
 	margin-left: 20px;
 	padding-left: 20px;
 	border-left: 1px solid rgba(195, 150, 75, 0.3);
 }
 
 .story-trophy-badge {
-	width: 32px;
-	height: 32px;
+	width: 38px;
+	height: 38px;
 	border-radius: 50%;
-	background: rgba(30, 24, 18, 0.8);
-	border: 1px solid #5a482b;
+	background: rgba(30, 24, 18, 0.85);
+	border: 1.5px solid #5a482b;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 1.1rem;
-	transition: all 0.25s ease;
+	transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	position: relative;
+	cursor: pointer;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.story-trophy-badge .story-trophy-img {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+	transition: transform 0.2s ease;
+	pointer-events: none;
 }
 
 .story-trophy-badge.earned {
-	border-color: #f1c40f;
-	background: radial-gradient(circle, rgba(241, 196, 15, 0.35) 0%, rgba(20, 16, 10, 0.9) 100%);
-	box-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
-	transform: scale(1.08);
+	border-color: #ffd700;
+	background: radial-gradient(circle, rgba(255, 215, 0, 0.3) 0%, rgba(30, 20, 10, 0.95) 100%);
+	box-shadow: 0 0 12px rgba(255, 215, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.story-trophy-badge.earned:hover {
+	transform: scale(1.22);
+	border-color: #ffffff;
+	box-shadow: 0 0 22px rgba(255, 215, 0, 0.95);
+	z-index: 10;
 }
 
 .story-trophy-badge.locked {
-	opacity: 0.35;
+	opacity: 0.38;
 	filter: grayscale(1);
+	border-color: #3d3020;
+}
+
+.story-trophy-badge.locked:hover {
+	opacity: 0.75;
+	filter: grayscale(0.5);
+	transform: scale(1.12);
+	border-color: #8c734b;
 }
 
 /* HUD Right: Crowns & Actions */
@@ -300,6 +331,39 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.pin-icon-img {
+	width: 26px;
+	height: 26px;
+	object-fit: contain;
+	display: block;
+	pointer-events: none;
+	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.9));
+	transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.story-map-pin.available .pin-icon-img {
+	filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.85)) drop-shadow(0 2px 4px #000);
+}
+
+.story-map-pin.completed .pin-icon-img {
+	width: 24px;
+	height: 24px;
+	filter: drop-shadow(0 0 6px rgba(46, 204, 113, 0.85)) drop-shadow(0 2px 4px #000);
+}
+
+.story-map-pin.regional-tourney:not(.locked) .pin-icon-img {
+	width: 34px;
+	height: 34px;
+	filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.95)) drop-shadow(0 2px 4px #000);
+}
+
+.story-map-pin:hover .pin-icon-img,
+.story-map-pin.gamepad-hover .pin-icon-img {
+	transform: scale(1.18);
 }
 
 /* Node States: High Contrast & Vibrant Highlights */
@@ -474,15 +538,16 @@
 /* Geralt Avatar on Current Node */
 .pin-wolf-avatar {
 	position: absolute;
-	top: -24px;
+	top: -26px;
 	left: 50%;
 	transform: translateX(-50%);
-	width: 34px;
-	height: 34px;
-	background: url("img/icons/cursor.png") center/contain no-repeat;
-	filter: drop-shadow(0 0 8px #ffd700) drop-shadow(0 2px 4px #000);
+	width: 40px;
+	height: 40px;
+	background: url("img/hud-icons/Player.png") center/contain no-repeat;
+	filter: drop-shadow(0 0 10px #ffd700) drop-shadow(0 2px 4px #000);
 	animation: floatWolf 1.8s infinite ease-in-out;
 	z-index: 10;
+	pointer-events: none;
 }
 
 @keyframes floatWolf {
@@ -1728,4 +1793,77 @@
 .story-wager-payout {
 	font-size: 0.78rem;
 	text-align: right;
+}
+
+/* ==========================================================================
+   WITCHER HUD & BADGE GRAPHICS (512x512 High-Definition Icons)
+   ========================================================================== */
+.story-hud-btn-icon {
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
+	margin-right: 6px;
+	vertical-align: middle;
+	display: inline-block;
+	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+	transition: transform 0.2s ease;
+}
+
+.story-hud-btn:hover .story-hud-btn-icon {
+	transform: scale(1.15);
+	filter: drop-shadow(0 0 6px #ffd700);
+}
+
+.btn-hud-icon {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	margin-right: 6px;
+	vertical-align: middle;
+	display: inline-block;
+	filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+
+.map-ctrl-img {
+	width: 22px;
+	height: 22px;
+	object-fit: contain;
+	display: block;
+	margin: 0 auto;
+	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+}
+
+.filter-icon-img {
+	width: 18px;
+	height: 18px;
+	object-fit: contain;
+	vertical-align: middle;
+	display: inline-block;
+	margin-right: 2px;
+}
+
+.ingame-dialog-icon-img {
+	width: 48px;
+	height: 48px;
+	object-fit: contain;
+	filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.85));
+	vertical-align: middle;
+	display: inline-block;
+}
+
+.ach-badge-img {
+	width: 38px;
+	height: 38px;
+	object-fit: contain;
+	display: block;
+	margin: 0 auto;
+	transition: all 0.25s ease;
+}
+
+.ach-card.locked .ach-badge-img {
+	filter: grayscale(1) opacity(0.35);
+}
+
+.ach-card.unlocked .ach-badge-img {
+	filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.75));
 }

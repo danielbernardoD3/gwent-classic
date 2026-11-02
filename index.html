@@ -33,23 +33,23 @@
 		<!-- 1. Navigation View -->
 		<div id="menu-nav" class="menu-view active">
 			<button id="btn-story-continue" class="witcher-menu-btn hide" style="border-color: #ffd700;" onclick="StoryMode.continueCampaign()">
-				<span class="btn-icon">🐺</span>
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Player.png" alt="Continuar Jornada" /></span>
 				<span class="btn-text" data-i18n="menu_continue_story">Continuar Jornada</span>
 			</button>
 			<button class="witcher-menu-btn story-mode-entry-btn" onclick="MenuController.openStoryMode()">
-				<span class="btn-icon">🗺️</span>
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Map.png" alt="Modo História" /></span>
 				<span class="btn-text" data-i18n="menu_story_mode">Modo História</span>
 			</button>
 			<button class="witcher-menu-btn" onclick="MenuController.showView('play')">
-				<span class="btn-icon">⚔</span>
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Duel.png" alt="Play Gwent" /></span>
 				<span class="btn-text" data-i18n="menu_play">Play Gwent (Livre)</span>
 			</button>
 			<button class="witcher-menu-btn versus-mode-entry-btn" onclick="MenuController.openVersusMode()" style="border-color: #d4a34b;">
-				<span class="btn-icon">⚔️</span>
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Duel.png" alt="Versus" /></span>
 				<span class="btn-text" data-i18n="menu_versus_mode">Modo Versus (PvP)</span>
 			</button>
 			<button class="witcher-menu-btn" onclick="MenuController.showView('achievements')">
-				<span class="btn-icon">🏆</span>
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Achievements.png" alt="Achievements" /></span>
 				<span class="btn-text" data-i18n="menu_achievements">Achievements</span>
 			</button>
 			<button class="witcher-menu-btn" onclick="MenuController.showView('settings')">
@@ -228,7 +228,7 @@
 		<!-- 5. Achievements View -->
 		<div id="menu-achievements" class="menu-view">
 			<div class="achievements-header">
-				<h2 class="menu-view-title" data-i18n="achievements_title">ACHIEVEMENTS</h2>
+				<h2 class="menu-view-title"><img class="btn-hud-icon" src="img/hud-icons/Achievements.png" alt="Achievements" style="width:26px; height:26px; margin-right:8px;" /><span data-i18n="achievements_title">ACHIEVEMENTS</span></h2>
 				<div id="achievements-summary" class="achievements-summary">0 / 31 (0%) Desbloqueadas</div>
 			</div>
 			
@@ -248,7 +248,7 @@
 				<!-- Dynamically generated -->
 			</div>
 
-			<button class="witcher-menu-btn menu-nav-back" onclick="MenuController.showView('nav')">
+			<button class="witcher-menu-btn menu-nav-back" onclick="MenuController.closeAchievements()">
 				<span data-i18n="btn_back">← Back</span>
 			</button>
 		</div>
@@ -478,7 +478,7 @@
 		<button id="end-btn-customize" data-i18n="btn_customize">Customize</button>
 		<button id="end-btn-rematch" data-i18n="btn_rematch">Rematch</button>
 		<button id="end-btn-new-game" data-i18n="btn_new_game">New Game</button>
-		<button id="end-btn-story-return" class="hide" style="display: none;">Retornar ao Mapa</button>
+		<button id="end-btn-story-return" class="hide" style="display: none;"><img class="btn-hud-icon" src="img/hud-icons/Map.png" alt="Mapa" style="width:20px;height:20px;margin-right:8px;vertical-align:middle;" />Retornar ao Mapa</button>
 	</section>
 	
 	<section id="deck-selector">
@@ -497,7 +497,7 @@
 				<span class="btn-text" data-i18n="btn_main_menu">Menu Principal</span>
 			</button>
 			<button id="btn-story-back-to-map" class="witcher-btn-compact hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar baralho e voltar ao Mapa da História">
-				<span class="btn-icon">🗺️</span>
+				<span class="btn-icon"><img class="btn-hud-icon" src="img/hud-icons/Map.png" alt="Mapa" /></span>
 				<span class="btn-text">Voltar ao Mapa</span>
 			</button>
 			<button id="btn-versus-top-back" class="witcher-btn-compact hide" style="display:none;" onclick="VersusMode.closeDeckBuilderForVersus()" title="Confirmar baralho e voltar ao Lobby do Versus">
@@ -994,6 +994,12 @@
 				<strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong>
 			</button>
 
+			<!-- Achievements Button -->
+			<button class="story-hud-btn" onclick="StoryMode.openAchievementsModal()" title="Ver Conquistas da Campanha e do Jogo">
+				<img class="story-hud-btn-icon" src="img/hud-icons/Achievements.png" alt="Conquistas" />
+				<span>Conquistas</span>
+			</button>
+
 			<!-- Deck Builder -->
 			<button class="story-hud-btn" onclick="StoryMode.openCampaignDeckBuilder()" title="Organizar seu baralho com as cartas colecionadas">
 				<span>🃏</span>
@@ -1021,8 +1027,8 @@
 	<div class="story-map-controls">
 		<button class="story-map-control-btn" onclick="StoryMode.zoomMap(0.25)" title="Aproximar Zoom (ou use Roda do Mouse)">+</button>
 		<button class="story-map-control-btn" onclick="StoryMode.zoomMap(-0.25)" title="Afastar Zoom (ou use Roda do Mouse)">−</button>
-		<button class="story-map-control-btn" onclick="StoryMode.focusCurrentNode()" title="Centralizar na Localização Atual do Geralt">🐺</button>
-		<button class="story-map-control-btn" onclick="StoryMode.resetMapToContinent()" title="Ver Continente Inteiro">🗺️</button>
+		<button class="story-map-control-btn" onclick="StoryMode.focusCurrentNode()" title="Centralizar na Localização Atual do Geralt"><img src="img/hud-icons/Player.png" class="map-ctrl-img" alt="Geralt" /></button>
+		<button class="story-map-control-btn" onclick="StoryMode.resetMapToContinent()" title="Ver Continente Inteiro"><img src="img/hud-icons/Map.png" class="map-ctrl-img" alt="Continente" /></button>
 	</div>
 
 	<!-- Map Layer Filters (Toggle visibility of Shops, Tournaments, Locked nodes) -->
@@ -1033,7 +1039,7 @@
 			<span class="story-filter-label">Lojas</span>
 		</button>
 		<button id="story-filter-tourneys" class="story-filter-btn active" onclick="StoryMode.toggleFilter('tourneys')" title="Exibir/Ocultar Torneios no Mapa">
-			<span class="story-filter-icon">🏆</span>
+			<span class="story-filter-icon"><img src="img/hud-icons/Tournament.png" class="filter-icon-img" alt="Torneios" /></span>
 			<span class="story-filter-label">Torneios</span>
 		</button>
 		<button id="story-filter-locked" class="story-filter-btn active" onclick="StoryMode.toggleFilter('locked')" title="Exibir/Ocultar Locais Bloqueados no Mapa">

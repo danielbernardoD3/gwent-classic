@@ -780,6 +780,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_1",
 		icon: "🧭",
+		image: "img/hud-icons/Duel.png",
 		type: "count",
 		target: 1,
 		getProgress: stats => stats.storyOpponentsDefeated || 0,
@@ -805,6 +806,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_10",
 		icon: "⚔️",
+		image: "img/hud-icons/Duel.png",
 		type: "count",
 		target: 10,
 		getProgress: stats => stats.storyOpponentsDefeated || 0,
@@ -830,6 +832,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_20",
 		icon: "🛡️",
+		image: "img/hud-icons/Duel.png",
 		type: "count",
 		target: 20,
 		getProgress: stats => stats.storyOpponentsDefeated || 0,
@@ -855,6 +858,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_30",
 		icon: "🎖️",
+		image: "img/hud-icons/Duel.png",
 		type: "count",
 		target: 30,
 		getProgress: stats => stats.storyOpponentsDefeated || 0,
@@ -880,6 +884,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_40",
 		icon: "🏅",
+		image: "img/hud-icons/Duel.png",
 		type: "count",
 		target: 40,
 		getProgress: stats => stats.storyOpponentsDefeated || 0,
@@ -905,6 +910,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_50",
 		icon: "👑",
+		image: "img/hud-icons/Duel.png",
 		type: "count",
 		target: 50,
 		getProgress: stats => stats.storyOpponentsDefeated || 0,
@@ -930,6 +936,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_win_all_opponents",
 		icon: "🗺️",
+		image: "img/hud-icons/Checked.png",
 		type: "count",
 		target: 63,
 		getProgress: stats => stats.storyAllOpponentsProgress || 0,
@@ -955,6 +962,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_tourney_2",
 		icon: "🥉",
+		image: "img/hud-icons/Tournament.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyTourney2 || 0,
@@ -980,6 +988,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_tourney_3",
 		icon: "🥈",
+		image: "img/hud-icons/Tournament.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyTourney3 || 0,
@@ -1005,6 +1014,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_tourney_5",
 		icon: "🥇",
+		image: "img/hud-icons/Tournament.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyTourney5 || 0,
@@ -1030,6 +1040,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_tourney_7",
 		icon: "🏆",
+		image: "img/hud-icons/Region-Tournament.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyTourney7 || 0,
@@ -1055,6 +1066,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_insignia_skellige",
 		icon: "⚓",
+		image: "img/hud-icons/Skellige-Badge.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyInsigniaSkellige || 0,
@@ -1080,6 +1092,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_insignia_nilfgaard",
 		icon: "☀️",
+		image: "img/hud-icons/Nilfgaard-Badge.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyInsigniaNilfgaard || 0,
@@ -1105,6 +1118,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_insignia_redania",
 		icon: "🦅",
+		image: "img/hud-icons/Redania-Badge.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyInsigniaRedania || 0,
@@ -1130,6 +1144,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_insignia_temeria",
 		icon: "⚜️",
+		image: "img/hud-icons/Temeria-Badge.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyInsigniaTemeria || 0,
@@ -1155,6 +1170,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_insignia_toussaint",
 		icon: "🍷",
+		image: "img/hud-icons/Toussaint-badge.png",
 		type: "boolean",
 		target: 1,
 		getProgress: stats => stats.storyInsigniaToussaint || 0,
@@ -1180,6 +1196,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_all_shops",
 		icon: "🏪",
+		image: "img/hud-icons/Map.png",
 		type: "count",
 		target: 6,
 		getProgress: stats => stats.storyUnlockedShops || 0,
@@ -1205,6 +1222,7 @@ const ACHIEVEMENTS_DATA = [
 	{
 		id: "story_all_cards",
 		icon: "🃏",
+		image: "img/hud-icons/Medallion.png",
 		type: "count",
 		target: 216,
 		getProgress: stats => stats.storyUniqueCards || 0,
@@ -1646,7 +1664,11 @@ class Achievements {
 
 			const iconBadge = document.createElement("div");
 			iconBadge.className = "ach-icon-badge";
-			iconBadge.textContent = isUnl ? ach.icon : "🔒";
+			if (ach.image) {
+				iconBadge.innerHTML = `<img src="${ach.image}" class="ach-badge-img ${isUnl ? 'unlocked' : 'locked'}" alt="${titleText}" />`;
+			} else {
+				iconBadge.textContent = isUnl ? ach.icon : "🔒";
+			}
 
 			const titleBox = document.createElement("div");
 			titleBox.className = "ach-title-box";
@@ -1741,8 +1763,12 @@ class Achievements {
 		const titleText = Achievements.getText(ach.title);
 		const descText = Achievements.getText(ach.desc);
 
+		const toastIconHtml = ach.image
+			? `<img src="${ach.image}" class="ach-toast-img" alt="${titleText}" style="width:38px; height:38px; object-fit:contain; filter:drop-shadow(0 0 6px #ffd700);" />`
+			: `<div class="ach-toast-icon">${ach.icon}</div>`;
+
 		toast.innerHTML = `
-			<div class="ach-toast-icon">${ach.icon}</div>
+			${toastIconHtml}
 			<div class="ach-toast-info">
 				<div class="ach-toast-header">${toastTitle}</div>
 				<div class="ach-toast-name">${titleText}</div>

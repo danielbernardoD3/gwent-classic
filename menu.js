@@ -89,7 +89,17 @@ class MenuController {
 		const cancelBtn = document.getElementById("ingame-dialog-cancel-btn");
 
 		if (titleEl) titleEl.textContent = title || "AVISO DO CONTINENTE";
-		if (iconEl) iconEl.textContent = icon || "🐺";
+		if (iconEl) {
+			if (icon && (icon.endsWith(".png") || icon.includes("/"))) {
+				iconEl.innerHTML = `<img src="${icon}" class="ingame-dialog-icon-img" alt="Ícone" />`;
+			} else if (icon === "🐺") {
+				iconEl.innerHTML = `<img src="img/hud-icons/Medallion.png" class="ingame-dialog-icon-img" alt="Medalhão" />`;
+			} else if (icon === "⚔" || icon === "⚔️") {
+				iconEl.innerHTML = `<img src="img/hud-icons/Duel.png" class="ingame-dialog-icon-img" alt="Duelo" />`;
+			} else {
+				iconEl.textContent = icon || "🐺";
+			}
+		}
 		if (msgEl) msgEl.textContent = String(message || "");
 
 		if (cancelBtn) {
@@ -135,7 +145,17 @@ class MenuController {
 		const cancelBtn = document.getElementById("ingame-dialog-cancel-btn");
 
 		if (titleEl) titleEl.textContent = title || "CONFIRMAÇÃO";
-		if (iconEl) iconEl.textContent = icon || "⚔️";
+		if (iconEl) {
+			if (icon && (icon.endsWith(".png") || icon.includes("/"))) {
+				iconEl.innerHTML = `<img src="${icon}" class="ingame-dialog-icon-img" alt="Ícone" />`;
+			} else if (icon === "🐺") {
+				iconEl.innerHTML = `<img src="img/hud-icons/Medallion.png" class="ingame-dialog-icon-img" alt="Medalhão" />`;
+			} else if (icon === "⚔" || icon === "⚔️") {
+				iconEl.innerHTML = `<img src="img/hud-icons/Duel.png" class="ingame-dialog-icon-img" alt="Duelo" />`;
+			} else {
+				iconEl.textContent = icon || "⚔️";
+			}
+		}
 		if (msgEl) msgEl.textContent = String(message || "");
 
 		if (cancelBtn) {
@@ -219,6 +239,19 @@ class MenuController {
 		if (viewName === "achievements" && typeof Achievements !== "undefined") {
 			Achievements.renderUI(Achievements.currentFilter || "all");
 		}
+	}
+
+	static closeAchievements() {
+		const storyMap = document.getElementById("story-map-screen");
+		if (storyMap && !storyMap.classList.contains("hide")) {
+			const mainMenu = document.getElementById("main-menu");
+			if (mainMenu) mainMenu.classList.add("hide");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_back");
+			}
+			return;
+		}
+		MenuController.showView("nav");
 	}
 
 	static startGame(difficulty = "medium") {

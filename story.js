@@ -491,10 +491,30 @@ class StoryMode {
 				const hasWon = StoryMode.save.trophies.includes(t.id);
 				const badge = document.createElement("div");
 				badge.className = `story-trophy-badge ${hasWon ? 'earned' : 'locked'}`;
-				badge.title = `${t.title} (${t.region}): ${t.desc}`;
-				badge.innerHTML = `<span>${t.icon}</span>`;
+				badge.title = hasWon
+					? `★ ${t.title} (${t.region}): ${t.desc}`
+					: `🔒 ${t.title} (${t.region}): Vença o Grande Torneio Regional de 7 lutas para conquistar!`;
+				badge.innerHTML = `<img class="story-trophy-img" src="${t.image}" alt="${t.title}" />`;
+				badge.onclick = () => {
+					if (typeof MenuController !== "undefined" && MenuController.showAlert) {
+						const statusMsg = hasWon
+							? `★ Insígnia Conquistada!\n\n${t.desc}`
+							: `🔒 Insígnia Bloqueada\n\nVença todas as 7 batalhas consecutivas do Grande Torneio Regional de ${t.region} para conquistar esta insígnia!`;
+						MenuController.showAlert(statusMsg, t.title, t.image);
+					}
+				};
 				trophiesEl.appendChild(badge);
 			});
+		}
+	}
+
+	static openAchievementsModal() {
+		if (typeof MenuController !== "undefined" && typeof MenuController.showView === "function") {
+			MenuController.showView("achievements");
+			const mainMenu = document.getElementById("main-menu");
+			if (mainMenu) {
+				mainMenu.classList.remove("hide");
+			}
 		}
 	}
 
@@ -546,35 +566,35 @@ class StoryMode {
 			pin.style.left = node.x + "px";
 			pin.style.top = node.y + "px";
 
-			let pinIcon = "⚔";
+			let pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Duel.png" alt="Batalha" />`;
 			let statusBadge = "";
 
 			if (node.type === "tournament") {
 				const numRounds = (node.rounds || []).length;
 				if (isCompleted) {
-					pinIcon = "🏆";
+					pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Checked.png" alt="Campeão" />`;
 					statusBadge = `<span class="pin-status">✓ Campeão (${numRounds} Lutas)</span>`;
 				} else if (isRegional) {
-					pinIcon = "👑";
+					pinIcon = `<img class="pin-icon-img tourney-regional-img" src="img/hud-icons/Region-Tournament.png" alt="Torneio Regional" />`;
 					statusBadge = `<span class="pin-status tourney">👑 Torneio Regional (${numRounds} Lutas)</span>`;
 				} else {
-					pinIcon = "🏆";
+					pinIcon = `<img class="pin-icon-img tourney-pin-img" src="img/hud-icons/Tournament.png" alt="Torneio" />`;
 					statusBadge = `<span class="pin-status tourney">★ Torneio (${numRounds} Lutas)</span>`;
 				}
 			} else if (node.type === "shop") {
 				pinIcon = "💰";
 				statusBadge = '<span class="pin-status shop">🪙 Mercador Regional</span>';
 			} else if (isCompleted) {
-				pinIcon = "✓";
+				pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Checked.png" alt="Concluído" />`;
 				statusBadge = '<span class="pin-status">✓ Concluído</span>';
 			} else if (!isUnlocked) {
 				pinIcon = "🔒";
 				statusBadge = '<span class="pin-status locked">Bloqueado</span>';
 			} else if (node.isWagerable) {
-				pinIcon = "🎲";
+				pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Duel.png" alt="Confronto Apostável" />`;
 				statusBadge = '<span class="pin-status wagerable">🎲 Confronto Apostável</span>';
 			} else {
-				pinIcon = "⚔";
+				pinIcon = `<img class="pin-icon-img" src="img/hud-icons/Duel.png" alt="Batalha de Gwent" />`;
 				statusBadge = '<span class="pin-status" style="color:#ffd700;">⚔ Batalha de Gwent</span>';
 			}
 
@@ -791,6 +811,7 @@ class StoryMode {
 
 		const playBtn = document.getElementById("story-battle-start-btn");
 		if (playBtn) {
+			playBtn.innerHTML = `<img class="btn-hud-icon" src="img/hud-icons/Duel.png" alt="Duelo" /> Jogar Gwent`;
 			playBtn.onclick = () => {
 				StoryMode.closeAllModals();
 				StoryMode.startMatch(nodeId);
@@ -868,11 +889,11 @@ class StoryMode {
 		if (trophyEl) {
 			if (trophyData) {
 				trophyEl.innerHTML = `
-					<div class="story-tourney-trophy-badge ${isCompleted ? 'earned' : ''}" style="display:flex; align-items:center; gap:12px; background:rgba(30,18,12,0.9); border:1.5px solid #ffd700; padding:10px 14px; border-radius:4px; margin-top:8px;">
-						<span class="trophy-icon" style="font-size:1.8rem;">${trophyData.icon}</span>
+					<div class="story-tourney-trophy-badge ${isCompleted ? 'earned' : ''}" style="display:flex; align-items:center; gap:14px; background:rgba(30,18,12,0.92); border:1.5px solid #ffd700; padding:10px 16px; border-radius:6px; margin-top:8px; box-shadow:0 0 14px rgba(255,215,0,0.3);">
+						<img src="${trophyData.image}" alt="${trophyData.title}" class="trophy-preview-img" style="width:52px; height:52px; object-fit:contain; filter:drop-shadow(0 0 10px rgba(255,215,0,0.85));" />
 						<div class="trophy-text" style="display:flex; flex-direction:column;">
-							<strong style="color:#ffd700; font-size:0.92rem;">${trophyData.title}</strong>
-							<small style="color:#e0d0b0; font-size:0.78rem;">${isCompleted ? '✓ Insígnia Conquistada!' : 'Insígnia Regional Colecionável (1 de 5)'}</small>
+							<strong style="color:#ffd700; font-size:0.98rem; letter-spacing:0.5px;">${trophyData.title}</strong>
+							<small style="color:#e0d0b0; font-size:0.8rem; margin-top:2px;">${isCompleted ? '✓ Insígnia Já Conquistada em seu Painel!' : '★ Insígnia Regional Colecionável — Conquistada ao Vencer as 7 Lutas!'}</small>
 						</div>
 					</div>
 				`;
@@ -900,6 +921,9 @@ class StoryMode {
 				const stageKey = `${nodeId}_r${idx}`;
 				const stageAlreadyCleared = !!(StoryMode.save.tournamentStageCleared && StoryMode.save.tournamentStageCleared[stageKey]);
 				const stageCrowns = stageAlreadyCleared ? (node.roundWinCrownsRepeat || 40) : (node.roundWinCrownsFirst || 300);
+				const statusIcon = stageAlreadyCleared
+					? `<img src="img/hud-icons/Checked.png" class="round-status-icon-img" alt="Vencida" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;" />`
+					: `🪙 `;
 
 				const roundBox = document.createElement("div");
 				roundBox.className = `story-tourney-round-box ${stageAlreadyCleared ? 'won' : ''}`;
@@ -907,7 +931,7 @@ class StoryMode {
 					<div class="round-num" style="font-weight:bold; color:#ffd700;">Batalha ${idx + 1}/${totalRounds}</div>
 					<div class="round-op-name" style="color:#fff;">${rnd.opponentName} <span style="color:#c5a059; font-size:0.82rem;">(${factionNames[rnd.faction] || rnd.faction})</span></div>
 					<div class="round-status" style="font-size:0.82rem; color:${stageAlreadyCleared ? '#aaa' : '#2ecc71'};">
-						🪙 +${stageCrowns} Coroas ${stageAlreadyCleared ? '(2ª+ tentativa)' : '(1ª vitória)'}
+						${statusIcon}+${stageCrowns} Coroas ${stageAlreadyCleared ? '(2ª+ tentativa)' : '(1ª vitória)'}
 					</div>
 				`;
 				roundsContainer.appendChild(roundBox);
@@ -916,9 +940,11 @@ class StoryMode {
 
 		const enterBtn = document.getElementById("story-tourney-enter-btn");
 		if (enterBtn) {
-			enterBtn.textContent = isCompleted
+			const btnIcon = isRegional ? "img/hud-icons/Region-Tournament.png" : "img/hud-icons/Tournament.png";
+			const label = isCompleted
 				? `Rejogar Torneio (${node.entryFee} Coroas)`
 				: `Pagar Inscrição (${node.entryFee} Coroas) & Iniciar 1/${totalRounds}`;
+			enterBtn.innerHTML = `<img class="btn-hud-icon" src="${btnIcon}" alt="Torneio" /> ${label}`;
 
 			enterBtn.onclick = () => {
 				if (StoryMode.save.crowns < node.entryFee) {
@@ -1618,11 +1644,11 @@ class StoryMode {
 				const t = STORY_DATA.TROPHIES[trophyId];
 				trophyBox.classList.remove("hide");
 				trophyBox.innerHTML = `
-					<div style="background:radial-gradient(circle, rgba(255,215,0,0.2) 0%, rgba(20,15,10,0.95) 100%); border:2px solid #ffd700; padding:12px 18px; border-radius:6px;">
-						<div style="color:#ffd700; font-weight:bold; font-size:0.9rem;">🏆 INSÍGNIA REGIONAL CONQUISTADA!</div>
-						<div style="font-size:2.2rem; margin:6px 0;">${t.icon}</div>
-						<strong style="color:#fff; font-size:1.05rem; display:block;">${t.title}</strong>
-						<small style="color:#e0d0b0; font-size:0.8rem;">${t.desc}</small>
+					<div style="background:radial-gradient(circle, rgba(255,215,0,0.25) 0%, rgba(20,15,10,0.95) 100%); border:2px solid #ffd700; padding:16px 24px; border-radius:8px; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 0 24px rgba(255,215,0,0.5);">
+						<div style="color:#ffd700; font-weight:bold; font-size:1rem; letter-spacing:1px; margin-bottom:8px;">★ INSÍGNIA REGIONAL CONQUISTADA! ★</div>
+						<img src="${t.image}" alt="${t.title}" style="width:96px; height:96px; object-fit:contain; filter:drop-shadow(0 0 16px rgba(255,215,0,0.95)); margin:8px 0;" />
+						<strong style="color:#fff; font-size:1.2rem; display:block; margin-top:4px;">${t.title}</strong>
+						<small style="color:#e0d0b0; font-size:0.88rem; max-width:440px; margin-top:6px; line-height:1.4;">${t.desc}</small>
 					</div>
 				`;
 			} else {

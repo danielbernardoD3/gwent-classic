@@ -469,6 +469,7 @@ var STORY_DATA = {
       "title": "Insígnia Real de Teméria",
       "region": "Teméria",
       "icon": "⚜️",
+      "image": "img/hud-icons/Temeria-Badge.png",
       "desc": "Insígnia dos Lírios de Prata conquistada ao vencer as 7 batalhas seguidas do Grande Torneio Regional de Teméria."
     },
     "insignia_redania": {
@@ -476,6 +477,7 @@ var STORY_DATA = {
       "title": "Insígnia da Águia Redaniana",
       "region": "Redânia",
       "icon": "🦅",
+      "image": "img/hud-icons/Redania-Badge.png",
       "desc": "Insígnia Real da Águia conquistada ao vencer as 7 batalhas seguidas do Grande Torneio Regional da Redânia."
     },
     "insignia_skellige": {
@@ -483,6 +485,7 @@ var STORY_DATA = {
       "title": "Insígnia dos Clãs de Skellige",
       "region": "Skellige",
       "icon": "🛡️",
+      "image": "img/hud-icons/Skellige-Badge.png",
       "desc": "Insígnia Ancestral de Kaer Trolde conquistada ao vencer as 7 batalhas seguidas do Grande Torneio Regional de Skellige."
     },
     "insignia_toussaint": {
@@ -490,6 +493,7 @@ var STORY_DATA = {
       "title": "Insígnia Ducal de Toussaint",
       "region": "Toussaint",
       "icon": "🍷",
+      "image": "img/hud-icons/Toussaint-badge.png",
       "desc": "Insígnia Ducal de Beauclair conquistada ao vencer as 7 batalhas seguidas do Grande Torneio Regional de Toussaint."
     },
     "insignia_nilfgaard": {
@@ -497,6 +501,7 @@ var STORY_DATA = {
       "title": "Insígnia do Grande Sol de Nilfgaard",
       "region": "Nilfgaard",
       "icon": "☀️",
+      "image": "img/hud-icons/Nilfgaard-Badge.png",
       "desc": "Insígnia Imperial de Ouro conquistada ao vencer as 7 batalhas seguidas do Grande Torneio Regional de Nilfgaard."
     }
   },
