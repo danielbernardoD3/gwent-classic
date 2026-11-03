@@ -55,7 +55,9 @@ const files = [
   'peerjs.min.js',
   'versus.js',
   'menu.js',
-  'gamepad.js'
+  'gamepad.js',
+  'Appico.png',
+  'app.ico'
 ];
 
 files.forEach(f => copyFile(f));
