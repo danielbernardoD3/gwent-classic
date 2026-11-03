@@ -281,10 +281,10 @@
 /* Settings Form Controls */
 .settings-scroll-container,
 .credits-scroll-container {
-	max-height: 34vh;
+	max-height: 42vh;
 	overflow-y: auto;
 	padding-right: 1vw;
-	margin-bottom: 1.8vh;
+	margin-bottom: 1.2vh;
 }
 
 .setting-row {
@@ -390,13 +390,18 @@
 
 .settings-actions {
 	display: flex;
-	gap: 1vw;
+	gap: 1.2vw;
+	margin-top: 1.4vh;
+	width: 100%;
+	box-sizing: border-box;
 }
 
 .settings-actions .witcher-menu-btn {
 	flex: 1;
 	justify-content: center;
 	margin-bottom: 0;
+	min-width: 0;
+	text-align: center;
 }
 
 /* Credits Cards */
@@ -1250,6 +1255,7 @@
 	left: 0 !important;
 	width: 100vw !important;
 	height: 100vh !important;
+	transform: none !important;
 	background: radial-gradient(circle at center, rgba(30, 24, 18, 0.96) 0%, rgba(10, 8, 7, 0.99) 100%) !important;
 	z-index: 85 !important;
 	display: flex !important;

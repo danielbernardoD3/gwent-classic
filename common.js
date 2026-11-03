@@ -97,16 +97,21 @@ function fitGameBoard() {
 	const currentAspect = w / h;
 
 	// Se a tela for mais larga que 16:9 (celulares 19.5:9, 20:9 ou ultrawide):
-	// O tabuleiro (100vw) ultrapassaria a altura. Escalamos para caber 100% em 100vh.
+	// O tabuleiro (100vw) ultrapassaria a altura. Escalamos apenas o <main> para caber 100% em 100vh.
 	const scale = currentAspect > baseAspect ? (h * 1920) / (w * 1080) : 1;
 
-	[main, deckCust].forEach(elem => {
-		if (!elem) return;
-		elem.style.left = "50%";
-		elem.style.top = "50%";
-		elem.style.transform = `translate(-50%, -50%) scale(${scale})`;
-		elem.style.transformOrigin = "center center";
-	});
+	if (main) {
+		main.style.left = "50%";
+		main.style.top = "50%";
+		main.style.transform = `translate(-50%, -50%) scale(${scale})`;
+		main.style.transformOrigin = "center center";
+	}
+
+	if (deckCust) {
+		deckCust.style.transform = "none";
+		deckCust.style.left = "0";
+		deckCust.style.top = "0";
+	}
 }
 
 window.addEventListener("resize", fitGameBoard);

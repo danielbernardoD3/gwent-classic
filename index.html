@@ -190,15 +190,25 @@
 						<option value="pl" data-i18n="lang_pl">Polski</option>
 					</select>
 				</div>
+
+				<!-- Save Management -->
+				<div class="setting-row">
+					<label>Dados do Jogo</label>
+					<button class="witcher-menu-btn" style="width: auto; padding: 0.6vh 1.2vw; font-size: clamp(0.75rem, 0.9vw, 0.95rem); border-color: #ffd700; margin: 0;" onclick="openBackupModal()">
+						<span>💾 Backup do Save</span>
+					</button>
+				</div>
+
+				<!-- Game Updates -->
+				<div class="setting-row">
+					<label>Versão & Atualizações</label>
+					<button id="check-updates-btn" class="witcher-menu-btn" style="width: auto; padding: 0.6vh 1.2vw; font-size: clamp(0.75rem, 0.9vw, 0.95rem); border-color: #ffd700; margin: 0;" onclick="InGameUpdater.checkForUpdates(true)">
+						<span>🔄 Verificar Atualizações</span>
+					</button>
+				</div>
 			</div>
 
 			<div class="settings-actions">
-				<button class="witcher-menu-btn" style="border-color: #ffd700;" onclick="openBackupModal()">
-					<span>💾 Backup / Restaurar Save</span>
-				</button>
-				<button id="check-updates-btn" class="witcher-menu-btn" style="border-color: #ffd700;" onclick="InGameUpdater.checkForUpdates(true)">
-					<span>🔄 Verificar Atualizações</span>
-				</button>
 				<button class="witcher-menu-btn" onclick="MenuController.saveSettings()">
 					<span data-i18n="btn_save">Save & Close</span>
 				</button>
@@ -880,6 +890,22 @@
 					<option value="es" data-i18n="lang_es">Español</option>
 					<option value="pl" data-i18n="lang_pl">Polski</option>
 				</select>
+			</div>
+
+			<!-- Save Management -->
+			<div class="setting-row">
+				<label>Dados do Jogo</label>
+				<button class="witcher-menu-btn" style="width: auto; padding: 0.6vh 1.2vw; font-size: clamp(0.75rem, 0.9vw, 0.95rem); border-color: #ffd700; margin: 0;" onclick="openBackupModal()">
+					<span>💾 Backup do Save</span>
+				</button>
+			</div>
+
+			<!-- Game Updates -->
+			<div class="setting-row">
+				<label>Versão & Atualizações</label>
+				<button id="check-updates-btn-overlay" class="witcher-menu-btn" style="width: auto; padding: 0.6vh 1.2vw; font-size: clamp(0.75rem, 0.9vw, 0.95rem); border-color: #ffd700; margin: 0;" onclick="InGameUpdater.checkForUpdates(true)">
+					<span>🔄 Verificar Atualizações</span>
+				</button>
 			</div>
 		</div>
 
