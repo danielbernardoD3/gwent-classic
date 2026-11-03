@@ -20,44 +20,71 @@ function createPcZip(rootDir) {
   if (fs.existsSync(zipPath)) {
     fs.unlinkSync(zipPath);
   }
-  const psCmd = `
-    $items = @(
-      "GwentClassic.exe",
-      "Microsoft.Web.WebView2.Core.dll",
-      "Microsoft.Web.WebView2.WinForms.dll",
-      "WebView2Loader.dll",
-      "app.ico",
-      "index.html",
-      "style.css",
-      "menu.css",
-      "story.css",
-      "versus.css",
-      "common.js",
-      "cards.js",
-      "decks.js",
-      "abilities.js",
-      "factions.js",
-      "story_data.js",
-      "story.js",
-      "i18n.js",
-      "achievements.js",
-      "gwent.js",
-      "peerjs.min.js",
-      "versus.js",
-      "menu.js",
-      "gamepad.js",
-      "version.json",
-      "img",
-      "music",
-      "fonts",
-      "sfx",
-      "svg"
-    )
-    Compress-Archive -Path $items -DestinationPath "GwentClassic-PC.zip" -CompressionLevel Optimal
-  `;
-  execSync(`powershell -NoProfile -Command "${psCmd.replace(/\n/g, ' ')}"`, { cwd: rootDir });
+  const items = [
+    "'GwentClassic.exe'",
+    "'Microsoft.Web.WebView2.Core.dll'",
+    "'Microsoft.Web.WebView2.WinForms.dll'",
+    "'WebView2Loader.dll'",
+    "'app.ico'",
+    "'index.html'",
+    "'style.css'",
+    "'menu.css'",
+    "'story.css'",
+    "'versus.css'",
+    "'common.js'",
+    "'cards.js'",
+    "'decks.js'",
+    "'abilities.js'",
+    "'factions.js'",
+    "'story_data.js'",
+    "'story.js'",
+    "'i18n.js'",
+    "'achievements.js'",
+    "'gwent.js'",
+    "'peerjs.min.js'",
+    "'versus.js'",
+    "'menu.js'",
+    "'gamepad.js'",
+    "'version.json'",
+    "'img'",
+    "'music'",
+    "'fonts'",
+    "'sfx'",
+    "'svg'"
+  ].join(',');
+
+  const psCmd = `Compress-Archive -Path ${items} -DestinationPath 'GwentClassic-PC.zip' -Force`;
+  execSync(`powershell -NoProfile -Command "${psCmd}"`, { cwd: rootDir });
   console.log('GwentClassic-PC.zip generated successfully.');
   return zipPath;
+}
+
+// Get existing release by tag
+async function getReleaseByTag(version) {
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.github.com',
+      path: `/repos/danielbernardoD3/gwent-classic/releases/tags/${version}`,
+      method: 'GET',
+      headers: {
+        'User-Agent': 'GwentClassic-Release-Bot',
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json'
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(data));
+        } else {
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.end();
+  });
 }
 
 // Create the release
@@ -173,12 +200,21 @@ async function main() {
       if (vData.version) version = 'v' + vData.version.replace(/^v/, '');
     }
 
-    const release = await createRelease(version, rootDir);
-    console.log(`Release created: ${release.name} (${release.tag_name})`);
+    let release = await getReleaseByTag(version);
+    if (!release) {
+      release = await createRelease(version, rootDir);
+      console.log(`Release created: ${release.name} (${release.tag_name})`);
+    } else {
+      console.log(`Using existing release: ${release.name} (${release.tag_name})`);
+    }
 
     const apkPath = path.join(rootDir, 'GwentClassic.apk');
     const exePath = path.join(rootDir, 'GwentClassic.exe');
-    const zipPath = createPcZip(rootDir);
+    const zipPath = path.join(rootDir, 'GwentClassic-PC.zip');
+
+    if (!fs.existsSync(zipPath)) {
+      createPcZip(rootDir);
+    }
 
     if (fs.existsSync(apkPath)) {
       await uploadAsset(release.id, apkPath, 'GwentClassic.apk', 'application/vnd.android.package-archive');
