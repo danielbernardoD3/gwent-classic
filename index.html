@@ -37,15 +37,15 @@
 		<div id="menu-nav" class="menu-view active">
 			<button id="btn-story-continue" class="witcher-menu-btn hide" style="border-color: #ffd700;" onclick="StoryMode.openSavesModal()">
 				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Player.png" alt="Carregar Jornada" /></span>
-				<span class="btn-text" data-i18n="menu_continue_story">Carregar Jornada</span>
+				<span class="btn-text" data-i18n="menu_continue_story">Continuar Exploração</span>
 			</button>
 			<button class="witcher-menu-btn story-mode-entry-btn" onclick="MenuController.openStoryMode()">
-				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Map.png" alt="Modo História" /></span>
-				<span class="btn-text" data-i18n="menu_story_mode">Modo História</span>
+				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Map.png" alt="Modo Exploração" /></span>
+				<span class="btn-text" data-i18n="menu_story_mode">Modo Exploração</span>
 			</button>
 			<button class="witcher-menu-btn" onclick="MenuController.showView('play')">
 				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Duel.png" alt="Play Gwent" /></span>
-				<span class="btn-text" data-i18n="menu_play">Play Gwent (Livre)</span>
+				<span class="btn-text" data-i18n="menu_play">Partida Rápida de Gwent</span>
 			</button>
 			<button class="witcher-menu-btn versus-mode-entry-btn" onclick="MenuController.openVersusMode()" style="border-color: #d4a34b;">
 				<span class="btn-icon"><img class="menu-btn-icon-img" src="img/hud-icons/Duel.png" alt="Versus" /></span>
@@ -106,7 +106,7 @@
 			<div class="settings-scroll-container">
 				
 				<!-- Display Mode -->
-				<div class="setting-row">
+				<div class="setting-row setting-row-display-mode">
 					<label data-i18n="settings_display">Display Mode</label>
 					<select id="setting-display-mode" class="witcher-select">
 						<option value="window" data-i18n="disp_window">Windowed</option>
@@ -116,7 +116,7 @@
 				</div>
 
 				<!-- Resolution -->
-				<div class="setting-row">
+				<div class="setting-row setting-row-resolution">
 					<label data-i18n="settings_resolution">Resolution</label>
 					<select id="setting-resolution" class="witcher-select">
 						<option value="1920x1080">1920 x 1080 (16:9)</option>
@@ -232,7 +232,7 @@
 				<div class="credit-card highlight-card">
 					<h3 class="credit-name" data-i18n="credits_creator_title">Daniel Bernardo</h3>
 					<div class="credit-role" data-i18n="credits_creator_role">Criador do Projeto &amp; Desenvolvedor Principal</div>
-					<p class="credit-desc" data-i18n="credits_creator_desc">Idealizador e desenvolvedor da edição Gwent Classic: Modo História completo pelo Continente, Torneios Regionais e Insígnias, Modo Versus PvP, suporte completo a Gamepad, trilha sonora offline (Jukebox), sistema de Conquistas, níveis de dificuldade de IA e múltiplos idiomas.</p>
+					<p class="credit-desc" data-i18n="credits_creator_desc">Idealizador e desenvolvedor da edição Gwent Classic: Modo Exploração completo pelo Continente, Torneios Regionais e Insígnias, Modo Versus PvP, suporte completo a Gamepad, trilha sonora offline (Jukebox), sistema de Conquistas, níveis de dificuldade de IA e múltiplos idiomas.</p>
 					<div style="margin-top: 10px;">
 						<a href="https://github.com/danielbernardoD3/gwent-classic" target="_blank" rel="noopener noreferrer" class="credit-github-link">🔗 github.com/danielbernardoD3/gwent-classic</a>
 					</div>
@@ -515,7 +515,7 @@
 				<span class="btn-icon">❮</span>
 				<span class="btn-text" data-i18n="btn_main_menu">Menu Principal</span>
 			</button>
-			<button id="btn-story-back-to-map" class="witcher-btn-compact hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar baralho e voltar ao Mapa da História">
+			<button id="btn-story-back-to-map" class="witcher-btn-compact hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar baralho e voltar ao Mapa de Exploração">
 				<span class="btn-icon"><img class="btn-hud-icon" src="img/hud-icons/Map.png" alt="Mapa" /></span>
 				<span class="btn-text">Voltar ao Mapa</span>
 			</button>
@@ -655,15 +655,15 @@
 				</label>
 			</div>
 
-			<!-- Start Game CTA Button (Oculto no Modo História) -->
+			<!-- Start Game CTA Button (Oculto no Modo Exploração) -->
 			<button id="start-game" class="witcher-btn-start" data-i18n="btn_start_game">
 				<span class="btn-sword">⚔</span>
 				<span class="btn-text" data-i18n="btn_start_game">Começar Jogo</span>
 				<span class="btn-sword">⚔</span>
 			</button>
 
-			<!-- Story Mode Return to Map CTA Button (Exclusivo do Modo História) -->
-			<button id="btn-story-deck-confirm" class="witcher-btn-start story-btn-confirm hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar alterações do baralho e retornar ao Mapa da História">
+			<!-- Story Mode Return to Map CTA Button (Exclusivo do Modo Exploração) -->
+			<button id="btn-story-deck-confirm" class="witcher-btn-start story-btn-confirm hide" style="display:none;" onclick="StoryMode.closeCampaignDeckBuilder()" title="Salvar alterações do baralho e retornar ao Mapa de Exploração">
 				<span class="btn-sword">🗺️</span>
 				<span class="btn-text">Salvar e Voltar ao Mapa</span>
 				<span class="btn-sword">🗺️</span>
@@ -807,7 +807,7 @@
 		
 		<div class="settings-scroll-container">
 			<!-- Display Mode -->
-			<div class="setting-row">
+			<div class="setting-row setting-row-display-mode">
 				<label data-i18n="settings_display">Display Mode</label>
 				<select id="setting-display-mode-overlay" class="witcher-select">
 					<option value="window" data-i18n="disp_window">Windowed</option>
@@ -817,7 +817,7 @@
 			</div>
 
 			<!-- Resolution -->
-			<div class="setting-row">
+			<div class="setting-row setting-row-resolution">
 				<label data-i18n="settings_resolution">Resolution</label>
 				<select id="setting-resolution-overlay" class="witcher-select">
 					<option value="1920x1080">1920 x 1080 (16:9)</option>
@@ -1508,7 +1508,7 @@
 			<div id="story-outcome-trophy-box" class="hide" style="margin: 16px 0;"></div>
 
 			<div style="margin-top: 24px;">
-				<button id="story-outcome-action-btn" class="witcher-menu-btn" style="width: 320px; border-color: #ffd700; margin: 0 auto;">Continuar Jornada</button>
+				<button id="story-outcome-action-btn" class="witcher-menu-btn" style="width: 320px; border-color: #ffd700; margin: 0 auto;">Continuar Exploração</button>
 			</div>
 		</div>
 	</div>

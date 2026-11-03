@@ -791,9 +791,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Pierwszy Krok na Kontynencie"
 		},
 		desc: {
-			pt: "Vença seu primeiro adversário no modo história.",
-			en: "Defeat your first opponent in Story Mode.",
-			es: "Derrota a tu primer adversario en el modo historia.",
+			pt: "Vença seu primeiro adversário no modo exploração.",
+			en: "Defeat your first opponent in Exploration Mode.",
+			es: "Derrota a tu primer adversario en el modo exploración.",
 			pl: "Pokonaj swojego pierwszego przeciwnika w Trybie Opowieści."
 		},
 		secret: {
@@ -817,9 +817,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Pretendent Gościńców"
 		},
 		desc: {
-			pt: "Vença 10 adversários no modo história.",
-			en: "Defeat 10 opponents in Story Mode.",
-			es: "Derrota a 10 adversarios en el modo historia.",
+			pt: "Vença 10 adversários no modo exploração.",
+			en: "Defeat 10 opponents in Exploration Mode.",
+			es: "Derrota a 10 adversarios en el modo exploración.",
 			pl: "Pokonaj 10 przeciwników w Trybie Opowieści."
 		},
 		secret: {
@@ -843,9 +843,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Słynny Wędrowiec"
 		},
 		desc: {
-			pt: "Vença 20 adversários no modo história.",
-			en: "Defeat 20 opponents in Story Mode.",
-			es: "Derrota a 20 adversarios en el modo historia.",
+			pt: "Vença 20 adversários no modo exploração.",
+			en: "Defeat 20 opponents in Exploration Mode.",
+			es: "Derrota a 20 adversarios en el modo exploración.",
 			pl: "Pokonaj 20 przeciwników w Trybie Opowieści."
 		},
 		secret: {
@@ -869,9 +869,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Weteran Siedmiu Krain"
 		},
 		desc: {
-			pt: "Vença 30 adversários no modo história.",
-			en: "Defeat 30 opponents in Story Mode.",
-			es: "Derrota a 30 adversarios en el modo historia.",
+			pt: "Vença 30 adversários no modo exploração.",
+			en: "Defeat 30 opponents in Exploration Mode.",
+			es: "Derrota a 30 adversarios en el modo exploración.",
 			pl: "Pokonaj 30 przeciwników w Trybie Opowieści."
 		},
 		secret: {
@@ -895,9 +895,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Mistrz Taktyki Kontynentu"
 		},
 		desc: {
-			pt: "Vença 40 adversários no modo história.",
-			en: "Defeat 40 opponents in Story Mode.",
-			es: "Derrota a 40 adversarios en el modo historia.",
+			pt: "Vença 40 adversários no modo exploração.",
+			en: "Defeat 40 opponents in Exploration Mode.",
+			es: "Derrota a 40 adversarios en el modo exploración.",
 			pl: "Pokonaj 40 przeciwników w Trybie Opowieści."
 		},
 		secret: {
@@ -921,9 +921,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Nieustępliwy Zdobywca"
 		},
 		desc: {
-			pt: "Vença 50 adversários no modo história.",
-			en: "Defeat 50 opponents in Story Mode.",
-			es: "Derrota a 50 adversarios en el modo historia.",
+			pt: "Vença 50 adversários no modo exploração.",
+			en: "Defeat 50 opponents in Exploration Mode.",
+			es: "Derrota a 50 adversarios en el modo exploración.",
 			pl: "Pokonaj 50 przeciwników w Trybie Opowieści."
 		},
 		secret: {
@@ -947,9 +947,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Władca Mapy"
 		},
 		desc: {
-			pt: "Vença todos os adversários do modo história.",
-			en: "Defeat all opponents in Story Mode.",
-			es: "Derrota a todos los adversarios del modo historia.",
+			pt: "Vença todos os adversários do modo exploração.",
+			en: "Defeat all opponents in Exploration Mode.",
+			es: "Derrota a todos los adversarios del modo exploración.",
 			pl: "Pokonaj wszystkich przeciwników w Trybie Opowieści."
 		},
 		secret: {
@@ -973,9 +973,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Zwycięzca Dwumeczu"
 		},
 		desc: {
-			pt: "Vença 1 torneio de 2 partidas no modo história.",
-			en: "Win a 2-match tournament in Story Mode.",
-			es: "Gana 1 torneo de 2 partidas en el modo historia.",
+			pt: "Vença 1 torneio de 2 partidas no modo exploração.",
+			en: "Win a 2-match tournament in Exploration Mode.",
+			es: "Gana 1 torneo de 2 partidas en el modo exploración.",
 			pl: "Wygraj 1 turniej 2-meczowy w Trybie Opowieści."
 		},
 		secret: {
@@ -999,9 +999,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Mistrz Potrójnego Starcia"
 		},
 		desc: {
-			pt: "Vença 1 torneio de 3 partidas no modo história.",
-			en: "Win a 3-match tournament in Story Mode.",
-			es: "Gana 1 torneo de 3 partidas en el modo historia.",
+			pt: "Vença 1 torneio de 3 partidas no modo exploração.",
+			en: "Win a 3-match tournament in Exploration Mode.",
+			es: "Gana 1 torneo de 3 partidas en el modo exploración.",
 			pl: "Wygraj 1 turniej 3-meczowy w Trybie Opowieści."
 		},
 		secret: {
@@ -1025,9 +1025,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Mistrz Pięciu Aren"
 		},
 		desc: {
-			pt: "Vença 1 torneio de 5 partidas no modo história.",
-			en: "Win a 5-match tournament in Story Mode.",
-			es: "Gana 1 torneo de 5 partidas en el modo historia.",
+			pt: "Vença 1 torneio de 5 partidas no modo exploração.",
+			en: "Win a 5-match tournament in Exploration Mode.",
+			es: "Gana 1 torneo de 5 partidas en el modo exploración.",
 			pl: "Wygraj 1 turniej 5-meczowy w Trybie Opowieści."
 		},
 		secret: {
@@ -1051,9 +1051,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Legenda Wielkich Turniejów"
 		},
 		desc: {
-			pt: "Vença 1 torneio de 7 partidas no modo história.",
-			en: "Win a 7-match tournament in Story Mode.",
-			es: "Gana 1 torneo de 7 partidas en el modo historia.",
+			pt: "Vença 1 torneio de 7 partidas no modo exploração.",
+			en: "Win a 7-match tournament in Exploration Mode.",
+			es: "Gana 1 torneo de 7 partidas en el modo exploración.",
 			pl: "Wygraj 1 turniej 7-meczowy w Trybie Opowieści."
 		},
 		secret: {
@@ -1077,9 +1077,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Insygnia Skellige"
 		},
 		desc: {
-			pt: "Vença o torneio Regional de Skellige e conquiste sua insígnia no modo história.",
-			en: "Win the Skellige Regional Tournament and claim its insignia in Story Mode.",
-			es: "Gana el Torneo Regional de Skellige y consigue su insignia en el modo historia.",
+			pt: "Vença o torneio Regional de Skellige e conquiste sua insígnia no modo exploração.",
+			en: "Win the Skellige Regional Tournament and claim its insignia in Exploration Mode.",
+			es: "Gana el Torneo Regional de Skellige y consigue su insignia en el modo exploración.",
 			pl: "Wygraj Regionalny Turniej Skellige i zdobądź jego insygnia w Trybie Opowieści."
 		},
 		secret: {
@@ -1103,9 +1103,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Insygnia Nilfgaardu"
 		},
 		desc: {
-			pt: "Vença o torneio Regional de Nilfgaard e conquiste sua insígnia no modo história.",
-			en: "Win the Nilfgaard Regional Tournament and claim its insignia in Story Mode.",
-			es: "Gana el Torneo Regional de Nilfgaard y consigue su insignia en el modo historia.",
+			pt: "Vença o torneio Regional de Nilfgaard e conquiste sua insígnia no modo exploração.",
+			en: "Win the Nilfgaard Regional Tournament and claim its insignia in Exploration Mode.",
+			es: "Gana el Torneo Regional de Nilfgaard y consigue su insignia en el modo exploración.",
 			pl: "Wygraj Regionalny Turniej Nilfgaardu i zdobądź jego insygnia w Trybie Opowieści."
 		},
 		secret: {
@@ -1129,9 +1129,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Insygnia Redanii"
 		},
 		desc: {
-			pt: "Vença o torneio Regional de Redânia e conquiste sua insígnia no modo história.",
-			en: "Win the Redania Regional Tournament and claim its insignia in Story Mode.",
-			es: "Gana el Torneo Regional de Redania y consigue su insignia en el modo historia.",
+			pt: "Vença o torneio Regional de Redânia e conquiste sua insígnia no modo exploração.",
+			en: "Win the Redania Regional Tournament and claim its insignia in Exploration Mode.",
+			es: "Gana el Torneo Regional de Redania y consigue su insignia en el modo exploración.",
 			pl: "Wygraj Regionalny Turniej Redanii i zdobądź jego insygnia w Trybie Opowieści."
 		},
 		secret: {
@@ -1155,9 +1155,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Insygnia Temerii"
 		},
 		desc: {
-			pt: "Vença o torneio Regional de Teméria e conquiste sua insígnia no modo história.",
-			en: "Win the Temeria Regional Tournament and claim its insignia in Story Mode.",
-			es: "Gana el Torneo Regional de Temeria y consigue su insignia en el modo historia.",
+			pt: "Vença o torneio Regional de Teméria e conquiste sua insígnia no modo exploração.",
+			en: "Win the Temeria Regional Tournament and claim its insignia in Exploration Mode.",
+			es: "Gana el Torneo Regional de Temeria y consigue su insignia en el modo exploración.",
 			pl: "Wygraj Regionalny Turniej Temerii i zdobądź jego insygnia w Trybie Opowieści."
 		},
 		secret: {
@@ -1181,9 +1181,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Insygnia Toussaint"
 		},
 		desc: {
-			pt: "Vença o torneio Regional de Toussaint e conquiste sua insígnia no modo história.",
-			en: "Win the Toussaint Regional Tournament and claim its insignia in Story Mode.",
-			es: "Gana el Torneo Regional de Toussaint y consigue su insignia en el modo historia.",
+			pt: "Vença o torneio Regional de Toussaint e conquiste sua insígnia no modo exploração.",
+			en: "Win the Toussaint Regional Tournament and claim its insignia in Exploration Mode.",
+			es: "Gana el Torneo Regional de Toussaint y consigue su insignia en el modo exploración.",
 			pl: "Wygraj Regionalny Turniej Toussaint i zdobądź jego insygnia w Trybie Opowieści."
 		},
 		secret: {
@@ -1207,9 +1207,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Stały Bywalec Kontynentu"
 		},
 		desc: {
-			pt: "Desbloqueie todas as lojas do modo história.",
-			en: "Unlock all shops in Story Mode.",
-			es: "Desbloquea todas las tiendas del modo historia.",
+			pt: "Desbloqueie todas as lojas do modo exploração.",
+			en: "Unlock all shops in Exploration Mode.",
+			es: "Desbloquea todas las tiendas del modo exploración.",
 			pl: "Odblokuj wszystkie sklepy w Trybie Opowieści."
 		},
 		secret: {
@@ -1233,9 +1233,9 @@ const ACHIEVEMENTS_DATA = [
 			pl: "Pełna Kolekcja!"
 		},
 		desc: {
-			pt: "Conquiste todas as cartas no modo história.",
-			en: "Collect all 216 unique cards in Story Mode.",
-			es: "Consigue todas las cartas en el modo historia.",
+			pt: "Conquiste todas as cartas no modo exploração.",
+			en: "Collect all 216 unique cards in Exploration Mode.",
+			es: "Consigue todas las cartas en el modo exploración.",
 			pl: "Zbierz wszystkie karty w Trybie Opowieści."
 		},
 		secret: {

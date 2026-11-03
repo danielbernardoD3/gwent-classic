@@ -10,9 +10,9 @@ const I18N = {
 			game_subtitle: "THE WITCHER CARD GAME",
 
 			// Main Menu
-			menu_story_mode: "Story Mode",
-			menu_continue_story: "Continue Journey",
-			menu_play: "Play Gwent",
+			menu_story_mode: "Exploration Mode",
+			menu_continue_story: "Continue Exploration",
+			menu_play: "Quick Gwent Match",
 			menu_versus_mode: "Versus Mode (PvP)",
 			menu_achievements: "Achievements",
 			menu_settings: "Settings",
@@ -69,7 +69,7 @@ const I18N = {
 			credits_cdpr_desc: "For envisioning the incredible world of Geralt of Rivia and creating the timeless mini-game that captivated millions of players worldwide.",
 			credits_creator_title: "Daniel Bernardo",
 			credits_creator_role: "Project Creator & Lead Developer",
-			credits_creator_desc: "Creator of Gwent Classic Edition: full Story Mode across the Continent, Regional Tournaments & Insignias, PvP Versus Mode, full Gamepad support, Jukebox OST, Achievements, AI difficulty levels and multi-language localization.",
+			credits_creator_desc: "Creator of Gwent Classic Edition: full Exploration Mode across the Continent, Regional Tournaments & Insignias, PvP Versus Mode, full Gamepad support, Jukebox OST, Achievements, AI difficulty levels and multi-language localization.",
 
 			// Board & Tooltips
 			player_name: "Geralt",
@@ -280,9 +280,9 @@ const I18N = {
 			game_subtitle: "O JOGO DE CARTAS DE THE WITCHER",
 
 			// Main Menu
-			menu_story_mode: "Modo História",
-			menu_continue_story: "Continuar Jornada",
-			menu_play: "Jogar Gwent",
+			menu_story_mode: "Modo Exploração",
+			menu_continue_story: "Continuar Exploração",
+			menu_play: "Partida Rápida de Gwent",
 			menu_versus_mode: "Modo Versus (PvP)",
 			menu_achievements: "Conquistas",
 			menu_settings: "Configurações",
@@ -339,7 +339,7 @@ const I18N = {
 			credits_cdpr_desc: "Por conceber o lendário universo de Geralt de Rívia e criar este clássico minigame de cartas que conquistou milhões de jogadores ao redor do mundo.",
 			credits_creator_title: "Daniel Bernardo",
 			credits_creator_role: "Criador do Projeto & Desenvolvedor Principal",
-			credits_creator_desc: "Idealizador e desenvolvedor da edição Gwent Classic: Modo História completo pelo Continente, Torneios Regionais e Insígnias, Modo Versus PvP, suporte completo a Gamepad, trilha sonora offline (Jukebox), sistema de Conquistas, níveis de dificuldade de IA e múltiplos idiomas.",
+			credits_creator_desc: "Idealizador e desenvolvedor da edição Gwent Classic: Modo Exploração completo pelo Continente, Torneios Regionais e Insígnias, Modo Versus PvP, suporte completo a Gamepad, trilha sonora offline (Jukebox), sistema de Conquistas, níveis de dificuldade de IA e múltiplos idiomas.",
 
 			// Board & Tooltips
 			player_name: "Geralt",
@@ -550,9 +550,9 @@ const I18N = {
 			game_subtitle: "EL JUEGO DE CARTAS DE THE WITCHER",
 
 			// Main Menu
-			menu_story_mode: "Modo Historia",
-			menu_continue_story: "Continuar Viaje",
-			menu_play: "Jugar Gwent",
+			menu_story_mode: "Modo Exploración",
+			menu_continue_story: "Continuar Exploración",
+			menu_play: "Partida Rápida de Gwent",
 			menu_achievements: "Logros",
 			menu_settings: "Ajustes",
 			menu_credits: "Créditos",
@@ -608,7 +608,7 @@ const I18N = {
 			credits_cdpr_desc: "Por dar vida al increíble mundo de Geralt de Rivia y crear el inolvidable minijuego de cartas.",
 			credits_creator_title: "Daniel Bernardo",
 			credits_creator_role: "Creador del Proyecto y Desarrollador Principal",
-			credits_creator_desc: "Creador de Gwent Classic Edition: Modo Historia por el Continente, Torneos Regionales e Insignias, Modo Versus PvP, soporte completo de mando, Jukebox con música original, Logros, niveles de dificultad y soporte multilingüe.",
+			credits_creator_desc: "Creador de Gwent Classic Edition: Modo Exploración por el Continente, Torneos Regionales e Insignias, Modo Versus PvP, soporte completo de mando, Jukebox con música original, Logros, niveles de dificultad y soporte multilingüe.",
 
 			// Board & Tooltips
 			player_name: "Geralt",
@@ -819,9 +819,9 @@ const I18N = {
 			game_subtitle: "WIEDŹMIŃSKA GRA KARCIANA",
 
 			// Main Menu
-			menu_story_mode: "Tryb Opowieści",
-			menu_continue_story: "Kontynuuj Podróż",
-			menu_play: "Zagraj w Gwinta",
+			menu_story_mode: "Tryb Eksploracji",
+			menu_continue_story: "Kontynuuj Eksplorację",
+			menu_play: "Szybka Partia Gwinta",
 			menu_achievements: "Osiągnięcia",
 			menu_settings: "Ustawienia",
 			menu_credits: "Twórcy",
@@ -877,7 +877,7 @@ const I18N = {
 			credits_cdpr_desc: "Za stworzenie legendarnego uniwersum wiedźmińskiego i genialnej karcianki Gwint.",
 			credits_creator_title: "Daniel Bernardo",
 			credits_creator_role: "Twórca Projektu i Główny Programista",
-			credits_creator_desc: "Twórca edycji Gwent Classic: pełny Tryb Opowieści na Kontynencie, Regionalne Turnieje i Insygnia, Tryb Versus PvP, pełna obsługa kontrolera, szafa grająca z muzyką offline, Osiągnięcia, poziomy trudności i lokalizacja.",
+			credits_creator_desc: "Twórca edycji Gwent Classic: pełny Tryb Eksploracji na Kontynencie, Regionalne Turnieje i Insygnia, Tryb Versus PvP, pełna obsługa kontrolera, szafa grająca z muzyką offline, Osiągnięcia, poziomy trudności i lokalizacja.",
 
 			// Board & Tooltips
 			player_name: "Geralt",

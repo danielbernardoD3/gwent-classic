@@ -287,6 +287,19 @@
 	margin-bottom: 1.2vh;
 }
 
+/* Ocultar configurações de tela no mobile */
+.is-mobile .setting-row-display-mode,
+.is-mobile .setting-row-resolution {
+	display: none !important;
+}
+
+@media (hover: none) and (pointer: coarse) and (max-width: 1024px) {
+	.setting-row-display-mode,
+	.setting-row-resolution {
+		display: none !important;
+	}
+}
+
 .setting-row {
 	display: flex;
 	justify-content: space-between;

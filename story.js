@@ -2795,6 +2795,12 @@ class StoryMode {
 		const mapCanvas = document.getElementById("story-map-canvas");
 		if (!mapCanvas) return;
 		mapCanvas.style.transform = `translate(${StoryMode.mapPanX}px, ${StoryMode.mapPanY}px) scale(${StoryMode.mapZoom})`;
+
+		// Ajuste dinâmico do tamanho dos nós conforme o zoom:
+		// Quanto maior o zoom, menor os nós (para não ficarem em cima uns dos outros).
+		// Quanto menor o zoom, maiores os nós (com tamanho limite) para melhor visualização e toque.
+		const nodeScale = Math.max(0.48, Math.min(2.1, Math.pow(1 / StoryMode.mapZoom, 0.65)));
+		mapCanvas.style.setProperty('--node-scale', nodeScale.toFixed(3));
 	}
 
 	static zoomMap(delta, pivotX, pivotY) {

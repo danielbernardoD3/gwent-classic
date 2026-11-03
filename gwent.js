@@ -3903,7 +3903,7 @@ class DeckMaker {
 	// Verifies current deck, creates the players and their decks, then starts a new game
 	startNewGame(){
 		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) {
-			console.warn("Iniciar partida comum bloqueado no Modo História.");
+			console.warn("Iniciar partida comum bloqueado no Modo Exploração.");
 			return;
 		}
 		let warning = "";

@@ -7,7 +7,7 @@
 <p align="center">
   <b>A experiência definitiva e autêntica de Gwent de The Witcher 3: Wild Hunt diretamente no seu PC ou navegador!</b>
   <br>
-  <i>Com Multiplayer Online P2P (Modo Versus), Campanha do Continente (Modo História), Duelos contra IA, Conquistas, Suporte a Gamepad e Launcher Nativo.</i>
+  <i>Com Multiplayer Online P2P (Modo Versus), Campanha do Continente (Modo Exploração), Duelos contra IA, Conquistas, Suporte a Gamepad e Launcher Nativo.</i>
 </p>
 
 <p align="center">
@@ -42,7 +42,7 @@
 
 ---
 
-### 🗺️ 2. Modo História (Campanha do Continente)
+### 🗺️ 2. Modo Exploração (Campanha do Continente)
 * **Mapa 4K Interativo do Continente:** Viaje por regiões lendárias como Pomar Branco, Velen, Novigrad, Ilhas Skellige, Kaer Morhen e Toussaint.
 * **Progressão com Duelos Canônicos:** Enfrente personagens icônicos da saga (Barão Sanguinário, Dijkstra, Soothsayer, Madame Sasha, etc.).
 * **Recompensas & Desbloqueios:** Conquiste cartas raras de líderes e heróis ao derrotar adversários no mapa.
@@ -93,10 +93,10 @@ gwent-classic/
 ├── style.css                      # Estilos visuais do tabuleiro e cartas
 ├── menu.css                       # Estilização do Menu Principal
 ├── versus.css                     # Interface do Modo Versus e Temporizadores
-├── story.css                      # Estilização do Modo História e Mapa 4K
+├── story.css                      # Estilização do Modo Exploração e Mapa 4K
 ├── gwent.js                       # Motor central das regras do jogo Gwent
 ├── versus.js                      # Sistema P2P WebRTC, Árbitro e Timers do PvP
-├── story.js                       # Mecânicas de progressão do Modo História
+├── story.js                       # Mecânicas de progressão do Modo Exploração
 ├── story_data.js                  # Dados de missões, diálogos e nós do mapa
 ├── abilities.js                   # Implementação de todas as habilidades de cartas
 ├── cards.js                       # Definição e catálogo completo de cartas

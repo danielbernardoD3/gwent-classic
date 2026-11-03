@@ -1,5 +1,34 @@
 "use strict"
 
+// Mobile environment detection (for hiding desktop-only settings and adjusting touch UI)
+(function checkMobileEnvironment() {
+	function isMobile() {
+		if (typeof window === "undefined") return false;
+		if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+		if (window.AndroidAppUpdater) return true;
+		if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) return true;
+		if (window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches && window.innerWidth <= 1024) return true;
+		return false;
+	}
+
+	function applyMobileClass() {
+		if (isMobile()) {
+			document.documentElement.classList.add("is-mobile");
+			if (document.body) {
+				document.body.classList.add("is-mobile");
+			} else {
+				document.addEventListener("DOMContentLoaded", function () {
+					document.body.classList.add("is-mobile");
+				});
+			}
+		}
+	}
+
+	applyMobileClass();
+})();
+
+
+
 Array.prototype.remove = function (elem) {
 	const index = this.indexOf(elem);
 	if (index !== -1)
@@ -607,8 +636,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.1.0",
-	CURRENT_VERSION_CODE: 2,
+	CURRENT_VERSION: "1.2.0",
+	CURRENT_VERSION_CODE: 3,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,

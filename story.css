@@ -496,7 +496,8 @@
 	position: absolute;
 	width: 54px;
 	height: 54px;
-	transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%) scale(var(--node-scale, 1));
+	transform-origin: center center;
 	cursor: pointer;
 	display: flex;
 	flex-direction: column;
@@ -506,7 +507,7 @@
 
 .story-map-pin:hover,
 .story-map-pin.gamepad-hover {
-	transform: translate(-50%, -50%) scale(1.28);
+	transform: translate(-50%, -50%) scale(calc(var(--node-scale, 1) * 1.28));
 	z-index: 65;
 }
 
@@ -654,7 +655,7 @@
 .story-map-pin.locked.gamepad-hover {
 	opacity: 1 !important;
 	z-index: 100 !important;
-	transform: translate(-50%, -50%) scale(1.15);
+	transform: translate(-50%, -50%) scale(calc(var(--node-scale, 1) * 1.15));
 }
 
 .story-map-pin.locked:hover .pin-badge,

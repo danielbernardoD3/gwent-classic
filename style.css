@@ -391,6 +391,13 @@ html {
 	margin-right: 5%;
 }
 
+#carousel > :nth-child(1) > .card-lg.hide {
+	display: inline-block !important;
+	visibility: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
+}
+
 #carousel .card-lg {
 	display:inline-block;
 	background-size:cover;

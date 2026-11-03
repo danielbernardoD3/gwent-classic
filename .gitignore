@@ -36,3 +36,6 @@ www/
 
 # Compiled APKs
 *.apk
+
+# Distribution Archives
+*.zip

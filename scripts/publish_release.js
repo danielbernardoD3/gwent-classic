@@ -61,7 +61,21 @@ function createPcZip(rootDir) {
 }
 
 // Create the release
-async function createRelease(version = 'v1.1.0') {
+async function createRelease(version, rootDir) {
+  const versionPath = path.join(rootDir, 'version.json');
+  let changelogList = "- Melhorias gerais e correções de estabilidade";
+  let apkSize = "154 MB";
+
+  if (fs.existsSync(versionPath)) {
+    const vData = JSON.parse(fs.readFileSync(versionPath, 'utf8'));
+    if (Array.isArray(vData.changelog) && vData.changelog.length > 0) {
+      changelogList = vData.changelog.map(item => `- ${item}`).join('\n');
+    }
+    if (vData.apkSize) {
+      apkSize = vData.apkSize;
+    }
+  }
+
   const postData = JSON.stringify({
     tag_name: version,
     target_commitish: 'main',
@@ -69,20 +83,11 @@ async function createRelease(version = 'v1.1.0') {
     body: `## Gwent Classic ${version}
 
 ### ⚔️ O que há de novo:
-- Suporte a gestos touch no Mapa da História (Pan com 1 dedo e Pinch-to-Zoom com 2 dedos)
-- Letterboxing 16:9 automático com barras pretas (tabuleiro 100% visível em qualquer proporção de tela)
-- Novo menu dropdown no cabeçalho do mapa da história
-- Ícone oficial de alta definição para Android e PC
-- Feedback tátil (vibração) ao baixar cartas, queima de fileira e passar turno
-- Inspeção de cartas por toque longo (380ms) e botão direito no PC
-- Gerenciador de Backup e Restauração de Save em JSON
-- Janela de carência de 45 segundos para reconexão no Modo Versus
-- Redução de 52% no tamanho do jogo com áudio otimizado
-- Sistema de Atualizador Automático In-Game
+${changelogList}
 
 ### 📦 Downloads Disponíveis:
-- 📱 **Android**: \`GwentClassic.apk\` (154 MB) — Instalação direta no celular
-- 💻 **Windows PC (Completo Portátil)**: \`GwentClassic-PC.zip\` (147 MB) — Basta descompactar e dar dois cliques em \`GwentClassic.exe\`
+- 📱 **Android**: \`GwentClassic.apk\` (${apkSize}) — Instalação direta no celular
+- 💻 **Windows PC (Completo Portátil)**: \`GwentClassic-PC.zip\` (~147 MB) — Basta descompactar e dar dois cliques em \`GwentClassic.exe\`
 - ⚙️ **Executável Avulso**: \`GwentClassic.exe\` (Para atualizar apenas o inicializador)`,
     draft: false,
     prerelease: false
@@ -118,34 +123,37 @@ async function createRelease(version = 'v1.1.0') {
   });
 }
 
-// Upload asset helper
+// Upload release asset
 async function uploadAsset(releaseId, filePath, assetName, contentType) {
-  const stat = fs.statSync(filePath);
-  const fileSize = stat.size;
-  console.log(`Uploading ${assetName} (${(fileSize / (1024 * 1024)).toFixed(1)} MB)...`);
+  const stats = fs.statSync(filePath);
+  const readStream = fs.createReadStream(filePath);
+
+  console.log(`Uploading ${assetName} (${(stats.size / 1024 / 1024).toFixed(1)} MB)...`);
 
   return new Promise((resolve, reject) => {
-    const readStream = fs.createReadStream(filePath);
+    const uploadUrl = `https://uploads.github.com/repos/danielbernardoD3/gwent-classic/releases/${releaseId}/assets?name=${encodeURIComponent(assetName)}`;
+    const urlObj = new URL(uploadUrl);
+
     const req = https.request({
-      hostname: 'uploads.github.com',
-      path: `/repos/danielbernardoD3/gwent-classic/releases/${releaseId}/assets?name=${encodeURIComponent(assetName)}`,
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
       method: 'POST',
       headers: {
         'User-Agent': 'GwentClassic-Release-Bot',
         'Authorization': 'Bearer ' + token,
         'Accept': 'application/vnd.github+json',
         'Content-Type': contentType,
-        'Content-Length': fileSize
+        'Content-Length': stats.size
       }
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`Successfully uploaded ${assetName}!`);
+          console.log(`✓ Uploaded ${assetName}`);
           resolve(JSON.parse(data));
         } else {
-          reject(new Error(`Upload failed for ${assetName}: ${res.statusCode} ${data}`));
+          reject(new Error(`Failed to upload ${assetName}: ${res.statusCode} ${data}`));
         }
       });
     });
@@ -159,13 +167,13 @@ async function main() {
   try {
     const rootDir = path.resolve(__dirname, '..');
     const versionPath = path.join(rootDir, 'version.json');
-    let version = 'v1.1.0';
+    let version = 'v1.2.0';
     if (fs.existsSync(versionPath)) {
       const vData = JSON.parse(fs.readFileSync(versionPath, 'utf8'));
       if (vData.version) version = 'v' + vData.version.replace(/^v/, '');
     }
 
-    const release = await createRelease(version);
+    const release = await createRelease(version, rootDir);
     console.log(`Release created: ${release.name} (${release.tag_name})`);
 
     const apkPath = path.join(rootDir, 'GwentClassic.apk');
