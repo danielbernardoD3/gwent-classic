@@ -22,3 +22,17 @@ npm-debug.log*
 # Patch or Scratch scripts
 patch_*.js
 test_*.cs
+
+# Android Build & Gradle
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/captures/
+.gradle/
+
+# Web distribution for mobile
+www/
+
+# Compiled APKs
+*.apk

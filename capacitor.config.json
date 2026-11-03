@@ -1,0 +1,13 @@
+{
+  "appId": "com.danielbernardo.gwentclassic",
+  "appName": "Gwent Classic",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "backgroundColor": "#0b0907"
+  }
+}

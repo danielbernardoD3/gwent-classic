@@ -1,0 +1,31 @@
+{
+  "name": "gwent-classic",
+  "version": "1.1.0",
+  "description": "The Witcher 3 Gwent Classic - Web & Mobile Edition",
+  "main": "gwent.js",
+  "scripts": {
+    "build": "node scripts/build-mobile.js",
+    "cap:sync": "npm run build && npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:copy": "npm run build && npx cap copy android",
+    "build:apk": "npm run cap:copy && cd android && gradlew.bat assembleDebug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danielbernardoD3/gwent-classic.git"
+  },
+  "keywords": [
+    "gwent",
+    "witcher",
+    "card-game",
+    "mobile",
+    "android"
+  ],
+  "author": "Daniel Bernardo",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/cli": "^7.0.1",
+    "@capacitor/core": "^7.0.1"
+  }
+}
