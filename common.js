@@ -258,16 +258,26 @@ function showQuickCardInspect(card) {
 	if (abilityDescElem) abilityDescElem.innerText = abDesc || (card.hero ? "Imune a cartas especiais e efeitos de clima." : "Unidade regular de combate no campo de batalha.");
 
 	modal.classList.remove("hide");
+	modal.style.display = "flex";
 }
 window.showQuickCardInspect = showQuickCardInspect;
 
 function hideQuickCardInspect() {
 	const modal = document.getElementById("quick-card-inspect-modal");
-	if (modal) modal.classList.add("hide");
+	if (modal) {
+		modal.classList.add("hide");
+		modal.style.display = "none";
+	}
 }
 window.hideQuickCardInspect = hideQuickCardInspect;
 
 function setupCardInspectorListeners() {
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape" || e.code === "Escape") {
+			hideQuickCardInspect();
+		}
+	});
+
 	document.addEventListener("touchstart", (e) => {
 		const cardElem = e.target.closest(".card, .leader, .story-preview-leader-card, .compendium-card-thumb, #leader-me, #leader-op");
 		if (!cardElem) return;
@@ -480,8 +490,8 @@ window.importSaveFromText = importSaveFromText;
 window.handleAndroidBackButton = function () {
 	// 1. Modal de inspeção rápida de carta aberto?
 	const quickInspect = document.getElementById("quick-card-inspect-modal");
-	if (quickInspect && !quickInspect.classList.contains("hide")) {
-		quickInspect.classList.add("hide");
+	if (quickInspect && (!quickInspect.classList.contains("hide") || quickInspect.style.display !== "none")) {
+		hideQuickCardInspect();
 		return true;
 	}
 

@@ -1567,7 +1567,7 @@ main { background-image: url('img/boardtest8.png'); }
 }
 
 .visible { display: visible; }
-.hide {display: none; }
+.hide { display: none !important; }
 .fade:not(.settings-button) {opacity: 0.2; filter: alpha(opacity=20); }
 
 .noclick {
@@ -1588,6 +1588,9 @@ main { background-image: url('img/boardtest8.png'); }
 	align-items: center;
 	background: rgba(0, 0, 0, 0.75);
 	backdrop-filter: blur(4px);
+}
+.quick-inspect-overlay.hide {
+	display: none !important;
 }
 .quick-inspect-card-wrap {
 	display: flex;
