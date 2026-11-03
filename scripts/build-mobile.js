@@ -16,7 +16,23 @@ function copyFile(srcName, destName = srcName) {
   const src = path.join(rootDir, srcName);
   const dest = path.join(outDir, destName);
   if (fs.existsSync(src)) {
-    fs.copyFileSync(src, dest);
+    if (srcName === 'index.html') {
+      let content = fs.readFileSync(src, 'utf8');
+      try {
+        const vData = JSON.parse(fs.readFileSync(path.join(rootDir, 'version.json'), 'utf8'));
+        const verStr = 'v' + vData.version.replace(/^v/, '');
+        content = content.replace(
+          /<div class="menu-version-badge"([^>]*)>.*?<\/div>/g,
+          `<div class="menu-version-badge"$1>${verStr}</div>`
+        );
+        fs.writeFileSync(src, content, 'utf8');
+      } catch (e) {
+        console.warn('Could not inject version into index.html:', e.message);
+      }
+      fs.writeFileSync(dest, content, 'utf8');
+    } else {
+      fs.copyFileSync(src, dest);
+    }
     console.log(`Copied: ${srcName}`);
   } else {
     console.warn(`File not found: ${srcName}`);

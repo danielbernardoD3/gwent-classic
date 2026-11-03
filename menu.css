@@ -90,7 +90,18 @@
 	padding: 0.45vh 0.9vw;
 	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
 	text-shadow: 0 1px 3px #000;
-	pointer-events: none;
+	cursor: pointer;
+	pointer-events: auto;
+	transition: all 0.2s ease;
+	user-select: none;
+}
+
+.menu-version-badge:hover {
+	color: #ffd700;
+	background: rgba(26, 20, 14, 0.95);
+	border-color: #ffd700;
+	box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
+	transform: translateY(-2px);
 }
 
 /* Bottom-Right Menu Panel (Improved visibility, framing & spacing for all 8 menu items) */

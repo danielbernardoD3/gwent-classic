@@ -1,13 +1,12 @@
 {
-  "version": "1.2.2",
-  "versionCode": 5,
+  "version": "1.2.3",
+  "versionCode": 6,
   "releaseDate": "2026-11-03",
   "title": "Gwent Classic",
   "changelog": [
-    "Arquitetura atômica de turnos com mutex contra execução concorrente de jogadas",
-    "Correção definitiva do softlock/corrida ao jogar carta no último segundo do cronômetro",
-    "Prevenção absoluta de turnos acumulados ou turnos duplos consecutivos (vs IA e vs Jogador)",
-    "Sincronização estrita de encerramento de turno validada por jogador ativo"
+    "Sincronização dinâmica da versão exibida no menu principal diretamente com o Git e version.json",
+    "Badge de versão interativo com verificação rápida de atualizações ao clicar",
+    "Automação no script de build mobile para garantir badges sempre atualizados em todas as plataformas"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "154 MB",

@@ -150,6 +150,30 @@ ${changelogList}
   });
 }
 
+// Delete asset if it already exists on release
+async function deleteAssetIfExists(release, assetName) {
+  if (!release.assets || release.assets.length === 0) return;
+  const existing = release.assets.find(a => a.name === assetName);
+  if (!existing) return;
+  console.log(`Deleting existing asset ${assetName} (id: ${existing.id})...`);
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.github.com',
+      path: `/repos/danielbernardoD3/gwent-classic/releases/assets/${existing.id}`,
+      method: 'DELETE',
+      headers: {
+        'User-Agent': 'GwentClassic-Release-Bot',
+        'Authorization': 'Bearer ' + token,
+        'Accept': 'application/vnd.github+json'
+      }
+    }, (res) => {
+      resolve();
+    });
+    req.on('error', () => resolve());
+    req.end();
+  });
+}
+
 // Upload release asset
 async function uploadAsset(releaseId, filePath, assetName, contentType) {
   const stats = fs.statSync(filePath);
@@ -216,14 +240,17 @@ async function main() {
     createPcZip(rootDir);
 
     if (fs.existsSync(apkPath)) {
+      await deleteAssetIfExists(release, 'GwentClassic.apk');
       await uploadAsset(release.id, apkPath, 'GwentClassic.apk', 'application/vnd.android.package-archive');
     }
 
     if (fs.existsSync(zipPath)) {
+      await deleteAssetIfExists(release, 'GwentClassic-PC.zip');
       await uploadAsset(release.id, zipPath, 'GwentClassic-PC.zip', 'application/zip');
     }
 
     if (fs.existsSync(exePath)) {
+      await deleteAssetIfExists(release, 'GwentClassic.exe');
       await uploadAsset(release.id, exePath, 'GwentClassic.exe', 'application/octet-stream');
     }
 

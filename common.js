@@ -636,13 +636,40 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.2",
-	CURRENT_VERSION_CODE: 5,
+	CURRENT_VERSION: "1.2.3",
+	CURRENT_VERSION_CODE: 6,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
 
+	syncVersionUI(v) {
+		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.3";
+		const formatted = "v" + String(ver).replace(/^v/, "");
+		const badges = document.querySelectorAll(".menu-version-badge, #menu-version-badge");
+		badges.forEach(b => {
+			b.textContent = formatted;
+			b.title = `Gwent Classic ${formatted} — Clique para verificar atualizações`;
+		});
+	},
+
 	init() {
+		// Sync version string to UI immediately
+		InGameUpdater.syncVersionUI();
+
+		// Asynchronously fetch local version.json to ensure it always matches workspace/git
+		try {
+			fetch("version.json?_t=" + Date.now(), { cache: "no-store" })
+				.then(r => r.ok ? r.json() : null)
+				.then(localData => {
+					if (localData && localData.version) {
+						InGameUpdater.CURRENT_VERSION = localData.version;
+						if (localData.versionCode) InGameUpdater.CURRENT_VERSION_CODE = localData.versionCode;
+						InGameUpdater.syncVersionUI(localData.version);
+					}
+				})
+				.catch(() => {});
+		} catch (_) {}
+
 		// Auto-check on startup after 2.5 seconds
 		setTimeout(() => {
 			InGameUpdater.checkForUpdates(false);
@@ -684,7 +711,7 @@ const InGameUpdater = {
 						const pcAsset = (rel.assets || []).find(a => a.name && a.name.endsWith(".zip"));
 						const notes = rel.body ? rel.body.split("\n").filter(l => l.trim().startsWith("- ")).map(l => l.replace(/^-\s*/, "").trim()) : [];
 						data = {
-							version: tagVer || "1.2.1",
+							version: tagVer || InGameUpdater.CURRENT_VERSION || "1.2.3",
 							versionCode: 999,
 							title: "Gwent Classic",
 							changelog: notes.length > 0 ? notes : ["Melhorias de desempenho e correções gerais."],

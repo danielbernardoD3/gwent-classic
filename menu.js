@@ -5,6 +5,11 @@ class MenuController {
 		// Initialize Language
 		I18N.init();
 
+		// Synchronize Version Badge on Main Menu
+		if (typeof InGameUpdater !== "undefined" && typeof InGameUpdater.syncVersionUI === "function") {
+			InGameUpdater.syncVersionUI();
+		}
+
 		// Load saved settings into UI
 		MenuController.loadSettingsIntoUI();
 
