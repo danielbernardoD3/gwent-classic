@@ -646,7 +646,11 @@ const InGameUpdater = {
 		} catch (e) {
 			console.warn("[InGameUpdater] Erro ao verificar atualizações:", e);
 			if (manual) {
-				alert("Não foi possível conectar ao servidor de atualizações no momento. Verifique sua conexão à internet.");
+				if (e && e.message && e.message.includes("404")) {
+					alert("Servidor de atualizações não encontrado (Erro 404).\n\nSe o repositório no GitHub estiver configurado como PRIVADO, altere a visibilidade para PÚBLICO (nas Configurações do Repositório no GitHub) para que o jogo consiga checar novidades e baixar os arquivos.");
+				} else {
+					alert("Não foi possível conectar ao servidor de atualizações no momento. Verifique sua conexão à internet.");
+				}
 			}
 		} finally {
 			if (manual && btn) {
