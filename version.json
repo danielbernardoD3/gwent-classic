@@ -1,15 +1,13 @@
 {
-  "version": "1.2.1",
-  "versionCode": 4,
+  "version": "1.2.2",
+  "versionCode": 5,
   "releaseDate": "2026-11-03",
   "title": "Gwent Classic",
   "changelog": [
-    "Correção dos botões Desistir e Sair da Partida durante o jogo",
-    "Correção do crash ao transformar Berserker em Urso com Mardroeme",
-    "Correção do botão 'Mudar Facção' na preparação da Partida Rápida",
-    "Prevenção do bug de 2 cartas jogadas em 1 turno no fim do cronômetro",
-    "Aumento do ícone do jogador no mapa e garantia de exibição à frente de tudo",
-    "Servidor de atualizações com fallback de alta disponibilidade via GitHub API"
+    "Arquitetura atômica de turnos com mutex contra execução concorrente de jogadas",
+    "Correção definitiva do softlock/corrida ao jogar carta no último segundo do cronômetro",
+    "Prevenção absoluta de turnos acumulados ou turnos duplos consecutivos (vs IA e vs Jogador)",
+    "Sincronização estrita de encerramento de turno validada por jogador ativo"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "154 MB",

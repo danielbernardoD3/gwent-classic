@@ -579,6 +579,8 @@ class Player {
 	
 	// Sets up board for turn
 	async startTurn(){
+		this.turnPlayed = false;
+		this.isPlayingCard = false;
 		document.getElementById("stats-" + this.tag).classList.add("current-turn");
 		if (this.leaderAvailable)
 			this.elem_leader.children[1].classList.remove("hide");
@@ -599,6 +601,14 @@ class Player {
 	
 	// Passes the round and ends the turn
 	passRound(){
+		if (game.isActionInProgress || game.isTurnTransitioning) return;
+		if (game.currPlayer !== this) return;
+		if (this.passed) return;
+		game.isActionInProgress = true;
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopTurnTimer();
+		}
+		ui.enablePlayer(false);
 		this.setPassed(true);
 		EventManager.roundPassed.dispatch(this, game.roundCount);
 		if (this === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
@@ -658,6 +668,12 @@ class Player {
 	
 	// Handles end of turn visuals and behavior the notifies the game
 	endTurn(){
+		if (this.turnPlayed) {
+			console.warn(`[Player.endTurn] Jogador ${this.tag} já encerrou este turno. Ignorando chamada duplicada.`);
+			return;
+		}
+		this.turnPlayed = true;
+
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopTurnTimer();
 		}
@@ -673,7 +689,7 @@ class Player {
 		}
 		document.getElementById("stats-" + this.tag).classList.remove("current-turn");
 		this.elem_leader.children[1].classList.add("hide");
-		game.endTurn()
+		game.endTurn(this);
 	}
 	
 	// Tells the the Player if it won the round. May damage health.
@@ -1722,6 +1738,11 @@ class Game {
 	
 	// Initiates a new round of the game
 	async startRound(){
+		this.isTurnTransitioning = false;
+		this.isActionInProgress = false;
+		this.isCardBeingPlayed = false;
+		if (typeof player_me !== "undefined" && player_me) { player_me.turnPlayed = false; player_me.isPlayingCard = false; }
+		if (typeof player_op !== "undefined" && player_op) { player_op.turnPlayed = false; player_op.isPlayingCard = false; }
 		this.playerMeHornsInRound = 0;
 		this.firstPlayer = this.currPlayer;
 		this.roundCount++;
@@ -1770,7 +1791,16 @@ class Game {
 	
 	// Starts a new turn. Enables client interraction in client's turn.
 	async startTurn() {
+		if (this.state !== GameState.PLAYING) return;
+		this.turnId = (this.turnId || 0) + 1;
+		const thisTurnId = this.turnId;
+		this.isTurnTransitioning = false;
+		this.isActionInProgress = false;
+		this.isCardBeingPlayed = false;
+
 		await this.runEffects(this.turnStart);
+		if (this.turnId !== thisTurnId || this.state !== GameState.PLAYING) return;
+
 		ui.enablePlayer(this.currPlayer === player_me);
 		if (typeof VersusMode !== "undefined" && VersusMode.isActive && VersusMode.isHost) {
 			VersusMode.broadcastTurnSync();
@@ -1779,23 +1809,48 @@ class Game {
 	}
 	
 	// Ends the current turn and may end round. Disables client interraction in client's turn.
-	async endTurn() {
-		if (this.currPlayer === player_me)
-			ui.enablePlayer(false);
-		await this.runEffects(this.turnEnd);
-		if (this.currPlayer.passed)
-			await ui.notification(this.currPlayer.tag + "-pass", 1200);
-		if (player_op.passed && player_me.passed)
-			this.endRound();
-		else
-		{
-			if (!this.currPlayer.opponent().passed)
-			{
-				this.currPlayer = this.currPlayer.opponent();
-				AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
-				await ui.notification(this.currPlayer.tag + "-turn", 1200);
+	async endTurn(requestingPlayer) {
+		if (this.isTurnTransitioning) {
+			console.warn("[game.endTurn] Transição de turno já em andamento. Ignorando chamada concorrente.");
+			return;
+		}
+		if (requestingPlayer && this.currPlayer && requestingPlayer !== this.currPlayer) {
+			console.warn(`[game.endTurn] Jogador ${requestingPlayer.tag} tentou encerrar turno mas currPlayer é ${this.currPlayer.tag}. Ignorando.`);
+			return;
+		}
+		this.isTurnTransitioning = true;
+		this.isActionInProgress = true;
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopTurnTimer();
+		}
+
+		try {
+			if (this.currPlayer === player_me)
+				ui.enablePlayer(false);
+			await this.runEffects(this.turnEnd);
+			if (this.state !== GameState.PLAYING) return;
+
+			if (this.currPlayer && this.currPlayer.passed)
+				await ui.notification(this.currPlayer.tag + "-pass", 1200);
+
+			if (player_op && player_me && player_op.passed && player_me.passed) {
+				await this.endRound();
+				return;
 			}
-			await this.startTurn();
+			else
+			{
+				if (!this.currPlayer.opponent().passed)
+				{
+					this.currPlayer = this.currPlayer.opponent();
+					AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
+					await ui.notification(this.currPlayer.tag + "-turn", 1200);
+				}
+				await this.startTurn();
+			}
+		} finally {
+			this.isTurnTransitioning = false;
+			this.isActionInProgress = false;
+			this.isCardBeingPlayed = false;
 		}
 	}
 	
@@ -2892,12 +2947,16 @@ class UI {
 			this.setSelectable(null, false);
 			this.showPreview(card);
 		} else if (pCard.name === "Decoy") {
-			this.hidePreview(card);
-			this.enablePlayer(false);
+			if (game.isActionInProgress || game.isTurnTransitioning) return;
+			game.isActionInProgress = true;
+			game.isCardBeingPlayed = true;
 			if (typeof VersusMode !== "undefined") {
+				VersusMode.stopTurnTimer();
 				VersusMode.isActionExecuting = true;
 				VersusMode.actionStartTime = Date.now();
 			}
+			this.hidePreview(card);
+			this.enablePlayer(false);
 			try {
 				if (pCard.holder === player_me && typeof Achievements !== "undefined") {
 					Achievements.recordDecoy();
@@ -2913,6 +2972,7 @@ class UI {
 				await board.moveTo(pCard, row, pCard.holder.hand);
 				pCard.holder.endTurn();
 			} finally {
+				game.isCardBeingPlayed = false;
 				if (typeof VersusMode !== "undefined") {
 					VersusMode.isActionExecuting = false;
 					if (VersusMode.pendingTurnSync) {
@@ -2928,7 +2988,7 @@ class UI {
 	// Called when the player selects a selectable CardContainer
 	async selectRow(row){
 		EventManager.rowSelected.dispatch(row, player_me);
-		if (game.placedEffectsActive)
+		if (game.placedEffectsActive || game.isActionInProgress || game.isTurnTransitioning)
 		{
 			return;
 		}
@@ -2939,14 +2999,21 @@ class UI {
 		}
 		if (this.previewCard.name === "Decoy")
 			return;
-		let card = this.previewCard;
-		let holder = card.holder;
-		this.hidePreview();
-		this.enablePlayer(false);
+
+		// BLOQUEIO ATÔMICO IMEDIATO: O jogador confirmou a jogada da carta na fileira!
+		game.isActionInProgress = true;
+		game.isCardBeingPlayed = true;
 		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopTurnTimer();
 			VersusMode.isActionExecuting = true;
 			VersusMode.actionStartTime = Date.now();
 		}
+		ui.enablePlayer(false);
+
+		let card = this.previewCard;
+		let holder = card.holder;
+		this.hidePreview();
+
 		try {
 			if (card.name === "Scorch"){
 				this.hidePreview();
@@ -2970,6 +3037,7 @@ class UI {
 			}
 			holder.endTurn();
 		} finally {
+			game.isCardBeingPlayed = false;
 			if (typeof VersusMode !== "undefined") {
 				VersusMode.isActionExecuting = false;
 				if (VersusMode.pendingTurnSync) {

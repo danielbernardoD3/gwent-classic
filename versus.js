@@ -1602,11 +1602,11 @@ class VersusMode {
 
 	// Tratamento de timeout de turno com watchdog anti-softlock
 	static async handleTurnTimeout(isMyTurn) {
-		if ((typeof game !== "undefined" && game.isCardBeingPlayed) || (player_me && player_me.isPlayingCard)) {
-			console.log("[TurnTimer] Jogada manual em andamento nos últimos segundos, ignorando auto-play.");
+		if (typeof game === "undefined" || game.state !== GameState.PLAYING) return;
+		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || VersusMode.isActionExecuting || (player_me && player_me.isPlayingCard)) {
+			console.log("[TurnTimer] Ação manual ou transição de turno em andamento, ignorando timeout.");
 			return;
 		}
-		if (typeof game === "undefined" || game.state !== GameState.PLAYING) return;
 
 		// Caso 1: É o turno do jogador local e seu tempo esgotou
 		if (isMyTurn && game.currPlayer === player_me) {
@@ -1651,12 +1651,19 @@ class VersusMode {
 
 	// Se o tempo de 1:00 encerrar e o jogador não jogar, joga a primeira carta disponível automaticamente
 	static async autoPlayFirstAvailableCard() {
-		if (typeof game !== "undefined" && game.isCardBeingPlayed) return;
-		if (typeof player_me !== "undefined" && player_me && player_me.isPlayingCard) return;
-		if (VersusMode.isHandlingTimeout) return;
 		if (typeof game === "undefined" || game.state !== GameState.PLAYING || game.currPlayer !== player_me) return;
-
+		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || VersusMode.isActionExecuting || (player_me && player_me.isPlayingCard)) {
+			console.log("[autoPlay] Ação manual ou transição já em andamento, abortando auto-play.");
+			return;
+		}
+		if (VersusMode.isHandlingTimeout) return;
 		VersusMode.isHandlingTimeout = true;
+		game.isActionInProgress = true;
+		game.isCardBeingPlayed = true;
+		game.isAutoPlayingTimeout = true;
+		VersusMode.isActionExecuting = true;
+		VersusMode.stopTurnTimer();
+		ui.enablePlayer(false);
 		game.isAutoPlayingTimeout = true;
 
 		try {

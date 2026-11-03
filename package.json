@@ -1,6 +1,6 @@
 {
   "name": "gwent-classic",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "The Witcher 3 Gwent Classic - Web & Mobile Edition",
   "main": "gwent.js",
   "scripts": {
