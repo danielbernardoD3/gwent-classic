@@ -285,7 +285,7 @@
 
 	<section id="panel-left" class="panel">
 
-		<div id="exit-game" data-i18n-title="title_exit_game" data-title="Exit game"></div>
+		<div id="exit-game" data-i18n-title="title_exit_game" data-title="Sair da partida" role="button" aria-label="Sair da partida" tabindex="0"></div>
 	
 		<div id="leader-op" class="leader-box">
 			<div class="leader-container center" data-i18n-title="title_view_leader" data-title="View leader"> 
@@ -430,33 +430,10 @@
 		</div>
 	</section>
 	
-	<section id="carousel" class="hide">
-		<div>
-			<div class="card-lg" onclick="Carousel.curr.shift(event,-2)" onmouseover="Carousel.curr?.nudge(-2)"></div>
-			<div class="card-lg" onclick="Carousel.curr.shift(event,-1)" onmouseover="Carousel.curr?.nudge(-1)"></div>
-			<div class="card-lg" onclick="Carousel.curr.select(event)"   onmouseover="Carousel.curr?.nudge( 0)"></div>
-			<div class="card-lg" onclick="Carousel.curr.shift(event, 1)" onmouseover="Carousel.curr?.nudge( 1)"></div>
-			<div class="card-lg" onclick="Carousel.curr.shift(event, 2)" onmouseover="Carousel.curr?.nudge( 2)"></div>
-		</div>
-		<div class="card-description">
-			<div></div>
-			<h1></h1>
-			<p></p>
-		</div>
-		<div></div>
-	</section>
 	
 	
-	<section id="popup" class="center hide">
-		<div>
-			<h3></h3>
-			<p></p>
-			<div>
-				<button onclick="Popup.curr.selectYes()"></button>
-				<button onclick="Popup.curr.selectNo()"></button>
-			</div>
-		</div>
-	</section>
+	
+	
 	
 	
 	<section id="notification-bar" class="hide">
@@ -506,6 +483,33 @@
 	
 
 </main>
+
+	<section id="carousel" class="hide">
+		<div>
+			<div class="card-lg" onclick="Carousel.curr.shift(event,-2)" onmouseover="Carousel.curr?.nudge(-2)"></div>
+			<div class="card-lg" onclick="Carousel.curr.shift(event,-1)" onmouseover="Carousel.curr?.nudge(-1)"></div>
+			<div class="card-lg" onclick="Carousel.curr.select(event)"   onmouseover="Carousel.curr?.nudge( 0)"></div>
+			<div class="card-lg" onclick="Carousel.curr.shift(event, 1)" onmouseover="Carousel.curr?.nudge( 1)"></div>
+			<div class="card-lg" onclick="Carousel.curr.shift(event, 2)" onmouseover="Carousel.curr?.nudge( 2)"></div>
+		</div>
+		<div class="card-description">
+			<div></div>
+			<h1></h1>
+			<p></p>
+		</div>
+		<div></div>
+	</section>
+
+	<section id="popup" class="center hide">
+		<div>
+			<h3></h3>
+			<p></p>
+			<div>
+				<button onclick="Popup.curr.selectYes()"></button>
+				<button onclick="Popup.curr.selectNo()"></button>
+			</div>
+		</div>
+	</section>
 
 <section id="deck-customization" class="hide">
 	<!-- Top Bar: Navigation & Utility Actions -->

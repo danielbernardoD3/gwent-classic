@@ -624,24 +624,34 @@ class Player {
 	
 	// Shows a preview of the card being played, plays it to the board and ends the turn
 	async playCardAction(card, action){
-		ui.showPreviewVisuals(card);
-		await sleep(1000);
-		ui.hidePreview(card);
-		await action();
-		if (this === player_me) {
-			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
-				VersusMode.onLocalCardPlayed(card);
-			}
-			if (card.abilities && card.abilities.includes("spy")) {
-				if (typeof Achievements !== "undefined") {
-					Achievements.recordSpyPlayed();
+		if (typeof game !== "undefined") game.isCardBeingPlayed = true;
+		if (this === player_me) this.isPlayingCard = true;
+		if (typeof VersusMode !== "undefined" && VersusMode.stopTurnTimer) {
+			VersusMode.stopTurnTimer();
+		}
+		try {
+			ui.showPreviewVisuals(card);
+			await sleep(1000);
+			ui.hidePreview(card);
+			await action();
+			if (this === player_me) {
+				if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+					VersusMode.onLocalCardPlayed(card);
+				}
+				if (card.abilities && card.abilities.includes("spy")) {
+					if (typeof Achievements !== "undefined") {
+						Achievements.recordSpyPlayed();
+					}
+				}
+				if (card.name === "Roach" || (card.muster && card.muster === "Roach")) {
+					if (typeof Achievements !== "undefined") {
+						Achievements.recordRoach();
+					}
 				}
 			}
-			if (card.name === "Roach" || (card.muster && card.muster === "Roach")) {
-				if (typeof Achievements !== "undefined") {
-					Achievements.recordRoach();
-				}
-			}
+		} finally {
+			if (typeof game !== "undefined") game.isCardBeingPlayed = false;
+			if (this === player_me) this.isPlayingCard = false;
 		}
 		this.endTurn();
 	}
@@ -2036,12 +2046,61 @@ class Game {
 		}
 	}
 
+	promptForfeit() {
+		if (this.state !== GameState.PLAYING) return;
+		AudioManager.playSFX('warning');
+		const restoreBoardInteraction = () => {
+			if (this.state === GameState.PLAYING && (this.currPlayer === player_me || (typeof Carousel !== "undefined" && Carousel.curr))) {
+				ui.enablePlayer(true);
+			}
+		};
+		const resumeLabel = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_resume") : "Continuar Partida";
+		const forfeitLabel = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_confirm") : "Desistir";
+		const titleText = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_title") : "Desistir da Partida?";
+		const descText = (typeof VersusMode !== "undefined" && VersusMode.isActive)
+			? ((typeof I18N !== "undefined") ? I18N.t("forfeit_popup_desc_versus") : "Se você desistir agora, a vitória será concedida imediatamente ao seu adversário.")
+			: ((typeof I18N !== "undefined") ? I18N.t("forfeit_popup_desc") : "Você perderá a partida atual imediatamente.");
+
+		ui.popup(
+			resumeLabel,
+			restoreBoardInteraction,
+			forfeitLabel,
+			() => {
+				this.executeForfeit();
+			},
+			titleText,
+			descText
+		);
+	}
+
+	executeForfeit() {
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.stopAllTimers();
+			VersusMode.hideTurnHUD();
+		}
+		if (typeof Carousel !== "undefined" && Carousel.curr) {
+			Carousel.curr.exit();
+		}
+		if (typeof ui !== "undefined" && ui) {
+			ui.hidePreview();
+		}
+		if (player_me) {
+			player_me.health = 0;
+		}
+		if (player_op && player_op.health <= 0) {
+			player_op.health = 1;
+		}
+		if (typeof VersusMode !== "undefined" && VersusMode.syncGemsUI) {
+			VersusMode.syncGemsUI();
+		}
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			VersusMode.sendPacket("ACTION_FORFEIT");
+		}
+		this.endGame();
+	}
+
 	exitGame()
 	{
-		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
-			VersusMode.promptForfeit();
-			return;
-		}
 		const isStory = (typeof StoryMode !== "undefined" && StoryMode.activeMatch);
 		AudioManager.playSFX('warning');
 		const restoreBoardInteraction = () => {
@@ -2053,7 +2112,7 @@ class Game {
 			const isTourney = StoryMode.activeMatch && StoryMode.activeMatch.isTournament;
 			ui.popup(
 				"Continuar Partida", restoreBoardInteraction,
-				"Retornar ao Mapa", ()=>{
+				"Retornar ao Mapa", () => {
 					if (typeof VersusMode !== "undefined") {
 						VersusMode.stopAllTimers();
 						VersusMode.hideTurnHUD();
@@ -2071,17 +2130,42 @@ class Game {
 			);
 			return;
 		}
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			ui.popup(
+				(typeof I18N !== "undefined") ? I18N.t("forfeit_popup_resume") : "Continuar Partida",
+				restoreBoardInteraction,
+				(typeof I18N !== "undefined") ? I18N.t("forfeit_popup_confirm") : "Desistir da Partida",
+				() => {
+					this.executeForfeit();
+				},
+				"Sair da Partida?",
+				"Em partidas online, sair concederá vitória ao adversário."
+			);
+			return;
+		}
 		ui.popup(
-			(typeof I18N !== "undefined") ? I18N.t("exit_popup_resume") : "Resume", restoreBoardInteraction,
-			(typeof I18N !== "undefined") ? I18N.t("exit_popup_exit") : "Exit", ()=>{
+			(typeof I18N !== "undefined") ? I18N.t("exit_popup_resume") : "Continuar",
+			restoreBoardInteraction,
+			(typeof I18N !== "undefined") ? I18N.t("btn_main_menu") || "Menu Principal" : "Menu Principal",
+			() => {
 				if (typeof VersusMode !== "undefined") {
 					VersusMode.stopAllTimers();
 					VersusMode.hideTurnHUD();
 				}
-				this.returnToCustomization();
+				this.reset();
+				if (player_me) player_me.reset();
+				if (player_op) player_op.reset();
+				const mainEl = document.querySelector("main");
+				if (mainEl) mainEl.classList.add("hide");
+				if (this.endScreen) this.endScreen.classList.add("hide");
+				if (typeof MenuController !== "undefined" && MenuController.returnToMainMenu) {
+					MenuController.returnToMainMenu();
+				} else {
+					this.returnToCustomization();
+				}
 			},
-			(typeof I18N !== "undefined") ? I18N.t("exit_popup_title") : "Quit curent game?", 
-			(typeof I18N !== "undefined") ? I18N.t("exit_popup_desc") : "This will return you to the deck customization menu."
+			"Sair da Partida?", 
+			"Deseja encerrar o duelo atual e voltar ao Menu Principal?"
 		); 
 	}
 	
@@ -2635,16 +2719,29 @@ class UI {
 	constructor() {
 		this.carousels = [];
 		this.notif_elem = document.getElementById("notification-bar");
-		document.getElementById('exit-game').addEventListener('click', ()=>game.exitGame(), false);
+		const exitBtn = document.getElementById('exit-game');
+		if (exitBtn) {
+			const onExit = (e) => {
+				if (e) { e.preventDefault(); e.stopPropagation(); }
+				if (typeof game !== "undefined" && game.exitGame) game.exitGame();
+			};
+			exitBtn.addEventListener('click', onExit, false);
+			exitBtn.addEventListener('touchend', onExit, { passive: false });
+		}
 		const forfeitBtn = document.getElementById("forfeit-button");
 		if (forfeitBtn) {
-			forfeitBtn.addEventListener("click", () => {
-				if (typeof VersusMode !== "undefined") {
+			const onForfeit = (e) => {
+				if (e) { e.preventDefault(); e.stopPropagation(); }
+				if (typeof game !== "undefined" && game.promptForfeit) {
+					game.promptForfeit();
+				} else if (typeof VersusMode !== "undefined" && VersusMode.promptForfeit) {
 					VersusMode.promptForfeit();
-				} else {
+				} else if (typeof game !== "undefined" && game.exitGame) {
 					game.exitGame();
 				}
-			}, false);
+			};
+			forfeitBtn.addEventListener('click', onForfeit, false);
+			forfeitBtn.addEventListener('touchend', onForfeit, { passive: false });
 		}
 		this.preview = document.getElementsByClassName("card-preview")[0];
 		this.previewCard = null;

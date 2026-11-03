@@ -43,13 +43,17 @@ public class MainActivity extends BridgeActivity {
                 conn.connect();
 
                 int responseCode = conn.getResponseCode();
-                if (responseCode == java.net.HttpURLConnection.HTTP_MOVED_TEMP || responseCode == java.net.HttpURLConnection.HTTP_MOVED_PERM || responseCode == 307 || responseCode == 308) {
+                int redirects = 0;
+                while ((responseCode == java.net.HttpURLConnection.HTTP_MOVED_TEMP || responseCode == java.net.HttpURLConnection.HTTP_MOVED_PERM || responseCode == 307 || responseCode == 308) && redirects < 6) {
                     String newUrl = conn.getHeaderField("Location");
                     conn.disconnect();
                     url = new java.net.URL(newUrl);
                     conn = (java.net.HttpURLConnection) url.openConnection();
                     conn.setRequestProperty("User-Agent", "GwentClassic-Android");
+                    conn.setInstanceFollowRedirects(true);
                     conn.connect();
+                    responseCode = conn.getResponseCode();
+                    redirects++;
                 }
 
                 int fileLength = conn.getContentLength();

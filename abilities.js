@@ -58,20 +58,39 @@ var ability_dict = {
 		name: "Berserker",
 		description: "Transforms into a bear when a Mardroeme card is on its row. ",
 		placed: async (card, row) => {
-			if (row.effects.mardroeme === 0)
+			if (!row || !row.effects || row.effects.mardroeme <= 0)
 				return;
 			row.removeCard(card);
-			const cardId = card.name.indexOf("Young") === -1 ? 206 : 207;
-			await row.addCard(new Card(card_dict[cardId], card.holder));
+			const isYoung = card.name && card.name.indexOf("Young") !== -1;
+			const cardId = isYoung ? 207 : 206;
+			const holder = card.holder || (row.elem_parent && row.elem_parent.parentElement && row.elem_parent.parentElement.id === "field-op" ? player_op : player_me);
+			const bearCard = new Card(card_dict[cardId], holder);
+			await row.addCard(bearCard);
 		}
 	},
 	vildkarrl: {
+		name: "Vildkaarl",
+		description: "Berserker transformado em urso pela ação de Mardroeme.",
 		placed: async (card, row) => {
-			if (card.abilities.includes('vildkarrl'))
+			if (card && card.abilities && card.abilities.includes('vildkarrl'))
 			{
-				card.abilities.remove('vildkarrl');
-				await AudioManager.playSFX("mardroeme", 1000);
-				setTimeout(()=>card.placed.remove(ability_dict['vildkarrl'].placed), 5000);
+				if (typeof card.abilities.remove === "function") {
+					card.abilities.remove('vildkarrl');
+				} else {
+					const idx = card.abilities.indexOf('vildkarrl');
+					if (idx !== -1) card.abilities.splice(idx, 1);
+				}
+				if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+					await AudioManager.playSFX("mardroeme", 1000);
+				}
+				setTimeout(() => {
+					if (card.placed && typeof card.placed.remove === "function") {
+						card.placed.remove(ability_dict['vildkarrl'].placed);
+					} else if (card.placed && Array.isArray(card.placed)) {
+						const idx = card.placed.indexOf(ability_dict['vildkarrl'].placed);
+						if (idx !== -1) card.placed.splice(idx, 1);
+					}
+				}, 5000);
 			}
 		}
 	},

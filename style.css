@@ -81,22 +81,28 @@ html {
 
 #hand-op .card { position : absolute; }
 
-#exit-game
-{
-	top: 1.4vw;
+#exit-game {
+	top: 1.2vw;
 	left: 1vw;
 	position: absolute;
-	width: 2vw;
-	height: 2vw;
+	width: 2.8vw;
+	height: 2.8vw;
+	min-width: 42px;
+	min-height: 42px;
 	background-image: url("svg/exit.svg");
 	background-repeat: no-repeat;
 	background-size: contain;
-	opacity: 20%;
-	transition: opacity 0.3s;
+	opacity: 0.85;
+	cursor: pointer;
+	pointer-events: auto !important;
+	z-index: 100 !important;
+	transition: opacity 0.2s, transform 0.2s, filter 0.2s;
 }
-#exit-game:hover {
-	filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.5));
-	opacity: 100%;
+#exit-game:hover,
+#exit-game:active {
+	opacity: 1;
+	transform: scale(1.15);
+	filter: drop-shadow(0 0 6px #ffd700);
 }
 
 /* ----------- settings & media player ------------------ */
@@ -313,10 +319,16 @@ html {
 /* ------- carousel ------------- */
 
 #carousel {
-	position:absolute;
-	width: 100%;
-	height: calc(100vw * 1080 / 1920);
-	z-index:90;
+	position: fixed !important;
+	top: 0 !important;
+	left: 0 !important;
+	width: 100vw !important;
+	height: 100vh !important;
+	z-index: 999999 !important;
+	background: rgba(10, 10, 10, 0.94);
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 /*
@@ -1693,3 +1705,60 @@ main { background-image: url('img/boardtest8.png'); }
 		height: 180px;
 	}
 }
+
+
+/* INTERACTION & MODAL ENHANCEMENTS */
+#panel-left {
+	z-index: 10 !important;
+	pointer-events: auto !important;
+}
+
+#exit-game,
+#forfeit-button,
+#pass-button {
+	pointer-events: auto !important;
+	cursor: pointer !important;
+	z-index: 100 !important;
+}
+
+#popup {
+	position: fixed !important;
+	top: 0 !important;
+	left: 0 !important;
+	width: 100vw !important;
+	height: 100vh !important;
+	background-color: rgba(10, 10, 10, 0.95) !important;
+	z-index: 1000000 !important;
+	pointer-events: auto !important;
+	display: flex !important;
+	justify-content: center !important;
+	align-items: center !important;
+}
+
+#popup.hide {
+	display: none !important;
+}
+
+#popup > div {
+	margin-top: 0 !important;
+	max-width: 90vw !important;
+	min-width: 300px !important;
+	padding: 1.5vw !important;
+	box-shadow: 0 0 25px rgba(0,0,0,0.9);
+}
+
+#popup button {
+	pointer-events: auto !important;
+	cursor: pointer !important;
+	min-height: 42px !important;
+	min-width: 110px !important;
+	font-size: 1.1rem !important;
+	margin: 0.5vw !important;
+}
+
+#end-screen,
+#end-screen * {
+	pointer-events: auto !important;
+	cursor: pointer;
+}
+

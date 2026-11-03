@@ -212,9 +212,8 @@ async function main() {
     const exePath = path.join(rootDir, 'GwentClassic.exe');
     const zipPath = path.join(rootDir, 'GwentClassic-PC.zip');
 
-    if (!fs.existsSync(zipPath)) {
-      createPcZip(rootDir);
-    }
+    // Always recreate fresh PC Zip with the updated files
+    createPcZip(rootDir);
 
     if (fs.existsSync(apkPath)) {
       await uploadAsset(release.id, apkPath, 'GwentClassic.apk', 'application/vnd.android.package-archive');

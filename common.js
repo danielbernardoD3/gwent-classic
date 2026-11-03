@@ -1,4 +1,4 @@
-"use strict"
+"use strict";
 
 // Mobile environment detection (for hiding desktop-only settings and adjusting touch UI)
 (function checkMobileEnvironment() {
@@ -636,8 +636,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.0",
-	CURRENT_VERSION_CODE: 3,
+	CURRENT_VERSION: "1.2.1",
+	CURRENT_VERSION_CODE: 4,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
@@ -650,16 +650,56 @@ const InGameUpdater = {
 	},
 
 	async checkForUpdates(manual = false) {
-		const btn = document.getElementById("check-updates-btn");
-		if (manual && btn) {
-			btn.disabled = true;
-			btn.innerText = "Verificando...";
+		const btn1 = document.getElementById("check-updates-btn");
+		const btn2 = document.getElementById("check-updates-btn-overlay");
+		const setButtonsState = (disabled, text) => {
+			if (btn1) { btn1.disabled = disabled; if (text) btn1.innerText = text; }
+			if (btn2) { btn2.disabled = disabled; if (text) btn2.innerText = text; }
+		};
+
+		if (manual) {
+			setButtonsState(true, "Verificando...");
 		}
 
 		try {
-			const res = await fetch(InGameUpdater.REMOTE_URL + "?_t=" + Date.now(), { cache: "no-store" });
-			if (!res.ok) throw new Error("Status " + res.status);
-			const data = await res.json();
+			let data = null;
+			// 1. Tentar raw.githubusercontent.com
+			try {
+				const res = await fetch(InGameUpdater.REMOTE_URL + "?_t=" + Date.now(), { cache: "no-store" });
+				if (res && res.ok) {
+					data = await res.json();
+				}
+			} catch (fetchErr) {
+				console.warn("[InGameUpdater] Falha no raw fetch, tentando GitHub API fallback...", fetchErr);
+			}
+
+			// 2. Fallback resiliente para GitHub Releases API
+			if (!data) {
+				try {
+					const apiRes = await fetch("https://api.github.com/repos/danielbernardoD3/gwent-classic/releases/latest", { cache: "no-store" });
+					if (apiRes && apiRes.ok) {
+						const rel = await apiRes.json();
+						const tagVer = (rel.tag_name || "").replace(/^v/, "");
+						const apkAsset = (rel.assets || []).find(a => a.name && a.name.endsWith(".apk"));
+						const pcAsset = (rel.assets || []).find(a => a.name && a.name.endsWith(".zip"));
+						const notes = rel.body ? rel.body.split("\n").filter(l => l.trim().startsWith("- ")).map(l => l.replace(/^-\s*/, "").trim()) : [];
+						data = {
+							version: tagVer || "1.2.1",
+							versionCode: 999,
+							title: "Gwent Classic",
+							changelog: notes.length > 0 ? notes : ["Melhorias de desempenho e correções gerais."],
+							apkUrl: apkAsset ? apkAsset.browser_download_url : "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
+							apkSize: apkAsset ? (apkAsset.size / 1024 / 1024).toFixed(0) + " MB" : "154 MB",
+							pcUrl: pcAsset ? pcAsset.browser_download_url : "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic-PC.zip"
+						};
+					}
+				} catch (apiErr) {
+					console.warn("[InGameUpdater] Falha também no GitHub API fallback:", apiErr);
+				}
+			}
+
+			if (!data) throw new Error("Não foi possível conectar ao servidor de atualizações.");
+
 			InGameUpdater.remoteData = data;
 
 			const hasUpdate = InGameUpdater.compareVersions(data.version, InGameUpdater.CURRENT_VERSION) > 0 
@@ -682,9 +722,8 @@ const InGameUpdater = {
 				}
 			}
 		} finally {
-			if (manual && btn) {
-				btn.disabled = false;
-				btn.innerText = "🔄 Verificar Atualizações";
+			if (manual) {
+				setButtonsState(false, "🔄 Verificar Atualizações");
 			}
 		}
 	},

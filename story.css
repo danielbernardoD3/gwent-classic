@@ -736,27 +736,33 @@
 	text-shadow: 0 0 8px rgba(46, 204, 113, 0.8), 0 2px 4px #000;
 }
 
-/* Geralt Avatar on Current Node (Scaled +50% for high visibility, always upright above pin) */
+/* O nó atual onde o jogador está SEMPRE fica na frente de todos os outros elementos do mapa */
+.story-map-pin.current,
+.story-map-pin:has(.pin-wolf-avatar) {
+	z-index: 9999 !important;
+}
+
+/* Geralt Avatar on Current Node (Aumentado para 78px e z-index máximo absoluto de 10000) */
 .pin-wolf-avatar {
 	position: absolute;
-	top: -50px;
+	top: -66px;
 	left: 50%;
 	transform: translateX(-50%);
-	width: 60px;
-	height: 60px;
+	width: 78px;
+	height: 78px;
 	background: url("img/hud-icons/Player.png") center/contain no-repeat;
-	filter: drop-shadow(0 0 14px #ffd700) drop-shadow(0 2px 6px #000);
+	filter: drop-shadow(0 0 18px #ffd700) drop-shadow(0 0 8px #ffffff) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.95));
 	animation: floatWolf 1.8s infinite ease-in-out;
-	z-index: 100;
+	z-index: 10000 !important;
 	pointer-events: none;
 }
 
 .story-map-pin.node-type-shop .pin-wolf-avatar {
-	top: -56px;
+	top: -72px;
 }
 
 .story-map-pin.regional-tourney .pin-wolf-avatar {
-	top: -54px;
+	top: -70px;
 }
 
 @keyframes floatWolf {
