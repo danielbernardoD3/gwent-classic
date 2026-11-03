@@ -1,0 +1,22 @@
+{
+  "version": "1.1.0",
+  "versionCode": 2,
+  "releaseDate": "2026-11-03",
+  "title": "Gwent Classic - Edição Mobile & Gestos",
+  "changelog": [
+    "Suporte a gestos touch no Mapa da História (Pan com 1 dedo e Pinch-to-Zoom com 2 dedos)",
+    "Letterboxing 16:9 automático com barras pretas (tabuleiro 100% visível em qualquer celular)",
+    "Novo menu dropdown no cabeçalho do mapa da história",
+    "Ícone oficial de alta definição para Android e PC",
+    "Feedback tátil (vibração) ao baixar cartas, queima de fileira e passar turno",
+    "Inspeção de cartas por toque longo (380ms) e botão direito no PC",
+    "Gerenciador de Backup e Restauração de Save em JSON",
+    "Janela de carência de 45 segundos para reconexão no Modo Versus",
+    "Redução de 52% no tamanho do jogo com áudio otimizado",
+    "Sistema de Atualizador Automático In-Game"
+  ],
+  "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
+  "apkSize": "154 MB",
+  "pcUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.exe"
+}
+

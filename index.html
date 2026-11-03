@@ -196,6 +196,9 @@
 				<button class="witcher-menu-btn" style="border-color: #ffd700;" onclick="openBackupModal()">
 					<span>💾 Backup / Restaurar Save</span>
 				</button>
+				<button id="check-updates-btn" class="witcher-menu-btn" style="border-color: #ffd700;" onclick="InGameUpdater.checkForUpdates(true)">
+					<span>🔄 Verificar Atualizações</span>
+				</button>
 				<button class="witcher-menu-btn" onclick="MenuController.saveSettings()">
 					<span data-i18n="btn_save">Save & Close</span>
 				</button>
@@ -1042,6 +1045,10 @@
 						<span class="story-dropdown-icon" style="font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">💾</span>
 						<span class="story-dropdown-text">Backup do Save</span>
 					</button>
+					<button class="story-dropdown-item" onclick="StoryMode.closeHeaderDropdown(); InGameUpdater.checkForUpdates(true);">
+						<span class="story-dropdown-icon" style="font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">🔄</span>
+						<span class="story-dropdown-text">Atualizações</span>
+					</button>
 					<div class="story-dropdown-divider"></div>
 					<button class="story-dropdown-item btn-danger" onclick="StoryMode.onDropdownItemClick('main-menu')">
 						<span class="story-dropdown-icon-close">✕</span>
@@ -1738,6 +1745,48 @@
 					<input type="checkbox" id="backup-haptics-toggle" onchange="toggleHapticsSetting(this.checked)" checked style="opacity: 0; width: 0; height: 0;">
 					<span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 26px;"></span>
 				</label>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- IN-GAME AUTO-UPDATER MODAL -->
+<div id="game-updater-modal" class="story-modal hide">
+	<div class="story-modal-overlay" onclick="InGameUpdater.closeUpdateModal()"></div>
+	<div class="story-parchment-frame" style="max-width: 580px; width: 92%; margin: auto; max-height: 90vh; overflow-y: auto;">
+		<div class="story-modal-header">
+			<h2 class="story-modal-title" id="updater-title">⚔️ Atualização de Gwent Disponível</h2>
+			<button class="story-modal-close-btn" onclick="InGameUpdater.closeUpdateModal()">✕</button>
+		</div>
+		<div class="story-modal-body" style="padding: 16px; font-family: 'The Witcher', sans-serif;">
+			<div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); border: 1px solid #443; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px;">
+				<span style="color: #ffd700; font-size: 1rem; font-weight: bold;">Nova Versão:</span>
+				<span id="updater-version-badge" class="inspect-stat-pill" style="margin: 0; background: #ffd700; color: #111; font-weight: bold; padding: 4px 12px; border-radius: 12px;">v1.1.0 ➔ v1.2.0</span>
+			</div>
+
+			<div style="margin-bottom: 14px;">
+				<h4 style="color: #ffd700; margin: 0 0 6px 0; font-size: 1rem;">📜 O que há de novo:</h4>
+				<ul id="updater-changelog-list" style="color: #ddd; font-size: 0.9rem; line-height: 1.45; margin: 0; padding-left: 20px;">
+					<!-- Populated by JS -->
+				</ul>
+				<small id="updater-size-text" style="display: block; color: #999; margin-top: 8px; font-style: italic;"></small>
+			</div>
+
+			<!-- Real-time Download Progress Box -->
+			<div id="updater-progress-box" class="hide" style="background: rgba(0,0,0,0.5); border: 1px solid #554; border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+				<div style="background: #222; border: 1px solid #444; height: 16px; border-radius: 8px; overflow: hidden; position: relative;">
+					<div id="updater-progress-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #d4a34b, #ffd700); transition: width 0.15s ease;"></div>
+				</div>
+				<small id="updater-progress-text" style="display: block; text-align: center; color: #ffd700; margin-top: 6px; font-weight: bold;">Baixando atualização: 0%</small>
+			</div>
+
+			<div style="display: flex; gap: 10px; margin-top: 14px;">
+				<button id="updater-action-btn" class="witcher-menu-btn" style="flex: 2; border-color: #ffd700;" onclick="InGameUpdater.startUpdate()">
+					<span>⚔️ Atualizar Agora</span>
+				</button>
+				<button class="witcher-menu-btn" style="flex: 1;" onclick="InGameUpdater.closeUpdateModal()">
+					<span>Mais Tarde</span>
+				</button>
 			</div>
 		</div>
 	</div>

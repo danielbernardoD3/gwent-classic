@@ -57,7 +57,8 @@ const files = [
   'menu.js',
   'gamepad.js',
   'Appico.png',
-  'app.ico'
+  'app.ico',
+  'version.json'
 ];
 
 files.forEach(f => copyFile(f));

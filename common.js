@@ -1,85 +1,73 @@
 "use strict"
 
-Array.prototype.remove = function(elem)
-{
+Array.prototype.remove = function (elem) {
 	const index = this.indexOf(elem);
 	if (index !== -1)
 		this.splice(index, 1);
 }
 
-function isEmpty(obj)
-{
-	for (const property in obj)
-	{
+function isEmpty(obj) {
+	for (const property in obj) {
 		if (Object.hasOwn(obj, property))
 			return false;
 	}
 	return true;
 }
 
-class RGBA
-{
-	constructor(r, g, b, a = 1)
-	{
+class RGBA {
+	constructor(r, g, b, a = 1) {
 		this.r = r;
 		this.g = g;
 		this.b = b;
 		this.a = a;
 	}
-	setAlpha(a)
-	{
+	setAlpha(a) {
 		this.a = a;
 	}
-	toString()
-	{
+	toString() {
 		const hasAlpha = this.a < 1;
-		return (hasAlpha ? "rgba(" : "rgb(") 
-		+ this.r + ',' + this.g + ',' + this.b
-		+ (hasAlpha ? "," + this.a : "")
-		+ ")";
+		return (hasAlpha ? "rgba(" : "rgb(")
+			+ this.r + ',' + this.g + ',' + this.b
+			+ (hasAlpha ? "," + this.a : "")
+			+ ")";
 	}
 }
 
 // returns val or the min/max it is closest to. Flips inverted min/max values.
-function clamp(min, max, val)
-{
+function clamp(min, max, val) {
 	if (min > max)
 		return clamp(max, min, val);
 	return Math.min(max, Math.max(min, val));
 }
 
 // Returns the linear interpolation of t from a to b (unclamped)
-function lerp(a, b, t)
-{
-	return (1-t)*a + t*b;
+function lerp(a, b, t) {
+	return (1 - t) * a + t * b;
 }
 
 // Returns the normalized value of t from the range [a,b]
-function inverseLerp(a, b, t)
-{
+function inverseLerp(a, b, t) {
 	return (t - a) / (b - a);
 }
 
 // Returns the lerp() of [y,z] using the normalized value of t in [a,b] as the param
-function map(a, b, y, z, t)
-{
+function map(a, b, y, z, t) {
 	return lerp(y, z, inverseLerp(a, b, t));
 }
 
 
 // Returns true if n is an Number
-function isNumber(n) { 
+function isNumber(n) {
 	return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
 // Returns true if s is a String
-function isString(s){
-	return typeof(s) === 'string' || s instanceof String;
+function isString(s) {
+	return typeof (s) === 'string' || s instanceof String;
 }
 
 // Interprets passed string as an interger. Empty strings return 0, null string return NaN
-function toInteger(str)
-{
+function toInteger(str) {
 	if (str === '')
 		return 0;
 	else if (!str)
@@ -88,7 +76,7 @@ function toInteger(str)
 }
 
 // Returns a random integer in the range [0,n)
-function randomInt(n)  {
+function randomInt(n) {
 	return Math.floor(Math.random() * n);
 }
 
@@ -153,7 +141,7 @@ function triggerHaptic(type = "light") {
 				navigator.vibrate(65);
 				break;
 		}
-	} catch (e) {}
+	} catch (e) { }
 }
 window.triggerHaptic = triggerHaptic;
 
@@ -489,7 +477,7 @@ window.importSaveFromText = importSaveFromText;
 // ===========================================================================
 // TRATAMENTO INTELIGENTE DO BOTÃO / GESTO VOLTAR DO ANDROID (BACK BUTTON)
 // ===========================================================================
-window.handleAndroidBackButton = function() {
+window.handleAndroidBackButton = function () {
 	// 1. Modal de inspeção rápida de carta aberto?
 	const quickInspect = document.getElementById("quick-card-inspect-modal");
 	if (quickInspect && !quickInspect.classList.contains("hide")) {
@@ -510,6 +498,7 @@ window.handleAndroidBackButton = function() {
 
 	// 3. Modais do sistema / história / versus abertos?
 	const activeModals = [
+		"game-updater-modal",
 		"backup-save-modal",
 		"story-compendium-modal",
 		"story-achievements-modal",
@@ -596,4 +585,187 @@ window.handleAndroidBackButton = function() {
 
 document.addEventListener("DOMContentLoaded", () => {
 	setupCardInspectorListeners();
+});
+
+
+// ===========================================================================
+// IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
+// ===========================================================================
+const InGameUpdater = {
+	CURRENT_VERSION: "1.1.0",
+	CURRENT_VERSION_CODE: 2,
+	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
+	remoteData: null,
+	isDownloading: false,
+
+	init() {
+		// Auto-check on startup after 2.5 seconds
+		setTimeout(() => {
+			InGameUpdater.checkForUpdates(false);
+		}, 2500);
+	},
+
+	async checkForUpdates(manual = false) {
+		const btn = document.getElementById("check-updates-btn");
+		if (manual && btn) {
+			btn.disabled = true;
+			btn.innerText = "Verificando...";
+		}
+
+		try {
+			const res = await fetch(InGameUpdater.REMOTE_URL + "?_t=" + Date.now(), { cache: "no-store" });
+			if (!res.ok) throw new Error("Status " + res.status);
+			const data = await res.json();
+			InGameUpdater.remoteData = data;
+
+			const hasUpdate = InGameUpdater.compareVersions(data.version, InGameUpdater.CURRENT_VERSION) > 0 
+				|| (data.versionCode && data.versionCode > InGameUpdater.CURRENT_VERSION_CODE);
+
+			if (hasUpdate) {
+				InGameUpdater.showUpdateModal(data);
+			} else {
+				if (manual) {
+					alert(`Você já está jogando a versão mais recente do Gwent Classic (v${InGameUpdater.CURRENT_VERSION})!`);
+				}
+			}
+		} catch (e) {
+			console.warn("[InGameUpdater] Erro ao verificar atualizações:", e);
+			if (manual) {
+				alert("Não foi possível conectar ao servidor de atualizações no momento. Verifique sua conexão à internet.");
+			}
+		} finally {
+			if (manual && btn) {
+				btn.disabled = false;
+				btn.innerText = "🔄 Verificar Atualizações";
+			}
+		}
+	},
+
+	compareVersions(v1, v2) {
+		const p1 = (v1 || "0").split(".").map(Number);
+		const p2 = (v2 || "0").split(".").map(Number);
+		for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+			const num1 = p1[i] || 0;
+			const num2 = p2[i] || 0;
+			if (num1 > num2) return 1;
+			if (num1 < num2) return -1;
+		}
+		return 0;
+	},
+
+	showUpdateModal(data) {
+		const modal = document.getElementById("game-updater-modal");
+		if (!modal) return;
+
+		const titleElem = document.getElementById("updater-title");
+		const versionBadge = document.getElementById("updater-version-badge");
+		const changelogList = document.getElementById("updater-changelog-list");
+		const sizeElem = document.getElementById("updater-size-text");
+		const progressBox = document.getElementById("updater-progress-box");
+		const actionBtn = document.getElementById("updater-action-btn");
+
+		if (titleElem) titleElem.innerText = data.title || "Atualização de Gwent Classic Disponível!";
+		if (versionBadge) versionBadge.innerText = `v${InGameUpdater.CURRENT_VERSION} ➔ v${data.version}`;
+		if (sizeElem) sizeElem.innerText = data.apkSize ? `Tamanho do pacote: ${data.apkSize}` : "";
+
+		if (changelogList) {
+			changelogList.innerHTML = "";
+			const notes = data.changelog || ["Melhorias gerais e correções de estabilidade."];
+			notes.forEach(note => {
+				const li = document.createElement("li");
+				li.innerText = note;
+				changelogList.appendChild(li);
+			});
+		}
+
+		if (progressBox) progressBox.classList.add("hide");
+		if (actionBtn) {
+			actionBtn.disabled = false;
+			actionBtn.innerText = "⚔️ Atualizar Agora";
+		}
+
+		modal.classList.remove("hide");
+		if (typeof triggerHaptic === "function") triggerHaptic("medium");
+	},
+
+	closeUpdateModal() {
+		if (InGameUpdater.isDownloading) {
+			if (!confirm("O download da atualização está em andamento. Deseja cancelar?")) {
+				return;
+			}
+		}
+		const modal = document.getElementById("game-updater-modal");
+		if (modal) modal.classList.add("hide");
+		InGameUpdater.isDownloading = false;
+	},
+
+	startUpdate() {
+		const data = InGameUpdater.remoteData;
+		if (!data) return;
+
+		const actionBtn = document.getElementById("updater-action-btn");
+		const progressBox = document.getElementById("updater-progress-box");
+		const progressBar = document.getElementById("updater-progress-fill");
+		const progressText = document.getElementById("updater-progress-text");
+
+		// Android Nativo
+		if (window.AndroidAppUpdater && typeof window.AndroidAppUpdater.downloadAndInstall === "function") {
+			InGameUpdater.isDownloading = true;
+			if (actionBtn) {
+				actionBtn.disabled = true;
+				actionBtn.innerText = "Baixando...";
+			}
+			if (progressBox) progressBox.classList.remove("hide");
+			if (progressBar) progressBar.style.width = "0%";
+			if (progressText) progressText.innerText = "Iniciando download...";
+
+			window.AndroidAppUpdater.downloadAndInstall(data.apkUrl);
+		} else {
+			// PC / Navegador
+			const downloadUrl = data.pcUrl || data.apkUrl;
+			window.open(downloadUrl, "_blank");
+			InGameUpdater.closeUpdateModal();
+		}
+	}
+};
+
+window.InGameUpdater = InGameUpdater;
+
+window.onUpdaterProgress = function(percent, currentBytes, totalBytes) {
+	const progressBar = document.getElementById("updater-progress-fill");
+	const progressText = document.getElementById("updater-progress-text");
+	const actionBtn = document.getElementById("updater-action-btn");
+
+	if (progressBar) {
+		progressBar.style.width = Math.min(100, Math.max(0, percent)) + "%";
+	}
+
+	if (progressText) {
+		const curMB = (currentBytes / (1024 * 1024)).toFixed(1);
+		const totalMB = totalBytes > 0 ? (totalBytes / (1024 * 1024)).toFixed(1) : "?";
+		if (percent >= 100) {
+			progressText.innerText = `Download concluído (${curMB} MB)! Abrindo instalador...`;
+			if (actionBtn) actionBtn.innerText = "Instalando...";
+		} else {
+			progressText.innerText = `Baixando atualização: ${percent}% (${curMB} MB de ${totalMB} MB)`;
+		}
+	}
+};
+
+window.onUpdaterError = function(errorMsg) {
+	InGameUpdater.isDownloading = false;
+	const progressText = document.getElementById("updater-progress-text");
+	const actionBtn = document.getElementById("updater-action-btn");
+	if (progressText) {
+		progressText.innerHTML = `<span style="color: #e84118;">Erro no download: ${errorMsg}</span>`;
+	}
+	if (actionBtn) {
+		actionBtn.disabled = false;
+		actionBtn.innerText = "Tentar Novamente";
+	}
+	alert("Não foi possível concluir o download da atualização: " + errorMsg);
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+	InGameUpdater.init();
 });
