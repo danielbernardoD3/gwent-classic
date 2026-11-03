@@ -651,8 +651,13 @@ class Player {
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopTurnTimer();
 		}
-		if (!this.passed && !this.canPlay())
+		if (!this.passed && !this.canPlay()) {
 			this.setPassed(true);
+			EventManager.roundPassed.dispatch(this, game.roundCount);
+			if (this === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				VersusMode.onLocalPass();
+			}
+		}
 		if (this === player_me){
 			document.getElementById("pass-button").classList.add("noclick");
 		}
@@ -683,21 +688,34 @@ class Player {
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopTurnTimer();
 			VersusMode.pendingLeaderData = {};
+			VersusMode.isActionExecuting = true;
+			VersusMode.actionStartTime = Date.now();
 		}
-		ui.showPreviewVisuals(this.leader);
-		await sleep(1500);
-		ui.hidePreview(this.leader);
-		await this.leader.activated[0](this.leader, this);
-		if (this === player_me) {
-			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
-				VersusMode.onLocalLeader(VersusMode.pendingLeaderData || {});
+		try {
+			ui.showPreviewVisuals(this.leader);
+			await sleep(1500);
+			ui.hidePreview(this.leader);
+			await this.leader.activated[0](this.leader, this);
+			if (this === player_me) {
+				if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+					VersusMode.onLocalLeader(VersusMode.pendingLeaderData || {});
+				}
+				if (typeof Achievements !== "undefined") {
+					Achievements.recordLeaderUsed();
+				}
 			}
-			if (typeof Achievements !== "undefined") {
-				Achievements.recordLeaderUsed();
+			this.disableLeader();
+			this.endTurn();
+		} finally {
+			if (typeof VersusMode !== "undefined") {
+				VersusMode.isActionExecuting = false;
+				if (VersusMode.pendingTurnSync) {
+					const sync = VersusMode.pendingTurnSync;
+					VersusMode.pendingTurnSync = null;
+					VersusMode.onTurnSyncReceived(sync);
+				}
 			}
 		}
-		this.disableLeader();
-		this.endTurn();
 	}
 	
 	// Disable access to leader ability and toggles leader visuals to off state
@@ -2675,7 +2693,22 @@ class UI {
 	// Enables or disables client interration
 	enablePlayer(enable){
 		let main = document.getElementsByTagName("main")[0].classList;
-		if (enable) main.remove("noclick"); else main.add("noclick");
+		if (enable) {
+			main.remove("noclick");
+			if (player_me && player_me.hand && player_me.hand.cards) {
+				player_me.hand.cards.forEach( c => {
+					if (c && c.elem) c.elem.classList.remove("noclick");
+				});
+			}
+			const passBtn = document.getElementById("pass-button");
+			if (passBtn && player_me && !player_me.passed) {
+				passBtn.classList.remove("noclick");
+			}
+		} else {
+			main.add("noclick");
+			const passBtn = document.getElementById("pass-button");
+			if (passBtn) passBtn.classList.add("noclick");
+		}
 	}
 	
 	// Initializes the offline background music object
@@ -2758,19 +2791,34 @@ class UI {
 		} else if (pCard.name === "Decoy") {
 			this.hidePreview(card);
 			this.enablePlayer(false);
-			if (pCard.holder === player_me && typeof Achievements !== "undefined") {
-				Achievements.recordDecoy();
+			if (typeof VersusMode !== "undefined") {
+				VersusMode.isActionExecuting = true;
+				VersusMode.actionStartTime = Date.now();
 			}
-			if (pCard.holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
-				const rowType = (typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : "close";
-				VersusMode.onLocalCardPlayed(pCard, {
-					decoyTargetName: card.name,
-					rowType: rowType
-				});
+			try {
+				if (pCard.holder === player_me && typeof Achievements !== "undefined") {
+					Achievements.recordDecoy();
+				}
+				if (pCard.holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
+					const rowType = (typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : "close";
+					VersusMode.onLocalCardPlayed(pCard, {
+						decoyTargetName: card.name,
+						rowType: rowType
+					});
+				}
+				board.toHand(card, row);
+				await board.moveTo(pCard, row, pCard.holder.hand);
+				pCard.holder.endTurn();
+			} finally {
+				if (typeof VersusMode !== "undefined") {
+					VersusMode.isActionExecuting = false;
+					if (VersusMode.pendingTurnSync) {
+						const sync = VersusMode.pendingTurnSync;
+						VersusMode.pendingTurnSync = null;
+						VersusMode.onTurnSyncReceived(sync);
+					}
+				}
 			}
-			board.toHand(card, row);
-			await board.moveTo(pCard, row, pCard.holder.hand);
-			pCard.holder.endTurn();
 		}
 	}
 	
@@ -2792,25 +2840,40 @@ class UI {
 		let holder = card.holder;
 		this.hidePreview();
 		this.enablePlayer(false);
-		if (card.name === "Scorch"){
-			this.hidePreview();
-			await ability_dict["scorch"].activated(card);
-		} else if (card.name === "Decoy") {
-			return;
-		} else {
-			await board.moveTo(card, row, card.holder.hand);
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.isActionExecuting = true;
+			VersusMode.actionStartTime = Date.now();
 		}
-		if (holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
-			const rowType = (card.name === "Scorch") ? "scorch" : (card.row === "weather" ? "weather" : ((typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : card.row));
-			VersusMode.onLocalCardPlayed(card, {
-				rowType: rowType,
-				medicTargetName: VersusMode.pendingMedicTarget || null,
-				medicTargets: VersusMode.pendingMedicTargets || []
-			});
-			VersusMode.pendingMedicTarget = null;
-			VersusMode.pendingMedicTargets = [];
+		try {
+			if (card.name === "Scorch"){
+				this.hidePreview();
+				await ability_dict["scorch"].activated(card);
+			} else if (card.name === "Decoy") {
+				return;
+			} else {
+				await board.moveTo(card, row, card.holder.hand);
+			}
+			if (holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
+				const rowType = (card.name === "Scorch") ? "scorch" : (card.row === "weather" ? "weather" : ((typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : card.row));
+				VersusMode.onLocalCardPlayed(card, {
+					rowType: rowType,
+					medicTargetName: VersusMode.pendingMedicTarget || null,
+					medicTargets: VersusMode.pendingMedicTargets || []
+				});
+				VersusMode.pendingMedicTarget = null;
+				VersusMode.pendingMedicTargets = [];
+			}
+			holder.endTurn();
+		} finally {
+			if (typeof VersusMode !== "undefined") {
+				VersusMode.isActionExecuting = false;
+				if (VersusMode.pendingTurnSync) {
+					const sync = VersusMode.pendingTurnSync;
+					VersusMode.pendingTurnSync = null;
+					VersusMode.onTurnSyncReceived(sync);
+				}
+			}
 		}
-		holder.endTurn();
 	}
 	
 	// Called when the client cancels out of a card-preview

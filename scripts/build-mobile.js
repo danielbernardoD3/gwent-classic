@@ -65,3 +65,4 @@ const assetDirs = ['img', 'music', 'fonts', 'sfx', 'svg'];
 assetDirs.forEach(d => copyDir(d));
 
 console.log('Mobile web bundle generated successfully in /www!');
+

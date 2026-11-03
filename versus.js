@@ -30,141 +30,196 @@ class ControllerPeer {
 	async handleRemotePlayCard(data) {
 		if (!this.player || !this.player.hand) return;
 
-		// Interrompe o cronômetro de turno enquanto a animação da jogada remota executa
 		VersusMode.stopTurnTimer();
+		VersusMode.isActionExecuting = true;
+		VersusMode.actionStartTime = Date.now();
+		let turnCompleted = false;
 
-		// 1. Localiza a carta na mão do oponente pelo nome ou índice
-		let card = null;
-		let cardIdx = -1;
-		if (data.cardName) {
-			cardIdx = this.player.hand.cards.findIndex(c => c.name === data.cardName);
-		}
-		if (cardIdx !== -1) {
-			card = this.player.hand.cards[cardIdx];
-		} else if (data.cardIndex !== undefined && this.player.hand.cards[data.cardIndex]) {
-			card = this.player.hand.cards[data.cardIndex];
-		}
-
-		// Fallback de segurança: se por acaso a mão divergiu, busca do baralho ou instancia
-		if (!card) {
+		try {
+			// 1. Localiza a carta na mão do oponente pelo nome ou índice
+			let card = null;
+			let cardIdx = -1;
 			if (data.cardName) {
-				const inDeckIdx = this.player.deck.cards.findIndex(c => c.name === data.cardName);
-				if (inDeckIdx !== -1) {
-					card = this.player.deck.cards[inDeckIdx];
-					this.player.deck.removeCard(card);
-					this.player.hand.addCard(card);
-				} else {
-					const cData = card_dict.find(c => c.name === data.cardName) || card_dict[0];
-					card = new Card(cData, this.player);
-					this.player.hand.addCard(card);
-				}
-			} else if (this.player.hand.cards.length > 0) {
-				card = this.player.hand.cards[0];
+				cardIdx = this.player.hand.cards.findIndex(c => c.name === data.cardName);
 			}
-		}
+			if (cardIdx !== -1) {
+				card = this.player.hand.cards[cardIdx];
+			} else if (data.cardIndex !== undefined && this.player.hand.cards[data.cardIndex]) {
+				card = this.player.hand.cards[data.cardIndex];
+			}
 
-		if (!card) return;
-
-		// 2. Trata habilidade de Isca (Decoy) nas fileiras do oponente (0..2)
-		if (card.abilities && card.abilities.includes("decoy") && data.decoyTargetName) {
-			let swappedCard = null;
-			let sourceRow = null;
-			// Busca primeiro nas fileiras do oponente (0, 1, 2)
-			for (let r = 0; r < 3; r++) {
-				const rowObj = board.row[r];
-				const found = rowObj.cards.find(c => c.name === data.decoyTargetName && c.isUnit());
-				if (found) {
-					swappedCard = found;
-					sourceRow = rowObj;
-					break;
+			// Fallback de segurança: se por acaso a mão divergiu, busca do baralho ou instancia
+			if (!card) {
+				if (data.cardName) {
+					const inDeckIdx = this.player.deck.cards.findIndex(c => c.name === data.cardName);
+					if (inDeckIdx !== -1) {
+						card = this.player.deck.cards[inDeckIdx];
+						this.player.deck.removeCard(card);
+						this.player.hand.addCard(card);
+					} else {
+						const cData = card_dict.find(c => c.name === data.cardName) || card_dict[0];
+						card = new Card(cData, this.player);
+						this.player.hand.addCard(card);
+					}
+				} else if (this.player.hand.cards.length > 0) {
+					card = this.player.hand.cards[0];
 				}
 			}
-			// Fallback caso não encontre nas 3 primeiras
-			if (!swappedCard) {
-				for (let r = 0; r < 6; r++) {
+
+			if (!card) return;
+
+			// 2. Trata habilidade de Isca (Decoy) nas fileiras do oponente (0..2)
+			if (card.abilities && card.abilities.includes("decoy") && data.decoyTargetName) {
+				let swappedCard = null;
+				let sourceRow = null;
+				// Busca primeiro nas fileiras do oponente (0, 1, 2)
+				for (let r = 0; r < 3; r++) {
 					const rowObj = board.row[r];
-					const found = rowObj.cards.find(c => c.name === data.decoyTargetName);
+					const found = rowObj.cards.find(c => c.name === data.decoyTargetName && c.isUnit());
 					if (found) {
 						swappedCard = found;
 						sourceRow = rowObj;
 						break;
 					}
 				}
+				// Fallback caso não encontre nas 3 primeiras
+				if (!swappedCard) {
+					for (let r = 0; r < 6; r++) {
+						const rowObj = board.row[r];
+						const found = rowObj.cards.find(c => c.name === data.decoyTargetName);
+						if (found) {
+							swappedCard = found;
+							sourceRow = rowObj;
+							break;
+						}
+					}
+				}
+				if (swappedCard && sourceRow) {
+					ui.showPreviewVisuals(card);
+					await sleep(900);
+					ui.hidePreview(card);
+					await board.toHand(swappedCard, sourceRow);
+					await board.moveTo(card, sourceRow, this.player.hand);
+					VersusMode.recalcAllScores();
+					this.player.hand.resize();
+					this.player.deck.resize();
+					this.player.endTurn();
+					turnCompleted = true;
+					return;
+				}
 			}
-			if (swappedCard && sourceRow) {
-				ui.showPreviewVisuals(card);
-				await sleep(900);
-				ui.hidePreview(card);
-				await board.toHand(swappedCard, sourceRow);
-				await board.moveTo(card, sourceRow, this.player.hand);
+
+			// 3. Trata Queimadura (Scorch)
+			if (card.name === "Scorch" || data.rowType === "scorch") {
+				await this.player.playScorch(card);
 				VersusMode.recalcAllScores();
 				this.player.hand.resize();
 				this.player.deck.resize();
-				this.player.endTurn();
+				turnCompleted = true;
 				return;
 			}
-		}
 
-		// 3. Trata Queimadura (Scorch)
-		if (card.name === "Scorch" || data.rowType === "scorch") {
-			await this.player.playScorch(card);
+			// 4. Salva alvos de médico (suporta fila de médicos em cadeia e escolha de fileira ágil)
+			this.nextMedicTargets = [];
+			if (Array.isArray(data.medicTargets) && data.medicTargets.length > 0) {
+				this.nextMedicTargets = [...data.medicTargets];
+			} else if (data.medicTargetName) {
+				this.nextMedicTargets.push({
+					name: data.medicTargetName,
+					rowType: data.medicRowType || null
+				});
+			}
+			this.nextMedicTarget = data.medicTargetName || (this.nextMedicTargets[0] ? this.nextMedicTargets[0].name : null);
+
+			// 5. Determina a fileira de destino simétrica para o oponente
+			let targetRow = null;
+			if (data.rowType === "weather" || card.row === "weather") {
+				targetRow = weather;
+			} else {
+				const rowType = data.rowType || (card.row === "agile" ? "close" : card.row);
+				targetRow = board.getRow(card, rowType, this.player);
+			}
+
+			// 6. Joga a carta na mesa
+			if (targetRow) {
+				await this.player.playCardToRow(card, targetRow);
+			} else {
+				await this.player.playCard(card);
+			}
+			turnCompleted = true;
+
+			// 7. Recalcula pontuações e contadores de mão/baralho com precisão
 			VersusMode.recalcAllScores();
 			this.player.hand.resize();
 			this.player.deck.resize();
-			return;
+		} catch (err) {
+			console.error("[ControllerPeer] Erro ao executar handleRemotePlayCard:", err);
+		} finally {
+			VersusMode.recalcAllScores();
+			if (this.player && this.player.hand) this.player.hand.resize();
+			if (this.player && this.player.deck) this.player.deck.resize();
+			if (!turnCompleted && this.player) {
+				console.warn("[ControllerPeer] Forçando this.player.endTurn() no bloco finally.");
+				this.player.endTurn();
+			}
+			VersusMode.isActionExecuting = false;
+			if (VersusMode.pendingTurnSync) {
+				const sync = VersusMode.pendingTurnSync;
+				VersusMode.pendingTurnSync = null;
+				VersusMode.onTurnSyncReceived(sync);
+			}
 		}
-
-		// 4. Salva alvos de médico (suporta fila de médicos em cadeia e escolha de fileira ágil)
-		this.nextMedicTargets = [];
-		if (Array.isArray(data.medicTargets) && data.medicTargets.length > 0) {
-			this.nextMedicTargets = [...data.medicTargets];
-		} else if (data.medicTargetName) {
-			this.nextMedicTargets.push({
-				name: data.medicTargetName,
-				rowType: data.medicRowType || null
-			});
-		}
-		this.nextMedicTarget = data.medicTargetName || (this.nextMedicTargets[0] ? this.nextMedicTargets[0].name : null);
-
-		// 5. Determina a fileira de destino simétrica para o oponente
-		let targetRow = null;
-		if (data.rowType === "weather" || card.row === "weather") {
-			targetRow = weather;
-		} else {
-			const rowType = data.rowType || (card.row === "agile" ? "close" : card.row);
-			targetRow = board.getRow(card, rowType, this.player);
-		}
-
-		// 6. Joga a carta na mesa
-		if (targetRow) {
-			await this.player.playCardToRow(card, targetRow);
-		} else {
-			await this.player.playCard(card);
-		}
-
-		// 7. Recalcula pontuações e contadores de mão/baralho com precisão
-		VersusMode.recalcAllScores();
-		this.player.hand.resize();
-		this.player.deck.resize();
 	}
 
 	async handleRemotePass(data) {
 		VersusMode.stopTurnTimer();
-		if (this.player && !this.player.passed) {
-			VersusMode.recalcAllScores();
-			this.player.passRound();
+		VersusMode.isActionExecuting = true;
+		VersusMode.actionStartTime = Date.now();
+		try {
+			if (this.player && !this.player.passed) {
+				VersusMode.recalcAllScores();
+				this.player.passRound();
+			}
+		} catch (err) {
+			console.error("[ControllerPeer] Erro ao executar handleRemotePass:", err);
+		} finally {
+			VersusMode.isActionExecuting = false;
+			if (VersusMode.pendingTurnSync) {
+				const sync = VersusMode.pendingTurnSync;
+				VersusMode.pendingTurnSync = null;
+				VersusMode.onTurnSyncReceived(sync);
+			}
 		}
 	}
 
 	async handleRemoteLeader(data) {
 		VersusMode.stopTurnTimer();
-		if (this.player && this.player.leaderAvailable) {
-			this.nextLeaderData = data || {};
-			await this.player.activateLeader();
-			this.nextLeaderData = null;
+		VersusMode.isActionExecuting = true;
+		VersusMode.actionStartTime = Date.now();
+		let turnCompleted = false;
+		try {
+			if (this.player && this.player.leaderAvailable) {
+				this.nextLeaderData = data || {};
+				await this.player.activateLeader();
+				this.nextLeaderData = null;
+				turnCompleted = true;
+			}
+		} catch (err) {
+			console.error("[ControllerPeer] Erro ao executar handleRemoteLeader:", err);
+		} finally {
 			VersusMode.recalcAllScores();
-			this.player.hand.resize();
-			this.player.deck.resize();
+			if (this.player && this.player.hand) this.player.hand.resize();
+			if (this.player && this.player.deck) this.player.deck.resize();
+			if (!turnCompleted && this.player && this.player.leaderAvailable) {
+				this.player.disableLeader();
+				this.player.endTurn();
+			}
+			VersusMode.isActionExecuting = false;
+			if (VersusMode.pendingTurnSync) {
+				const sync = VersusMode.pendingTurnSync;
+				VersusMode.pendingTurnSync = null;
+				VersusMode.onTurnSyncReceived(sync);
+			}
 		}
 	}
 }
@@ -222,6 +277,12 @@ class VersusMode {
 	static isHandlingTimeout = false;
 	static turnSeq = 0;
 	static lastTurnSyncTime = 0;
+	static packetQueue = [];
+	static isProcessingQueue = false;
+	static isActionExecuting = false;
+	static actionStartTime = 0;
+	static pendingTurnSync = null;
+	static watchdogInterval = null;
 
 	// Inicia o módulo e vincula eventos da UI
 	static init() {
@@ -1138,6 +1199,7 @@ class VersusMode {
 		// Inicia o jogo
 		game.reset();
 		game.startGame();
+		VersusMode.startWatchdog();
 	}
 
 	// -------------------------------------------------------------
@@ -1147,73 +1209,124 @@ class VersusMode {
 		if (!msg || !msg.type) return;
 		const payload = msg.payload || {};
 
+		// Pacotes de atualização de lobby, sincronização de mulligan ou emotes imediatos
+		if (msg.type === "LOBBY_SYNC") {
+			VersusMode.remotePlayerName = payload.name || "Adversário";
+			VersusMode.remoteFaction = payload.faction || "nilfgaard";
+			VersusMode.remoteLeaderIndex = payload.leaderIndex || 0;
+			VersusMode.remoteReady = !!payload.ready;
+			if (payload.deck) VersusMode.remoteDeckData = payload.deck;
+			if (payload.deckCards && Array.isArray(payload.deckCards)) VersusMode.remoteDeckCards = payload.deckCards;
+			VersusMode.updatePreMatchUI();
+			VersusMode.checkBothReady();
+			return;
+		}
+
+		if (msg.type === "MATCH_START") {
+			const iStartFirst = payload.firstTurn === "guest_me";
+			if (payload.hostDeck) {
+				VersusMode.remoteDeckData = payload.hostDeck;
+				if (payload.hostDeck.faction) {
+					VersusMode.remoteFaction = payload.hostDeck.faction;
+				}
+			}
+			VersusMode.startActualGame(iStartFirst, payload.hostDeckOrder, payload.guestDeckOrder);
+			return;
+		}
+
+		if (msg.type === "MULLIGAN_SYNC") {
+			VersusMode.remoteMulliganDone = true;
+			if (payload.finalHand) {
+				VersusMode.syncRemoteHand(payload.finalHand, payload.finalDeck);
+			}
+			return;
+		}
+
+		if (msg.type === "ROUND_RESULT") {
+			VersusMode.onRoundResultReceived(payload);
+			return;
+		}
+
+		if (msg.type === "EMOTE") {
+			VersusMode.onRemoteEmoteReceived(payload);
+			return;
+		}
+
+		if (msg.type === "ACTION_FORFEIT") {
+			VersusMode.onRemoteForfeit();
+			return;
+		}
+
+		if (msg.type === "GAME_END_SYNC") {
+			VersusMode.onGameEndSyncReceived();
+			return;
+		}
+
+		if (msg.type === "REMATCH_REQUEST") {
+			VersusMode.rematchRequestedByRemote = true;
+			VersusMode.onRemoteRematchRequested();
+			return;
+		}
+
+		if (msg.type === "REMATCH_ACCEPT") {
+			if (VersusMode.isHost) {
+				VersusMode.initiateMatchAsHost(!VersusMode.isFirstTurn);
+			}
+			return;
+		}
+
+		if (msg.type === "RETURN_TO_LOBBY") {
+			VersusMode.returnToPreMatchLobby(false);
+			return;
+		}
+
+		if (msg.type === "REQ_TURN_SYNC") {
+			if (VersusMode.isHost) {
+				VersusMode.broadcastTurnSync();
+			}
+			return;
+		}
+
+		// Todos os eventos de jogabilidade sequencial entram na fila FIFO estrita
+		VersusMode.packetQueue.push(msg);
+		VersusMode.processPacketQueue();
+	}
+
+	static async processPacketQueue() {
+		if (VersusMode.isProcessingQueue) return;
+		VersusMode.isProcessingQueue = true;
+
+		try {
+			while (VersusMode.packetQueue.length > 0) {
+				const nextMsg = VersusMode.packetQueue.shift();
+				if (!nextMsg) continue;
+				await VersusMode.executeGameplayPacket(nextMsg);
+			}
+		} catch (err) {
+			console.error("[VersusQueue] Erro ao processar fila de pacotes:", err);
+		} finally {
+			VersusMode.isProcessingQueue = false;
+		}
+	}
+
+	static async executeGameplayPacket(msg) {
+		const payload = msg.payload || {};
 		switch (msg.type) {
-			case "LOBBY_SYNC":
-				VersusMode.remotePlayerName = payload.name || "Adversário";
-				VersusMode.remoteFaction = payload.faction || "nilfgaard";
-				VersusMode.remoteLeaderIndex = payload.leaderIndex || 0;
-				VersusMode.remoteReady = !!payload.ready;
-				if (payload.deck) {
-					VersusMode.remoteDeckData = payload.deck;
-				}
-				if (payload.deckCards && Array.isArray(payload.deckCards)) {
-					VersusMode.remoteDeckCards = payload.deckCards;
-				}
-				VersusMode.updatePreMatchUI();
-				VersusMode.checkBothReady();
-				break;
-
-			case "MATCH_START":
-				const iStartFirst = payload.firstTurn === "guest_me";
-				if (payload.hostDeck) {
-					VersusMode.remoteDeckData = payload.hostDeck;
-					if (payload.hostDeck.faction) {
-						VersusMode.remoteFaction = payload.hostDeck.faction;
-					}
-				}
-				VersusMode.startActualGame(iStartFirst, payload.hostDeckOrder, payload.guestDeckOrder);
-				break;
-
-			case "MULLIGAN_SYNC":
-				VersusMode.remoteMulliganDone = true;
-				if (payload.finalHand) {
-					VersusMode.syncRemoteHand(payload.finalHand, payload.finalDeck);
-				}
-				break;
-
-			case "SCOIATAEL_CHOICE":
-				VersusMode.scoiataelChoiceReceived = payload.firstTurn;
-				break;
-
 			case "ACTION_PLAY_CARD":
 				if (player_op && player_op.controller instanceof ControllerPeer) {
-					player_op.controller.handleRemotePlayCard(payload);
+					await player_op.controller.handleRemotePlayCard(payload);
 				}
 				break;
 
 			case "ACTION_PASS":
 				if (player_op && player_op.controller instanceof ControllerPeer) {
-					player_op.controller.handleRemotePass(payload);
+					await player_op.controller.handleRemotePass(payload);
 				}
 				break;
 
 			case "ACTION_LEADER":
 				if (player_op && player_op.controller instanceof ControllerPeer) {
-					player_op.controller.handleRemoteLeader(payload);
-				}
-				break;
-
-			case "ACTION_FORFEIT":
-				VersusMode.onRemoteForfeit();
-				break;
-
-			case "TURN_SYNC":
-				VersusMode.onTurnSyncReceived(payload);
-				break;
-
-			case "REQ_TURN_SYNC":
-				if (VersusMode.isHost) {
-					VersusMode.broadcastTurnSync();
+					await player_op.controller.handleRemoteLeader(payload);
 				}
 				break;
 
@@ -1221,31 +1334,8 @@ class VersusMode {
 				VersusMode.onActionForcePassReceived(payload);
 				break;
 
-			case "ROUND_RESULT":
-				VersusMode.onRoundResultReceived(payload);
-				break;
-
-			case "GAME_END_SYNC":
-				VersusMode.onGameEndSyncReceived();
-				break;
-
-			case "REMATCH_REQUEST":
-				VersusMode.rematchRequestedByRemote = true;
-				VersusMode.onRemoteRematchRequested();
-				break;
-
-			case "REMATCH_ACCEPT":
-				if (VersusMode.isHost) {
-					VersusMode.initiateMatchAsHost(!VersusMode.isFirstTurn);
-				}
-				break;
-
-			case "RETURN_TO_LOBBY":
-				VersusMode.returnToPreMatchLobby(false);
-				break;
-
-			case "EMOTE":
-				VersusMode.onRemoteEmoteReceived(payload);
+			case "TURN_SYNC":
+				VersusMode.onTurnSyncReceived(payload);
 				break;
 		}
 	}
@@ -1309,6 +1399,7 @@ class VersusMode {
 	static stopAllTimers() {
 		VersusMode.stopMulliganTimer();
 		VersusMode.stopTurnTimer();
+		VersusMode.stopWatchdog();
 	}
 
 	static formatSeconds(sec) {
@@ -1457,6 +1548,12 @@ class VersusMode {
 	static onTurnSyncReceived(payload) {
 		if (!payload || VersusMode.isHost) return;
 		if (typeof game === "undefined" || game.state !== GameState.PLAYING) return;
+
+		// Se uma animação de jogada remota ou local estiver em andamento, não aplique a troca de jogador agora
+		if (VersusMode.isActionExecuting) {
+			VersusMode.pendingTurnSync = payload;
+			return;
+		}
 
 		const activePlayer = payload.activePlayer; // "host" ou "guest"
 		const isMeActive = (activePlayer === "guest");
@@ -1821,7 +1918,11 @@ class VersusMode {
 
 		VersusMode.pendingMedicTargets = [];
 		VersusMode.pendingMedicTarget = null;
-		VersusMode.updateTurnHUD(false);
+		if (player_op && player_op.passed) {
+			VersusMode.updateTurnHUD(true);
+		} else {
+			VersusMode.updateTurnHUD(false);
+		}
 	}
 
 	static onLocalPass() {
@@ -1917,6 +2018,141 @@ class VersusMode {
 		if (endScreen && (endScreen.classList.contains("hide") || endScreen.style.opacity === "0" || !endScreen.children[0].className)) {
 			if (typeof game !== "undefined" && game && game.endGame) {
 				game.endGame();
+			}
+		}
+	}
+
+	
+	// -------------------------------------------------------------
+	// WATCHDOG ANTI-DEADLOCK & AUTO-RECUPERAÇÃO DE PARTIDA
+	// -------------------------------------------------------------
+	static startWatchdog() {
+		VersusMode.stopWatchdog();
+		VersusMode.watchdogInterval = setInterval(() => {
+			VersusMode.runWatchdogTick();
+		}, 1500);
+	}
+
+	static stopWatchdog() {
+		if (VersusMode.watchdogInterval) {
+			clearInterval(VersusMode.watchdogInterval);
+			VersusMode.watchdogInterval = null;
+		}
+	}
+
+	static runWatchdogTick() {
+		if (!VersusMode.isActive) return;
+		if (typeof game === "undefined" || !game || game.state !== GameState.PLAYING) return;
+		if (!player_me || !player_op) return;
+
+		// Se alguma ação/animação estiver ativa há mais de 8s, destrava a flag por segurança
+		if (VersusMode.isActionExecuting) {
+			if (Date.now() - VersusMode.actionStartTime > 8000) {
+				console.warn("[VersusWatchdog] Ação remota/local demorou mais de 8s. Destravando flag de execução.");
+				VersusMode.isActionExecuting = false;
+				if (VersusMode.pendingTurnSync) {
+					const sync = VersusMode.pendingTurnSync;
+					VersusMode.pendingTurnSync = null;
+					VersusMode.onTurnSyncReceived(sync);
+				}
+			}
+			return;
+		}
+
+		// Caso 1: Ambos os jogadores passaram, mas a rodada ainda não foi encerrada
+		if (player_me.passed && player_op.passed) {
+			if (!game.isEndingRound) {
+				console.warn("[VersusWatchdog] Ambos os jogadores passaram. Disparando encerramento de rodada.");
+				game.isEndingRound = true;
+				game.endRound().finally(() => {
+					game.isEndingRound = false;
+				});
+			}
+			return;
+		}
+
+		// Caso 2: O jogador que está com a vez já passou!
+		if (game.currPlayer && game.currPlayer.passed) {
+			const activeOpponent = game.currPlayer.opponent();
+			if (activeOpponent && !activeOpponent.passed) {
+				console.warn(`[VersusWatchdog] Jogador da vez (${game.currPlayer.tag}) já havia passado! Transferindo vez para ${activeOpponent.tag}.`);
+				game.currPlayer = activeOpponent;
+				ui.enablePlayer(game.currPlayer === player_me);
+				if (game.currPlayer === player_me) {
+					const passBtn = document.getElementById("pass-button");
+					if (passBtn && !player_me.passed) passBtn.classList.remove("noclick");
+				}
+				VersusMode.updateTurnHUD(game.currPlayer === player_me);
+				VersusMode.startTurnTimer(game.currPlayer === player_me);
+				if (VersusMode.isHost) {
+					VersusMode.broadcastTurnSync();
+				}
+				return;
+			}
+		}
+
+		// Caso 3: SOFTLOCK DETECTADO! Ambos travados com noclick em <main>
+		const mainElem = document.querySelector("main");
+		const isMainLocked = mainElem && mainElem.classList.contains("noclick");
+
+		if (VersusMode.isHost) {
+			// No Host (Árbitro):
+			if (game.currPlayer === player_me && !player_me.passed && isMainLocked) {
+				const hasOpenModal = (typeof Carousel !== "undefined" && Carousel.curr) ||
+				                     (typeof Popup !== "undefined" && Popup.curr) ||
+				                     (document.getElementById("deck-customization") && !document.getElementById("deck-customization").classList.contains("hide"));
+				if (!hasOpenModal) {
+					console.warn("[VersusWatchdog-Host] Turno do Host bloqueado por 'noclick'. Destravando controles locais.");
+					ui.enablePlayer(true);
+					const passBtn = document.getElementById("pass-button");
+					if (passBtn) passBtn.classList.remove("noclick");
+					VersusMode.updateTurnHUD(true);
+					if (VersusMode.turnInterval === null) {
+						VersusMode.startTurnTimer(true);
+					}
+					VersusMode.broadcastTurnSync();
+					return;
+				}
+			}
+
+			// Se o cronômetro do turno foi interrompido indevidamente durante o jogo
+			if (VersusMode.turnInterval === null) {
+				const isMyTurn = (game.currPlayer === player_me);
+				VersusMode.startTurnTimer(isMyTurn);
+			}
+
+			// Heartbeat periódico do Host para o Guest (a cada ~3.5s)
+			if (Date.now() - VersusMode.lastTurnSyncTime > 3500) {
+				VersusMode.broadcastTurnSync();
+			}
+		} else {
+			// No Guest (Cliente):
+			if (game.currPlayer === player_me && !player_me.passed && isMainLocked) {
+				const hasOpenModal = (typeof Carousel !== "undefined" && Carousel.curr) ||
+				                     (typeof Popup !== "undefined" && Popup.curr);
+				if (!hasOpenModal) {
+					console.warn("[VersusWatchdog-Guest] Turno do Guest bloqueado por 'noclick'. Destravando controles locais.");
+					ui.enablePlayer(true);
+					const passBtn = document.getElementById("pass-button");
+					if (passBtn) passBtn.classList.remove("noclick");
+					VersusMode.updateTurnHUD(true);
+					if (VersusMode.turnInterval === null) {
+						VersusMode.startTurnTimer(true);
+					}
+					return;
+				}
+			}
+
+			// Se o Guest está em espera há mais de 4 segundos sem receber sincronização do Host
+			if (Date.now() - VersusMode.lastTurnSyncTime > 4000) {
+				VersusMode.lastTurnSyncTime = Date.now();
+				VersusMode.sendPacket("REQ_TURN_SYNC");
+			}
+
+			// Se o cronômetro parou no Guest
+			if (VersusMode.turnInterval === null) {
+				const isMyTurn = (game.currPlayer === player_me);
+				VersusMode.startTurnTimer(isMyTurn);
 			}
 		}
 	}
