@@ -1645,6 +1645,7 @@ class Game {
 	
 	// Sets initializes player abilities, player hands and redraw
 	async startGame() {
+		if (typeof fitGameBoard === "function") fitGameBoard();
 		const mainEl = document.querySelector("main");
 		if (mainEl) mainEl.classList.remove("hide");
 		const endScr = document.getElementById("end-screen");

@@ -612,9 +612,9 @@
 
 /* 7. Banner de Turno e Cronômetro no Tabuleiro (In-Game HUD & Timers - Posicionado no Painel Esquerdo fora das cartas) */
 #versus-turn-hud {
-	position: fixed;
-	top: 1.0vh;
-	left: 4.3vw;
+	position: absolute;
+	top: 1.0%;
+	left: 4.3%;
 	transform: none;
 	z-index: 95;
 	display: flex;

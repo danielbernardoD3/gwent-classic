@@ -1010,30 +1010,35 @@
 				<span style="font-size:0.8rem; color:#c5a059;">Coroas</span>
 			</div>
 
-			<!-- Compendium Summary -->
-			<button class="story-hud-btn hud-btn-collection" onclick="StoryMode.openCompendiumModal('all', 'all')" title="Abrir Compêndio de Cartas do Continente">
-				<img class="story-hud-btn-icon" src="img/hud-icons/Collection.png" alt="Coleção" />
-				<span>Coleção:</span>
-				<strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong>
-			</button>
-
-			<!-- Achievements Button -->
-			<button class="story-hud-btn hud-btn-achievements" onclick="StoryMode.openAchievementsModal()" title="Ver Conquistas da Campanha e do Jogo">
-				<img class="story-hud-btn-icon" src="img/hud-icons/Achievements.png" alt="Conquistas" />
-				<span>Conquistas</span>
-			</button>
-
 			<!-- Deck Builder -->
 			<button class="story-hud-btn hud-btn-deck" onclick="StoryMode.openCampaignDeckBuilder()" title="Organizar seu baralho com as cartas colecionadas">
 				<img class="story-hud-btn-icon" src="img/hud-icons/Deck-Config.png" alt="Organizar Baralho" />
 				<span>Organizar Baralho</span>
 			</button>
 
-			<!-- Return to Menu -->
-			<button class="story-hud-btn btn-close hud-btn-menu" onclick="StoryMode.closeMapToMenu()" title="Salvar e voltar ao Menu Principal">
-				<span>✕</span>
-				<span>Menu</span>
-			</button>
+			<!-- Menu Dropdown -->
+			<div class="story-hud-dropdown-wrap" id="story-hud-dropdown-wrap">
+				<button class="story-hud-btn hud-btn-menu-dropdown" id="story-hud-menu-btn" onclick="StoryMode.toggleHeaderDropdown(event)" title="Abrir Menu de Opções">
+					<span class="hud-menu-btn-icon">☰</span>
+					<span>Menu</span>
+					<span class="hud-menu-arrow">▾</span>
+				</button>
+				<div class="story-hud-dropdown-menu hide" id="story-hud-dropdown-menu">
+					<button class="story-dropdown-item" onclick="StoryMode.onDropdownItemClick('achievements')">
+						<img class="story-dropdown-icon" src="img/hud-icons/Achievements.png" alt="Conquistas" />
+						<span class="story-dropdown-text">Conquistas</span>
+					</button>
+					<button class="story-dropdown-item" onclick="StoryMode.onDropdownItemClick('collection')">
+						<img class="story-dropdown-icon" src="img/hud-icons/Collection.png" alt="Coleção" />
+						<span class="story-dropdown-text">Coleção: <strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong></span>
+					</button>
+					<div class="story-dropdown-divider"></div>
+					<button class="story-dropdown-item btn-danger" onclick="StoryMode.onDropdownItemClick('main-menu')">
+						<span class="story-dropdown-icon-close">✕</span>
+						<span class="story-dropdown-text">Voltar ao Menu Principal</span>
+					</button>
+				</div>
+			</div>
 		</div>
 	</header>
 

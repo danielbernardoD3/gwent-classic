@@ -91,3 +91,37 @@ function toInteger(str)
 function randomInt(n)  {
 	return Math.floor(Math.random() * n);
 }
+
+
+// ---------------------------------------------------------------------------
+// RESPONSIVE GAME BOARD FITTER (LETTERBOXING / PILLARBOXING COM BARRAS PRETAS)
+// Garante que todo o tabuleiro 16:9 caiba verticalmente na tela sem rolagem,
+// centralizando e gerando barras pretas nas laterais em telas ultrawide e celulares.
+// ---------------------------------------------------------------------------
+function fitGameBoard() {
+	const main = document.querySelector("main");
+	const deckCust = document.getElementById("deck-customization");
+	const w = window.innerWidth;
+	const h = window.innerHeight;
+	if (!w || !h) return;
+
+	const baseAspect = 1920 / 1080;
+	const currentAspect = w / h;
+
+	// Se a tela for mais larga que 16:9 (celulares 19.5:9, 20:9 ou ultrawide):
+	// O tabuleiro (100vw) ultrapassaria a altura. Escalamos para caber 100% em 100vh.
+	const scale = currentAspect > baseAspect ? (h * 1920) / (w * 1080) : 1;
+
+	[main, deckCust].forEach(elem => {
+		if (!elem) return;
+		elem.style.left = "50%";
+		elem.style.top = "50%";
+		elem.style.transform = `translate(-50%, -50%) scale(${scale})`;
+		elem.style.transformOrigin = "center center";
+	});
+}
+
+window.addEventListener("resize", fitGameBoard);
+window.addEventListener("orientationchange", () => setTimeout(fitGameBoard, 150));
+document.addEventListener("DOMContentLoaded", fitGameBoard);
+window.fitGameBoard = fitGameBoard;

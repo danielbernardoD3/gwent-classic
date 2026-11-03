@@ -2162,10 +2162,13 @@ class VersusMode {
 	// -------------------------------------------------------------
 	static showTurnHUD() {
 		let hud = document.getElementById("versus-turn-hud");
+		const container = document.querySelector("main") || document.body;
 		if (!hud) {
 			hud = document.createElement("div");
 			hud.id = "versus-turn-hud";
-			document.body.appendChild(hud);
+			container.appendChild(hud);
+		} else if (hud.parentNode !== container) {
+			container.appendChild(hud);
 		}
 		hud.classList.remove("hide");
 		VersusMode.updateTurnHUD(typeof game !== "undefined" && game.currPlayer === player_me);
@@ -2178,10 +2181,13 @@ class VersusMode {
 
 	static updateTurnHUD(isMyTurn) {
 		let hud = document.getElementById("versus-turn-hud");
+		const container = document.querySelector("main") || document.body;
 		if (!hud) {
 			hud = document.createElement("div");
 			hud.id = "versus-turn-hud";
-			document.body.appendChild(hud);
+			container.appendChild(hud);
+		} else if (hud.parentNode !== container) {
+			container.appendChild(hud);
 		}
 		if (typeof game === "undefined" || game.state !== GameState.PLAYING) {
 			hud.classList.add("hide");

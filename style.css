@@ -29,9 +29,13 @@ body::-webkit-scrollbar {
 }
 
 main {
-	position:absolute;
+	position: absolute;
 	width: 100%;
 	height: calc(100vw * 1080 / 1920);
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	transform-origin: center center;
 	background-image: url('img/board.jpg');
 	background-size: 100% auto;
 	background-repeat: no-repeat;
@@ -1169,6 +1173,10 @@ main { background-image: url('img/boardtest8.png'); }
 	position: absolute;
 	width: 100%;
 	height: calc(100vw * 1080 / 1920);
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	transform-origin: center center;
 	background-color: rgba(10,10,10,.95);
 	z-index: 85;
 }

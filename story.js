@@ -430,6 +430,121 @@ class StoryMode {
 				}
 			});
 
+			// Touch panning & Pinch-to-zoom on Mobile
+			let isTouchPanning = false;
+			let isTouchPinching = false;
+			let touchStartX = 0;
+			let touchStartY = 0;
+			let touchPanStartX = 0;
+			let touchPanStartY = 0;
+			let touchMoved = false;
+			let initialPinchDistance = 0;
+			let initialPinchZoom = 1;
+			let pinchMidX = 0;
+			let pinchMidY = 0;
+
+			const getTouchDistance = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+			const getTouchMidpoint = (t1, t2) => ({
+				x: (t1.clientX + t2.clientX) / 2,
+				y: (t1.clientY + t2.clientY) / 2
+			});
+
+			mapContainer.addEventListener("touchstart", (e) => {
+				if (e.target.closest(".story-modal, .story-map-control-btn, .story-hud-bar, .story-stats-drawer, button")) return;
+
+				if (e.touches.length === 1) {
+					isTouchPanning = true;
+					isTouchPinching = false;
+					touchMoved = false;
+					touchStartX = e.touches[0].clientX;
+					touchStartY = e.touches[0].clientY;
+					touchPanStartX = StoryMode.mapPanX;
+					touchPanStartY = StoryMode.mapPanY;
+				} else if (e.touches.length >= 2) {
+					isTouchPanning = false;
+					isTouchPinching = true;
+					touchMoved = true;
+					initialPinchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+					initialPinchZoom = StoryMode.mapZoom;
+					const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+					pinchMidX = mid.x;
+					pinchMidY = mid.y;
+					touchPanStartX = StoryMode.mapPanX;
+					touchPanStartY = StoryMode.mapPanY;
+					e.preventDefault();
+				}
+			}, { passive: false });
+
+			window.addEventListener("touchmove", (e) => {
+				if (!isTouchPanning && !isTouchPinching) return;
+
+				if (isTouchPinching && e.touches.length >= 2) {
+					e.preventDefault();
+					const curDist = getTouchDistance(e.touches[0], e.touches[1]);
+					if (initialPinchDistance > 0) {
+						const pinchRatio = curDist / initialPinchDistance;
+						const minZoom = StoryMode.getMinZoom();
+						const maxZoom = 2.8;
+						const targetZoom = Math.min(maxZoom, Math.max(minZoom, initialPinchZoom * pinchRatio));
+
+						const rect = mapContainer.getBoundingClientRect();
+						const mid = getTouchMidpoint(e.touches[0], e.touches[1]);
+						const cursorX = mid.x - rect.left;
+						const cursorY = mid.y - rect.top;
+
+						const mapX = (cursorX - StoryMode.mapPanX) / StoryMode.mapZoom;
+						const mapY = (cursorY - StoryMode.mapPanY) / StoryMode.mapZoom;
+
+						StoryMode.mapZoom = targetZoom;
+						StoryMode.mapPanX = cursorX - (mapX * targetZoom);
+						StoryMode.mapPanY = cursorY - (mapY * targetZoom);
+
+						// Also follow midpoint pan movement
+						StoryMode.mapPanX += (mid.x - pinchMidX) * 0.6;
+						StoryMode.mapPanY += (mid.y - pinchMidY) * 0.6;
+						pinchMidX = mid.x;
+						pinchMidY = mid.y;
+
+						StoryMode.clampPan();
+						StoryMode.applyMapTransform();
+					}
+				} else if (isTouchPanning && e.touches.length === 1) {
+					const dx = e.touches[0].clientX - touchStartX;
+					const dy = e.touches[0].clientY - touchStartY;
+					if (!touchMoved && (Math.abs(dx) > 7 || Math.abs(dy) > 7)) {
+						touchMoved = true;
+					}
+					if (touchMoved) {
+						e.preventDefault();
+						StoryMode.mapPanX = touchPanStartX + dx;
+						StoryMode.mapPanY = touchPanStartY + dy;
+						StoryMode.clampPan();
+						StoryMode.applyMapTransform();
+					}
+				}
+			}, { passive: false });
+
+			window.addEventListener("touchend", (e) => {
+				if (e.touches.length === 0) {
+					isTouchPanning = false;
+					isTouchPinching = false;
+					initialPinchDistance = 0;
+				} else if (e.touches.length === 1) {
+					isTouchPinching = false;
+					isTouchPanning = true;
+					touchStartX = e.touches[0].clientX;
+					touchStartY = e.touches[0].clientY;
+					touchPanStartX = StoryMode.mapPanX;
+					touchPanStartY = StoryMode.mapPanY;
+				}
+			});
+
+			window.addEventListener("touchcancel", () => {
+				isTouchPanning = false;
+				isTouchPinching = false;
+				initialPinchDistance = 0;
+			});
+
 			// Map wheel zoom: exact cursor-centered zoom
 			mapContainer.addEventListener("wheel", (e) => {
 				e.preventDefault();
@@ -2705,6 +2820,43 @@ class StoryMode {
 
 		StoryMode.clampPan();
 		StoryMode.applyMapTransform();
+	}
+
+	// -------------------------------------------------------------
+	// MAP HEADER DROPDOWN MENU
+	// -------------------------------------------------------------
+	static toggleHeaderDropdown(event) {
+		if (event) event.stopPropagation();
+		const menu = document.getElementById("story-hud-dropdown-menu");
+		const wrap = document.getElementById("story-hud-dropdown-wrap");
+		if (!menu || !wrap) return;
+
+		const isHidden = menu.classList.contains("hide");
+		if (isHidden) {
+			menu.classList.remove("hide");
+			wrap.classList.add("active");
+		} else {
+			menu.classList.add("hide");
+			wrap.classList.remove("active");
+		}
+	}
+
+	static closeHeaderDropdown() {
+		const menu = document.getElementById("story-hud-dropdown-menu");
+		const wrap = document.getElementById("story-hud-dropdown-wrap");
+		if (menu) menu.classList.add("hide");
+		if (wrap) wrap.classList.remove("active");
+	}
+
+	static onDropdownItemClick(action) {
+		StoryMode.closeHeaderDropdown();
+		if (action === "achievements") {
+			StoryMode.openAchievementsModal();
+		} else if (action === "collection") {
+			StoryMode.openCompendiumModal("all", "all");
+		} else if (action === "main-menu") {
+			StoryMode.closeMapToMenu();
+		}
 	}
 
 	static focusCurrentNode() {
