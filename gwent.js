@@ -1860,6 +1860,7 @@ class Game {
 		let notificationKey = "";
 		if (dif > 0)
 		{
+			if (typeof triggerHaptic === "function") triggerHaptic("round_win");
 			AudioManager.playSFX("round_win");
 			notificationKey = "win-round";
 			if (typeof Achievements !== "undefined") {
@@ -1875,11 +1876,13 @@ class Game {
 		}	
 		else if (dif < 0)
 		{
+			if (typeof triggerHaptic === "function") triggerHaptic("round_loss");
 			AudioManager.playSFX("round_lose");
 			notificationKey = "lose-round";
 		}
 		else
 		{
+			if (typeof triggerHaptic === "function") triggerHaptic("medium");
 			AudioManager.playSFX("round_lose");
 			notificationKey = "draw-round";
 		}
@@ -2315,6 +2318,7 @@ class Card {
 	// Creates an HTML element based on the card's properties
 	createCardElem(card){
 		let elem = document.createElement("div");
+		elem.card = card;
 		elem.style.backgroundImage = smallURL(card.faction + "_" + card.filename);
 		elem.classList.add("card");
 		elem.setAttribute('data-title', card.name);
@@ -2647,6 +2651,7 @@ class UI {
 		this.lastRow = null;
 		this.toggleSettings = [];
 		document.getElementById("pass-button").addEventListener("click", () => {
+			if (typeof triggerHaptic === "function") triggerHaptic("medium");
 			player_me.passRound();
 			AudioManager.playSFX('pass');
 		}, false);
@@ -2848,10 +2853,12 @@ class UI {
 		try {
 			if (card.name === "Scorch"){
 				this.hidePreview();
+				if (typeof triggerHaptic === "function") triggerHaptic("heavy");
 				await ability_dict["scorch"].activated(card);
 			} else if (card.name === "Decoy") {
 				return;
 			} else {
+				if (typeof triggerHaptic === "function") triggerHaptic("medium");
 				await board.moveTo(card, row, card.holder.hand);
 			}
 			if (holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {

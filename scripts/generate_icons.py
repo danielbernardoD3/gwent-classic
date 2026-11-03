@@ -128,3 +128,4 @@ if os.path.exists(obsolete_bg):
     print(f"Removed obsolete vector template: {obsolete_bg}")
 
 print("All icons generated successfully!")
+

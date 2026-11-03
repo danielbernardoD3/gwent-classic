@@ -1573,3 +1573,117 @@ main { background-image: url('img/boardtest8.png'); }
 .noclick {
 	pointer-events: none;
 }
+
+
+/* QUICK CARD INSPECTOR MODAL */
+.quick-inspect-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 9999999;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background: rgba(0, 0, 0, 0.75);
+	backdrop-filter: blur(4px);
+}
+.quick-inspect-card-wrap {
+	display: flex;
+	flex-direction: row;
+	background: radial-gradient(circle, #25221d 0%, #151311 100%);
+	border: 2px solid #a17839;
+	box-shadow: 0 0 30px rgba(0, 0, 0, 0.9), 0 0 15px rgba(161, 120, 57, 0.4);
+	border-radius: 8px;
+	padding: 16px;
+	max-width: 620px;
+	width: 90vw;
+	max-height: 85vh;
+	overflow: hidden;
+	gap: 16px;
+	animation: inspectPopIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes inspectPopIn {
+	from { transform: scale(0.85); opacity: 0; }
+	to { transform: scale(1); opacity: 1; }
+}
+.quick-inspect-art {
+	width: 160px;
+	height: 240px;
+	background-size: cover;
+	background-position: center;
+	border: 2px solid #5a4a35;
+	border-radius: 4px;
+	flex-shrink: 0;
+	box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+}
+.quick-inspect-info {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	color: #e5ded3;
+	font-family: 'The Witcher', Arial Narrow, sans-serif;
+	font-size: 14px;
+}
+.quick-inspect-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.quick-inspect-header h3 {
+	margin: 0;
+	font-size: 1.3rem;
+	color: #ffd700;
+	letter-spacing: 0.5px;
+}
+.quick-inspect-badge {
+	background: #111;
+	border: 1px solid #ffd700;
+	color: #ffd700;
+	font-weight: bold;
+	font-size: 1.1rem;
+	padding: 2px 10px;
+	border-radius: 12px;
+}
+.quick-inspect-meta {
+	display: flex;
+	gap: 8px;
+	margin: 6px 0;
+	font-size: 0.85rem;
+	color: #b5a995;
+	flex-wrap: wrap;
+}
+.quick-inspect-meta span {
+	background: rgba(0,0,0,0.4);
+	padding: 2px 6px;
+	border-radius: 4px;
+	border: 1px solid #3d352b;
+}
+.quick-inspect-divider {
+	height: 1px;
+	background: linear-gradient(90deg, transparent, #a17839, transparent);
+	margin: 8px 0;
+}
+.quick-inspect-ability h4 {
+	margin: 4px 0;
+	color: #d4a34b;
+	font-size: 1rem;
+}
+.quick-inspect-ability p {
+	margin: 0;
+	font-size: 0.9rem;
+	line-height: 1.35;
+	color: #ccc;
+}
+@media (max-width: 600px) {
+	.quick-inspect-card-wrap {
+		flex-direction: column;
+		align-items: center;
+		overflow-y: auto;
+	}
+	.quick-inspect-art {
+		width: 120px;
+		height: 180px;
+	}
+}

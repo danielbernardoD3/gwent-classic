@@ -566,6 +566,9 @@ class VersusMode {
 				console.log("Oponente conectou-se à sala!");
 				VersusMode.conn = c;
 				VersusMode.setupConnectionHandlers();
+				if (VersusMode.isReconnecting) {
+					VersusMode.onReconnectionSuccessful();
+				}
 			});
 
 			VersusMode.peer.on("error", (err) => {
@@ -2343,23 +2346,36 @@ class VersusMode {
 	}
 
 	// -------------------------------------------------------------
-	// TRATAMENTO DE DESCONEXÃO
 	// -------------------------------------------------------------
+	// TRATAMENTO DE DESCONEXÃO & RECONEXÃO COM GRACE PERIOD (45s)
+	// -------------------------------------------------------------
+	static isReconnecting = false;
+	static reconnectGraceTimer = null;
+	static reconnectSecondsLeft = 45;
+
 	static onPeerDisconnected() {
 		VersusMode.stopAllTimers();
 		const wasInMatch = VersusMode.isActive;
-		VersusMode.isActive = false;
-		VersusMode.hideTurnHUD();
-		VersusMode.resetEmotesUI();
 
 		// Se estava apenas na sala pré-jogo (ainda não iniciou a partida), volta às abas do Lobby
 		const lobbyModal = document.getElementById("versus-lobby-modal");
 		if (!wasInMatch && lobbyModal && !lobbyModal.classList.contains("hide")) {
+			VersusMode.isActive = false;
 			VersusMode.leaveRoomToInitialLobby();
 			const statusElem = document.getElementById("versus-host-status");
 			if (statusElem) statusElem.innerText = "O adversário saiu da sala. Aguardando novo oponente...";
 			return;
 		}
+
+		// Se a partida estava em andamento, abre janela de carência de 45 segundos para reconexão!
+		if (wasInMatch) {
+			VersusMode.startReconnectionGracePeriod();
+			return;
+		}
+
+		VersusMode.isActive = false;
+		VersusMode.hideTurnHUD();
+		VersusMode.resetEmotesUI();
 
 		const modal = document.getElementById("versus-alert-modal");
 		if (modal) {
@@ -2369,7 +2385,93 @@ class VersusMode {
 			VersusMode.exitVersusToMenu();
 		}
 	}
-	// -------------------------------------------------------------
+
+	static startReconnectionGracePeriod() {
+		VersusMode.stopAllTimers();
+		VersusMode.isReconnecting = true;
+		VersusMode.reconnectSecondsLeft = 45;
+
+		const modal = document.getElementById("versus-alert-modal");
+		if (modal) {
+			modal.classList.remove("hide");
+			const title = modal.querySelector(".versus-alert-title");
+			const desc = modal.querySelector(".versus-alert-desc");
+			const btn = modal.querySelector("button");
+			if (title) title.innerText = "Conexão Interrompida";
+			if (desc) desc.innerHTML = 'O sinal com o adversário oscilou ou foi interrompido.<br>Tentando restabelecer conexão automaticamente...<br><br><strong style="font-size: 1.35rem; color: #ffd700;">Aguardando retorno: <span id="reconnect-countdown">45</span>s</strong>';
+			if (btn) {
+				btn.innerText = "Reivindicar Vitória (W.O.)";
+				btn.onclick = () => VersusMode.claimDisconnectVictory();
+			}
+		}
+
+		if (VersusMode.peer && VersusMode.peer.disconnected) {
+			try { VersusMode.peer.reconnect(); } catch (e) {}
+		}
+
+		if (VersusMode.reconnectGraceTimer) clearInterval(VersusMode.reconnectGraceTimer);
+		VersusMode.reconnectGraceTimer = setInterval(() => {
+			VersusMode.reconnectSecondsLeft--;
+			const span = document.getElementById("reconnect-countdown");
+			if (span) span.innerText = String(Math.max(0, VersusMode.reconnectSecondsLeft));
+
+			if (VersusMode.conn && VersusMode.conn.open) {
+				VersusMode.onReconnectionSuccessful();
+				return;
+			}
+
+			if (VersusMode.reconnectSecondsLeft <= 0) {
+				clearInterval(VersusMode.reconnectGraceTimer);
+				VersusMode.reconnectGraceTimer = null;
+				VersusMode.claimDisconnectVictory();
+			}
+		}, 1000);
+	}
+
+	static onReconnectionSuccessful() {
+		if (VersusMode.reconnectGraceTimer) {
+			clearInterval(VersusMode.reconnectGraceTimer);
+			VersusMode.reconnectGraceTimer = null;
+		}
+		VersusMode.isReconnecting = false;
+		const modal = document.getElementById("versus-alert-modal");
+		if (modal) modal.classList.add("hide");
+
+		VersusMode.isActive = true;
+		VersusMode.showTurnHUD();
+		VersusMode.updateTurnHUD(game.currPlayer === player_me);
+		if (typeof triggerHaptic === "function") triggerHaptic("medium");
+		console.log("[VersusMode] Conexão P2P restabelecida com sucesso!");
+	}
+
+	static claimDisconnectVictory() {
+		if (VersusMode.reconnectGraceTimer) {
+			clearInterval(VersusMode.reconnectGraceTimer);
+			VersusMode.reconnectGraceTimer = null;
+		}
+		VersusMode.isReconnecting = false;
+		VersusMode.isActive = false;
+		VersusMode.hideTurnHUD();
+		VersusMode.resetEmotesUI();
+
+		const modal = document.getElementById("versus-alert-modal");
+		if (modal) {
+			const title = modal.querySelector(".versus-alert-title");
+			const desc = modal.querySelector(".versus-alert-desc");
+			const btn = modal.querySelector("button");
+			if (title) title.innerText = "Vitória por Desconexão (W.O.)";
+			if (desc) desc.innerHTML = "O adversário não retornou à partida.<br>A vitória deste confronto foi concedida a você!";
+			if (btn) {
+				btn.innerText = "Voltar ao Menu Principal";
+				btn.onclick = () => VersusMode.exitVersusToMenu();
+			}
+		} else {
+			alert("O oponente não retornou. Vitória por W.O.!");
+			VersusMode.exitVersusToMenu();
+		}
+		if (typeof triggerHaptic === "function") triggerHaptic("round_win");
+	}
+
 	// SISTEMA DE EMOTES RADIAIS (VERSUS P2P)
 	// -------------------------------------------------------------
 	static VERSUS_EMOTES = [

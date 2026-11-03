@@ -2854,6 +2854,8 @@ class StoryMode {
 			StoryMode.openAchievementsModal();
 		} else if (action === "collection") {
 			StoryMode.openCompendiumModal("all", "all");
+		} else if (action === "backup") {
+			if (typeof openBackupModal === "function") openBackupModal();
 		} else if (action === "main-menu") {
 			StoryMode.closeMapToMenu();
 		}

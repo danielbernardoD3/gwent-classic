@@ -193,6 +193,9 @@
 			</div>
 
 			<div class="settings-actions">
+				<button class="witcher-menu-btn" style="border-color: #ffd700;" onclick="openBackupModal()">
+					<span>💾 Backup / Restaurar Save</span>
+				</button>
 				<button class="witcher-menu-btn" onclick="MenuController.saveSettings()">
 					<span data-i18n="btn_save">Save & Close</span>
 				</button>
@@ -1035,6 +1038,10 @@
 						<img class="story-dropdown-icon" src="img/hud-icons/Collection.png" alt="Coleção" />
 						<span class="story-dropdown-text">Coleção: <strong id="story-hud-compendium-val" style="color:#ffd700;">22 / 216</strong></span>
 					</button>
+					<button class="story-dropdown-item" onclick="StoryMode.onDropdownItemClick('backup')">
+						<span class="story-dropdown-icon" style="font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">💾</span>
+						<span class="story-dropdown-text">Backup do Save</span>
+					</button>
 					<div class="story-dropdown-divider"></div>
 					<button class="story-dropdown-item btn-danger" onclick="StoryMode.onDropdownItemClick('main-menu')">
 						<span class="story-dropdown-icon-close">✕</span>
@@ -1649,6 +1656,89 @@
 			<span class="emote-hint-key">🎮 (A) / Clique: Enviar</span>
 			<span class="emote-hint-key">🎮 (B) / ESC: Fechar</span>
 			<span class="emote-hint-key">⌨️ Tecla (E) ou 1-8</span>
+		</div>
+	</div>
+</div>
+
+<!-- QUICK CARD INSPECTION OVERLAY (Long-Press no Celular / Clique Direito no PC) -->
+<div id="quick-card-inspect-modal" class="quick-inspect-overlay hide" onclick="hideQuickCardInspect()">
+	<div class="quick-inspect-card-wrap" onclick="event.stopPropagation()">
+		<div id="quick-inspect-art" class="quick-inspect-art"></div>
+		<div class="quick-inspect-info">
+			<div class="quick-inspect-header">
+				<h3 id="quick-inspect-title">Nome da Carta</h3>
+				<span id="quick-inspect-power" class="quick-inspect-badge">10</span>
+			</div>
+			<div class="quick-inspect-meta">
+				<span id="quick-inspect-faction">Reinos do Norte</span>
+				<span id="quick-inspect-row">Corpo a Corpo</span>
+				<span id="quick-inspect-type">Tropa Regular</span>
+			</div>
+			<div class="quick-inspect-divider"></div>
+			<div class="quick-inspect-ability">
+				<h4 id="quick-inspect-ability-name">Habilidade</h4>
+				<p id="quick-inspect-ability-desc">Descrição completa da habilidade da carta.</p>
+			</div>
+			<button class="witcher-menu-btn" style="margin-top: 12px; width: 100%;" onclick="hideQuickCardInspect()">Fechar</button>
+		</div>
+	</div>
+</div>
+
+<!-- BACKUP & RESTORE SAVE MODAL -->
+<div id="backup-save-modal" class="story-modal hide">
+	<div class="story-modal-overlay" onclick="closeBackupModal()"></div>
+	<div class="story-parchment-frame" style="max-width: 600px; width: 92%; margin: auto; max-height: 90vh; overflow-y: auto;">
+		<div class="story-modal-header">
+			<h2 class="story-modal-title">💾 Backup e Restauração de Progresso</h2>
+			<button class="story-modal-close-btn" onclick="closeBackupModal()">✕</button>
+		</div>
+		<div class="story-modal-body" style="padding: 16px; font-family: 'The Witcher', sans-serif;">
+			<p style="color: #ccc; font-size: 0.95rem; margin-bottom: 16px;">
+				Transfira o seu progresso da campanha, cartas conquistadas, coroas e insígnias livremente entre o Celular e o PC, ou guarde uma cópia de segurança.
+			</p>
+
+			<!-- Export Section -->
+			<div style="background: rgba(0,0,0,0.4); border: 1px solid #443; border-radius: 6px; padding: 14px; margin-bottom: 16px;">
+				<h3 style="color: #ffd700; margin: 0 0 10px 0; font-size: 1.1rem;">📥 Exportar Progresso Atual</h3>
+				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+					<button class="witcher-menu-btn" style="flex: 1; min-width: 180px;" onclick="exportSaveToFile()">
+						<span>💾 Baixar Arquivo (.json)</span>
+					</button>
+					<button class="witcher-menu-btn" style="flex: 1; min-width: 180px;" onclick="exportSaveToClipboard()">
+						<span>📋 Copiar Código do Save</span>
+					</button>
+				</div>
+				<small id="export-save-feedback" style="display: block; color: #4cd137; margin-top: 8px; font-weight: bold;"></small>
+			</div>
+
+			<!-- Import Section -->
+			<div style="background: rgba(0,0,0,0.4); border: 1px solid #443; border-radius: 6px; padding: 14px; margin-bottom: 16px;">
+				<h3 style="color: #ffd700; margin: 0 0 10px 0; font-size: 1.1rem;">📤 Importar / Restaurar Progresso</h3>
+				<div style="margin-bottom: 12px;">
+					<label style="display: block; margin-bottom: 6px; color: #aaa; font-size: 0.9rem;">Carregar de um arquivo de backup:</label>
+					<input type="file" id="import-save-file-input" accept=".json,application/json" style="color: #ccc; font-size: 0.9rem;" onchange="importSaveFromFile(event)" />
+				</div>
+				<div style="margin-top: 10px;">
+					<label style="display: block; margin-bottom: 6px; color: #aaa; font-size: 0.9rem;">Ou cole o código do save abaixo:</label>
+					<textarea id="import-save-textarea" rows="3" style="width: 100%; box-sizing: border-box; background: #111; color: #eee; border: 1px solid #555; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 0.8rem;" placeholder="Cole o texto do save aqui..."></textarea>
+					<button class="witcher-menu-btn" style="margin-top: 8px; width: 100%; border-color: #2ed573;" onclick="importSaveFromText()">
+						<span>📥 Restaurar a partir do Código</span>
+					</button>
+				</div>
+				<small id="import-save-feedback" style="display: block; margin-top: 8px; font-weight: bold;"></small>
+			</div>
+
+			<!-- Haptics Setting -->
+			<div style="background: rgba(0,0,0,0.4); border: 1px solid #443; border-radius: 6px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+				<div>
+					<strong style="color: #ffd700; font-size: 1rem; display: block;">📳 Vibração Tátil no Celular</strong>
+					<small style="color: #999;">Vibrações sutis ao jogar cartas, queima e passar turno.</small>
+				</div>
+				<label class="switch" style="position: relative; display: inline-block; width: 50px; height: 26px;">
+					<input type="checkbox" id="backup-haptics-toggle" onchange="toggleHapticsSetting(this.checked)" checked style="opacity: 0; width: 0; height: 0;">
+					<span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #555; transition: .4s; border-radius: 26px;"></span>
+				</label>
+			</div>
 		</div>
 	</div>
 </div>

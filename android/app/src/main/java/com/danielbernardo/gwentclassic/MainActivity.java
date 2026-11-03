@@ -14,6 +14,34 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUI();
+        setupBackHandling();
+    }
+
+    private void setupBackHandling() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                this::triggerBackLogic
+            );
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        triggerBackLogic();
+    }
+
+    private void triggerBackLogic() {
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().evaluateJavascript("window.handleAndroidBackButton ? window.handleAndroidBackButton() : false", value -> {
+                if ("false".equals(value) || "null".equals(value)) {
+                    // Minimize app smoothly to background when on root menu
+                    moveTaskToBack(true);
+                }
+            });
+        } else {
+            moveTaskToBack(true);
+        }
     }
 
     @Override
