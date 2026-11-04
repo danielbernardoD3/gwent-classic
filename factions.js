@@ -6,9 +6,11 @@ var factions = {
 			return (typeof I18N !== "undefined") ? I18N.t("faction_realms_name") : "Northern Realms";
 		},
 		factionAbility: player => game.roundStart.push( async () => {
-			if (game.roundCount > 1 && game.roundHistory[game.roundCount-2].winner === player) {
-				player.deck.draw(player.hand);
-				await ui.notification("north", 1200);
+			if (game.roundCount > 1 && game.roundHistory[game.roundCount-2] && game.roundHistory[game.roundCount-2].winner === player) {
+				if (player.deck && player.deck.cards.length > 0) {
+					await player.deck.draw(player.hand);
+					await ui.notification("north", 1200);
+				}
 			}
 			return false;
 		}),

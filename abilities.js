@@ -9,7 +9,7 @@ var ability_dict = {
 	frost: {
 		name: "Biting Frost",
 		description: "Sets the strength of all Close Combat cards to 1 for both players. ",
-		audio: "cold"
+		audio: "frost"
 	},
 	fog: {
 		name: "Impenetrable Fog",
@@ -102,11 +102,20 @@ var ability_dict = {
 			await board.toGrave(card, card.holder.hand);
 		},
 		placed: async (card, row) => {
-			if (row !== undefined)
-				row.cards.splice( row.cards.indexOf(card), 1);
-			let maxUnits = board.row.map( r => [r,r.maxUnits()] ).filter( p => p[1].length > 0);
-			if (row !== undefined)
-				row.cards.push(card);
+			const getRowMaxExcludingSelf = (r) => {
+				let max = [];
+				for (let i = 0; i < r.cards.length; ++i) {
+					let c = r.cards[i];
+					if (c === card || !c.isUnit())
+						continue;
+					if (!max[0] || max[0].power < c.power)
+						max = [c];
+					else if (max[0].power === c.power)
+						max.push(c);
+				}
+				return max;
+			};
+			let maxUnits = board.row.map( r => [r, getRowMaxExcludingSelf(r)] ).filter( p => p[1].length > 0);
 			let maxPower = maxUnits.reduce( (a,p) => Math.max(a, p[1][0].power), 0 );
 			let scorched = maxUnits.filter( p => p[1][0].power === maxPower);
 			let cards = scorched.reduce( (a,p) => a.concat( p[1].map(u => [p[0], u])), []);
@@ -180,9 +189,15 @@ var ability_dict = {
 			if (units.length === 0)
 				return;
 			await card.animate("muster");
-			for (const p of units) {
-				await board.addCardToRow(p[1], p[1].row, p[1].holder, p[0]);
-			}
+			await Promise.all(units.map(async p => {
+				const unitCard = p[1];
+				const targetRowName = (unitCard.row === "agile")
+					? ((unitCard.holder && typeof ControllerAI !== "undefined" && unitCard.holder.controller instanceof ControllerAI)
+						? unitCard.holder.controller.determineAgileRow(unitCard).type
+						: "close")
+					: unitCard.row;
+				await board.addCardToRow(unitCard, targetRowName, unitCard.holder, p[0]);
+			}));
 		}
 	},
 	spy: {
@@ -334,8 +349,10 @@ var ability_dict = {
 		name: "Tight Bond",
 		description: "Place next to a card with the same name to double the strength of both cards. ",
 		audio: "bond",
-		placed: async card => {
-			let bonds = board.getRow(card, card.row, card.holder).findCards(c => c.name === card.name);
+		placed: async (card, row) => {
+			let targetRow = row || board.getRow(card, card.row === "agile" ? "close" : card.row, card.holder);
+			if (!targetRow) return;
+			let bonds = targetRow.findCards(c => c.name === card.name);
 			if (bonds.length > 1)
 				await Promise.all( bonds.map(c => c.animate("bond")) );
 		}
@@ -344,9 +361,11 @@ var ability_dict = {
 		name: "Avenger",
 		description: "When this card is removed from the battlefield, it summons a powerful new Unit Card to take its place. ",
 		removed: async (card) => {
+			if (typeof game === "undefined" || !game.isPlaying())
+				return;
 			let bdf = new Card(card_dict[21], card.holder);
 			bdf.removed.push( () => setTimeout( () => {
-				if (game.isPlaying())
+				if (game.isPlaying() && bdf.holder && bdf.holder.grave && bdf.holder.grave.cards.includes(bdf))
 					bdf.holder.grave.removeCard(bdf);
 			}, 1001) );
 			await board.addCardToRow(bdf, "close", card.holder);
@@ -357,9 +376,11 @@ var ability_dict = {
 		name: "Avenger",
 		description: "When this card is removed from the battlefield, it summons a powerful new Unit Card to take its place. ",
 		removed: async card => {
+			if (typeof game === "undefined" || !game.isPlaying())
+				return;
 			let bdf = new Card(card_dict[196], card.holder);
 			bdf.removed.push( () => setTimeout( () => {
-				if (game.isPlaying())
+				if (game.isPlaying() && bdf.holder && bdf.holder.grave && bdf.holder.grave.cards.includes(bdf))
 					bdf.holder.grave.removeCard(bdf); 
 			}, 1001) );
 			await board.addCardToRow(bdf, "close", card.holder);
@@ -505,7 +526,9 @@ var ability_dict = {
 				let cards = card.holder.controller.discardOrder(card).splice(0,2).filter(c => c.basePower < 7);
 				if (cards.length > 0) {
 					await Promise.all(cards.map(async c => await board.toGrave(c, card.holder.hand)));
-					await card.holder.deck.draw(card.holder.hand);
+					if (card.holder.deck.cards.length > 0) {
+						await card.holder.deck.draw(card.holder.hand);
+					}
 				}
 				return;
 			}
@@ -523,14 +546,19 @@ var ability_dict = {
 			Carousel.curr?.exit();
 			const discardedNames = [];
 			let drawnName = null;
-			await ui.queueCarousel(hand, 2, async (c,i) => {
-				if (c.cards[i]) discardedNames.push(c.cards[i].name);
-				await board.toGrave(c.cards[i], c);
-			}, () => true);
-			await ui.queueCarousel(deck, 1, async (c,i) => {
-				if (c.cards[i]) drawnName = c.cards[i].name;
-				await board.toHand(c.cards[i], deck);
-			}, () => true, true);
+			const discardCount = Math.min(2, hand.cards.length);
+			if (discardCount > 0) {
+				await ui.queueCarousel(hand, discardCount, async (c,i) => {
+					if (c.cards[i]) discardedNames.push(c.cards[i].name);
+					await board.toGrave(c.cards[i], c);
+				}, () => true);
+			}
+			if (deck.cards.length > 0) {
+				await ui.queueCarousel(deck, 1, async (c,i) => {
+					if (c.cards[i]) drawnName = c.cards[i].name;
+					await board.toHand(c.cards[i], deck);
+				}, () => true, true);
+			}
 			if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me) {
 				VersusMode.pendingLeaderData = { discardedNames, drawnName };
 			}
@@ -600,8 +628,10 @@ var ability_dict = {
 	francesca_daisy: {
 		description: "Draw an extra card at the beginning of the battle.",
 		placed: card => game.gameStart.push( () => {
-			let draw = card.holder.deck.removeCard(0);
-			card.holder.hand.addCard( draw );
+			if (card.holder && card.holder.deck && card.holder.deck.cards.length > 0) {
+				let draw = card.holder.deck.removeCard(0);
+				card.holder.hand.addCard( draw );
+			}
 			return true;
 		})
 	},
@@ -673,8 +703,12 @@ var ability_dict = {
 		description: "Shuffle all cards from each player's graveyard back into their decks.",
 		activated: async card => {
 			AudioManager.playSFX('redraw');
-			Promise.all(card.holder.grave.cards.map(c => board.toDeck(c, card.holder.grave)));
-			await Promise.all(card.holder.opponent().grave.cards.map(c => board.toDeck(c, card.holder.opponent().grave)));
+			const myGraveCards = [...card.holder.grave.cards];
+			const opGraveCards = [...card.holder.opponent().grave.cards];
+			await Promise.all([
+				...myGraveCards.map(c => board.toDeck(c, card.holder.grave)),
+				...opGraveCards.map(c => board.toDeck(c, card.holder.opponent().grave))
+			]);
 		},
 		weight: (card, ai, max, data) => {
 			if( game.roundCount < 2)

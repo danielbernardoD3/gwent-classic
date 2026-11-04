@@ -2307,9 +2307,11 @@ class StoryMode {
 		}
 
 		const wager = StoryMode.selectedWager || 0;
+		StoryMode.selectedWager = 0;
 		if (wager > 0) {
 			StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - wager);
 			StoryMode.save.stats.crownsSpent = (StoryMode.save.stats.crownsSpent || 0) + wager;
+			StoryMode.saveGame();
 		}
 
 		StoryMode.activeMatch = {
@@ -2341,6 +2343,9 @@ class StoryMode {
 		const endScreen = document.getElementById("end-screen");
 		if (endScreen) endScreen.classList.add("hide");
 
+		if (typeof game !== "undefined") {
+			game.reset();
+		}
 		player_me = new Player(0, StoryMode.save.playerName, meDeckData);
 		player_op = new Player(1, opponentName, opDeck);
 
@@ -2352,10 +2357,6 @@ class StoryMode {
 
 		const mainGame = document.querySelector("main");
 		if (mainGame) mainGame.classList.remove("hide");
-
-		if (typeof MusicManager !== "undefined") {
-			MusicManager.playDuelMusic();
-		}
 
 		if (typeof game !== "undefined") {
 			game.startGame();
@@ -2387,13 +2388,17 @@ class StoryMode {
 	 * Resets tournament progress to Battle 1 and returns to the Continent Map.
 	 */
 	static onMatchAbandoned() {
+		if (typeof game !== "undefined" && typeof GameState !== "undefined" && game.state === GameState.PLAYING && typeof game.executeForfeit === "function") {
+			game.executeForfeit();
+			return;
+		}
 		if (StoryMode.activeMatch && StoryMode.save) {
 			const match = StoryMode.activeMatch;
 			const node = match.node;
 			StoryMode.save.stats.matchesLost = (StoryMode.save.stats.matchesLost || 0) + 1;
 			if (match.isTournament) {
 				StoryMode.save.tournamentStates[match.nodeId] = { roundIndex: 0, active: false };
-			} else {
+			} else if (!(match.wager > 0)) {
 				const lossPenalty = node.crownsLoss || 45;
 				StoryMode.save.crowns = Math.max(0, StoryMode.save.crowns - lossPenalty);
 			}

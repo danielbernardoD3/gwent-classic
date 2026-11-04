@@ -25,11 +25,11 @@ class ControllerAI {
 	}
 	
 	async fallbackPlayOrPass(player, excludeCard = null) {
-		const playable = player.hand.cards.filter(c => c !== excludeCard && c.isUnit());
+		const playable = player.hand.cards.filter(c => c !== excludeCard && (c.isUnit() || c.isHero() || c.row === "weather"));
 		if (playable.length > 0) {
 			await player.playCard(playable[0]);
 		} else {
-			await player.passRound();
+			player.passRound(true);
 		}
 	}
 
@@ -319,8 +319,12 @@ class ControllerAI {
 			return;
 		}
 		
-		setTimeout(() => board.toHand(targ, row), 1000);
-		await this.player.playCardToRow(card, row);
+		await this.player.playCardAction(card, async () => {
+			await Promise.all([
+				board.toHand(targ, row),
+				board.moveTo(card, row, this.player.hand)
+			]);
+		});
 	}
 	
 	// Tells the controlled Player to play the Scorch card
@@ -350,7 +354,9 @@ class ControllerAI {
 		let dif = this.player.opponent().total - this.player.total;
 		if (dif > 30)
 			return 100;
-		if (dif < -30 && this.player.opponent().handsize - this.player.handsize > 2)
+		const oppCards = this.player.opponent().hand ? this.player.opponent().hand.cards.length : 0;
+		const myCards = this.player.hand ? this.player.hand.cards.length : 0;
+		if (dif < -30 && oppCards - myCards > 2)
 			return 100;
 		return Math.floor(Math.abs(dif));
 	}
@@ -451,7 +457,7 @@ class ControllerAI {
 			if (!row.effects.mardroeme)
 				n = row.cards.filter(c => c.name === "Young Berserker").length;
 			else
-				n = row.cards.filter(c => "Transformed Young Vildkaarl").length;
+				n = row.cards.filter(c => c.name === "Transformed Young Vildkaarl").length;
 			score = 8*((n+1)*(n+1) - n*n) + n*score;
 		}
 		return Math.max(1, score);
@@ -482,7 +488,13 @@ class ControllerAI {
 				let power_me = max.me.length ? max.me[0].card.power : 0;
 				let total_op = power_op * max.op.length;
 				let total_me = power_me * max.me.length;
-				return power_me > power_op ? 0 : power_me < power_op ? total_op : Math.max(0, total_op - total_me);
+				let scorchVal = power_me > power_op ? 0 : power_me < power_op ? total_op : Math.max(0, total_op - total_me);
+				if (card.name !== "Scorch" && card.isUnit()) {
+					let unitRow = board.getRow(card, card.row === "agile" ? "close" : card.row, this.player);
+					let bodyScore = unitRow ? unitRow.calcCardScore(card) : card.basePower;
+					return power_me > power_op ? 0 : scorchVal + bodyScore;
+				}
+				return scorchVal;
 			}
 			if (card.abilities.includes("decoy")) {
 				return data.spy.length ? 50 : data.medic.length ? 15 : data.scorch.length  ? 10 : max.me.length ? 1 : 0;
@@ -585,9 +597,19 @@ class Player {
 		this.passed = false;
 		this.handsize = 10;
 		this.winning = false;
+		this.turnPlayed = false;
+		this.isPlayingCard = false;
 	
 		this.enableLeader();
-		this.setPassed(false);
+		const passedElem = document.getElementById("passed-" + this.tag);
+		if (passedElem) passedElem.classList.remove("passed");
+		const scoreElem = document.getElementById("score-total-" + this.tag);
+		if (scoreElem) {
+			scoreElem.classList.remove("score-leader");
+			if (scoreElem.children[0]) scoreElem.children[0].innerHTML = "0";
+		}
+		const statsElem = document.getElementById("stats-" + this.tag);
+		if (statsElem) statsElem.classList.remove("current-turn");
 		document.getElementById("gem1-" +this.tag).classList.add("gem-on");
 		document.getElementById("gem2-" +this.tag).classList.add("gem-on");
 	}
@@ -625,6 +647,10 @@ class Player {
 	async startTurn(){
 		this.turnPlayed = false;
 		this.isPlayingCard = false;
+		if (!this.canPlay() && !(typeof ControllerPeer !== "undefined" && this.controller instanceof ControllerPeer)) {
+			this.passRound(true);
+			return;
+		}
 		document.getElementById("stats-" + this.tag).classList.add("current-turn");
 		if (this.leaderAvailable)
 			this.elem_leader.children[1].classList.remove("hide");
@@ -641,7 +667,11 @@ class Player {
 				await this.controller.startTurn(this);
 			} catch (aiErr) {
 				console.error("[Player.startTurn] Erro no controlador IA:", aiErr);
-				await this.passRound();
+				this.passRound(true);
+			}
+			if (game && game.state === GameState.PLAYING && game.currPlayer === this && !this.turnPlayed && !this.passed) {
+				console.warn("[Player.startTurn] IA encerrou processamento sem realizar jogada. Forçando passe de segurança.");
+				this.passRound(true);
 			}
 		} else if (typeof ControllerPeer !== "undefined" && this.controller instanceof ControllerPeer) {
 			await this.controller.startTurn(this);
@@ -649,8 +679,9 @@ class Player {
 	}
 	
 	// Passes the round and ends the turn
-	passRound(){
-		if (game.isActionInProgress || game.isTurnTransitioning) return;
+	passRound(force = false){
+		if (typeof game === "undefined" || game.state !== GameState.PLAYING) return;
+		if (!force && (game.isActionInProgress || game.isTurnTransitioning || game.isCardBeingPlayed || this.isPlayingCard || this.turnPlayed)) return;
 		if (game.currPlayer !== this) return;
 		if (this.passed) return;
 		game.isActionInProgress = true;
@@ -760,6 +791,16 @@ class Player {
 	
 	// Use a leader's Activate ability, then disable the leader
 	async activateLeader() {
+		if (typeof game === "undefined" || game.state !== GameState.PLAYING) return;
+		if (game.currPlayer !== this || this.turnPlayed || !this.leaderAvailable) return;
+		if (this === player_me && (game.isActionInProgress || game.isTurnTransitioning || game.isCardBeingPlayed || this.isPlayingCard)) return;
+
+		game.isActionInProgress = true;
+		game.isCardBeingPlayed = true;
+		if (this === player_me) {
+			this.isPlayingCard = true;
+			ui.enablePlayer(false);
+		}
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopTurnTimer();
 			VersusMode.pendingLeaderData = {};
@@ -788,6 +829,15 @@ class Player {
 			this.disableLeader();
 			this.endTurn();
 		} finally {
+			if (typeof game !== "undefined") {
+				game.isCardBeingPlayed = false;
+				if (!game.isTurnTransitioning) {
+					game.isActionInProgress = false;
+				}
+			}
+			if (this === player_me) {
+				this.isPlayingCard = false;
+			}
 			if (typeof VersusMode !== "undefined") {
 				VersusMode.isActionExecuting = false;
 				if (VersusMode.pendingTurnSync) {
@@ -976,7 +1026,7 @@ class CardContainer {
 	// Disallows teh row to be clicked
 	clearSelectable() {
 		this.elem.classList.remove("row-selectable");
-		for (card in this.cards)
+		for (let card of this.cards)
 			card.elem.classList.add("noclick");
 	}
 	
@@ -1346,14 +1396,14 @@ class Row extends CardContainer {
 	
 	// Calculates the current power of a card affected by row affects
 	calcCardScore(card) {
-		if (card.name === "decoy")
+		if (!card || card.name === "Decoy" || card.name === "decoy" || (card.abilities && card.abilities.includes("decoy")) || (card.isSpecial && card.isSpecial()))
 			return 0;
 		let total = card.basePower;
 		if (card.hero)
 			return total;
 		if (this.effects.weather)
 		{
-			const weatherMin = this.effects.halfWeather ? Math.floor(total/2) : 1;
+			const weatherMin = this.effects.halfWeather ? Math.max(1, Math.floor(total / 2)) : 1;
 			total = Math.min(weatherMin, total);
 		}
 		if (game.doubleSpyPower && card.abilities.includes("spy"))
@@ -1413,11 +1463,22 @@ class Row extends CardContainer {
 		super.reset();
 		while(this.special)
 			this.removeCard(this.special);
-		while(this.elem_special.firstChild)
-			this.elem_special.removeChild(this.elem_special.firstChild);
+		if (this.elem_special) {
+			while(this.elem_special.firstChild)
+				this.elem_special.removeChild(this.elem_special.firstChild);
+		}
 		this.total = 0;
-		//["rain","fog","frost"].forEach( w => this.removeOverlay(w) );
-		this.effects = {weather:false, bond: {}, morale: 0, horn: 0, mardroeme: 0};
+		if (this.elem_parent) {
+			const rowScoreElem = this.elem_parent.getElementsByClassName("row-score")[0];
+			if (rowScoreElem) rowScoreElem.innerHTML = "0";
+			const weatherElem = this.elem_parent.getElementsByClassName("row-weather")[0];
+			if (weatherElem) {
+				weatherElem.classList.remove("rain", "fog", "frost");
+				weatherElem.classList.add("hide");
+				weatherElem.style.opacity = 0;
+			}
+		}
+		this.effects = {weather: false, halfWeather: false, bond: {}, morale: 0, horn: 0, mardroeme: 0};
 	}
 }
 
@@ -1581,7 +1642,13 @@ class Board {
 	
 	// Sends and translates a card from the source to a row name associated with the passed player
 	async addCardToRow(card, row_name, player, source) {
+		if (row_name === "agile") {
+			row_name = (card && card.holder && card.holder.controller instanceof ControllerAI)
+				? card.holder.controller.determineAgileRow(card).type
+				: "close";
+		}
 		let row = this.getRow(card, row_name, player);
+		if (!row) return;
 		await translateTo(card, source, row);
 		if (card && card.elem) {
 			card.elem.style.transition = "none";
@@ -1676,7 +1743,13 @@ class Game {
 		this.randomRespawn = false;
 		this.doubleSpyPower = false;
 
-		this.placedEffectsActive = false; //TODO replace with propper game state
+		this.placedEffectsActive = false;
+		this._transitionToken = 0;
+		this.isTurnTransitioning = false;
+		this.isActionInProgress = false;
+		this.isCardBeingPlayed = false;
+		this.isAutoPlayingTimeout = false;
+		this.isEndingRound = false;
 		
 		weather.reset();
 		board.row.forEach(r => r.reset());
@@ -1712,7 +1785,7 @@ class Game {
 
 	isPlaying()
 	{
-		return this.state === GameState.END_SCREEN;
+		return this.state === GameState.PLAYING;
 	}
 
 	setState(newState)
@@ -1736,7 +1809,7 @@ class Game {
 		this.initPlayers(player_me, player_op);
 		this.setState(GameState.PLAYING);
 		if (typeof MusicManager !== "undefined") {
-			MusicManager.playDuelMusic();
+			MusicManager.playDuelMusic(true);
 		}
 		AudioManager.playSFX('game_opening');
 		await this.runEffects(this.gameStart);
@@ -1796,55 +1869,48 @@ class Game {
 	
 	// Initiates a new round of the game
 	async startRound(){
-		this.isTurnTransitioning = false;
-		this.isActionInProgress = false;
+		if (this.state !== GameState.PLAYING) return;
+		const myTransitionToken = (this._transitionToken = (this._transitionToken || 0) + 1);
+		this.isTurnTransitioning = true;
+		this.isActionInProgress = true;
 		this.isCardBeingPlayed = false;
-		if (typeof player_me !== "undefined" && player_me) { player_me.turnPlayed = false; player_me.isPlayingCard = false; }
-		if (typeof player_op !== "undefined" && player_op) { player_op.turnPlayed = false; player_op.isPlayingCard = false; }
-		this.playerMeHornsInRound = 0;
-		this.firstPlayer = this.currPlayer;
-		this.roundCount++;
-		EventManager.roundStarted.dispatch(this.roundCount, this.currPlayer);
-		if (this.roundCount === 1)
-			AudioManager.playSFX("round1_start");
-		await this.runEffects(this.roundStart);
-		
-		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
-			if (VersusMode.isHost) {
-				if ( !player_me.canPlay() )
-					player_me.setPassed(true);
-				if ( !player_op.canPlay() )
-					player_op.setPassed(true);
-				
-				if (player_op.passed && player_me.passed)
-					return this.endRound();
-				
-				if (this.currPlayer.passed)
-					this.currPlayer = this.currPlayer.opponent();
-			} else {
-				if ( !player_me.canPlay() && !player_op.canPlay() ) {
-					player_me.setPassed(true);
-					player_op.setPassed(true);
-					return this.endRound();
-				}
-			}
-		} else {
+		ui.enablePlayer(false);
+		try {
+			if (typeof player_me !== "undefined" && player_me) { player_me.turnPlayed = false; player_me.isPlayingCard = false; }
+			if (typeof player_op !== "undefined" && player_op) { player_op.turnPlayed = false; player_op.isPlayingCard = false; }
+			this.playerMeHornsInRound = 0;
+			this.firstPlayer = this.currPlayer;
+			this.roundCount++;
+			EventManager.roundStarted.dispatch(this.roundCount, this.currPlayer);
+			if (this.roundCount === 1)
+				AudioManager.playSFX("round1_start");
+			await this.runEffects(this.roundStart);
+			if (this.state !== GameState.PLAYING) return;
+			
 			if ( !player_me.canPlay() )
 				player_me.setPassed(true);
 			if ( !player_op.canPlay() )
 				player_op.setPassed(true);
 			
 			if (player_op.passed && player_me.passed)
-				return this.endRound();
+				return await this.endRound();
 			
-			if (this.currPlayer.passed)
+			if (this.currPlayer && this.currPlayer.passed)
 				this.currPlayer = this.currPlayer.opponent();
+			
+			await ui.notification("round-start", 1200);
+			if (this.state !== GameState.PLAYING) return;
+			AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
+			await ui.notification(this.currPlayer.tag + "-turn", 1200);
+			if (this.state !== GameState.PLAYING) return;
+			await this.startTurn();
+		} finally {
+			if (this._transitionToken === myTransitionToken) {
+				this.isTurnTransitioning = false;
+				this.isActionInProgress = false;
+				this.isCardBeingPlayed = false;
+			}
 		}
-		
-		await ui.notification("round-start", 1200);
-		AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
-		await ui.notification(this.currPlayer.tag + "-turn", 1200);
-		this.startTurn();
 	}
 	
 	// Starts a new turn. Enables client interraction in client's turn.
@@ -1852,12 +1918,18 @@ class Game {
 		if (this.state !== GameState.PLAYING) return;
 		this.turnId = (this.turnId || 0) + 1;
 		const thisTurnId = this.turnId;
-		this.isTurnTransitioning = false;
-		this.isActionInProgress = false;
-		this.isCardBeingPlayed = false;
 
 		await this.runEffects(this.turnStart);
 		if (this.turnId !== thisTurnId || this.state !== GameState.PLAYING) return;
+
+		this._transitionToken = (this._transitionToken || 0) + 1;
+		this.isTurnTransitioning = false;
+		this.isActionInProgress = false;
+		this.isCardBeingPlayed = false;
+		if (this.currPlayer) {
+			this.currPlayer.turnPlayed = false;
+			this.currPlayer.isPlayingCard = false;
+		}
 
 		ui.enablePlayer(this.currPlayer === player_me);
 		if (typeof VersusMode !== "undefined" && VersusMode.isActive && VersusMode.isHost) {
@@ -1876,6 +1948,7 @@ class Game {
 			console.warn(`[game.endTurn] Jogador ${requestingPlayer.tag} tentou encerrar turno mas currPlayer é ${this.currPlayer.tag}. Ignorando.`);
 			return;
 		}
+		const myTransitionToken = (this._transitionToken = (this._transitionToken || 0) + 1);
 		this.isTurnTransitioning = true;
 		this.isActionInProgress = true;
 		if (typeof VersusMode !== "undefined") {
@@ -1890,6 +1963,7 @@ class Game {
 
 			if (this.currPlayer && this.currPlayer.passed)
 				await ui.notification(this.currPlayer.tag + "-pass", 1200);
+			if (this.state !== GameState.PLAYING) return;
 
 			if (player_op && player_me && player_op.passed && player_me.passed) {
 				await this.endRound();
@@ -1902,13 +1976,16 @@ class Game {
 					this.currPlayer = this.currPlayer.opponent();
 					AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
 					await ui.notification(this.currPlayer.tag + "-turn", 1200);
+					if (this.state !== GameState.PLAYING) return;
 				}
 				await this.startTurn();
 			}
 		} finally {
-			this.isTurnTransitioning = false;
-			this.isActionInProgress = false;
-			this.isCardBeingPlayed = false;
+			if (this._transitionToken === myTransitionToken) {
+				this.isTurnTransitioning = false;
+				this.isActionInProgress = false;
+				this.isCardBeingPlayed = false;
+			}
 		}
 	}
 	
@@ -2011,13 +2088,14 @@ class Game {
 		}
 
 		await Promise.all([
-			await board.clearRound(),
-			await ui.notification(notificationKey, 1200)
+			board.clearRound(),
+			ui.notification(notificationKey, 1200)
 		]);
 
 		EventManager.roundEnded.dispatch(this.roundCount, player_me.total, player_op.total);
+		if (this.state !== GameState.PLAYING) return;
 		if (player_me.health === 0 || player_op.health === 0)
-			this.endGame();
+			await this.endGame();
 		else
 		{
 			if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
@@ -2033,7 +2111,7 @@ class Game {
 			} else {
 				this.currPlayer = dif < 0 ? player_op : dif > 0 ? player_me : this.firstPlayer;
 			}
-			this.startRound();
+			await this.startRound();
 		}
 	}
 	
@@ -2167,12 +2245,21 @@ class Game {
 				ui.enablePlayer(true);
 			}
 		};
+		const isStory = (typeof StoryMode !== "undefined" && StoryMode.activeMatch);
+		const isTourney = isStory && StoryMode.activeMatch.isTournament;
 		const resumeLabel = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_resume") : "Continuar Partida";
 		const forfeitLabel = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_confirm") : "Desistir";
 		const titleText = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_title") : "Desistir da Partida?";
-		const descText = (typeof VersusMode !== "undefined" && VersusMode.isActive)
-			? ((typeof I18N !== "undefined") ? I18N.t("forfeit_popup_desc_versus") : "Se você desistir agora, a vitória será concedida imediatamente ao seu adversário.")
-			: ((typeof I18N !== "undefined") ? I18N.t("forfeit_popup_desc") : "Você perderá a partida atual imediatamente.");
+		let descText;
+		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			descText = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_desc_versus") : "Se você desistir agora, a vitória será concedida imediatamente ao seu adversário.";
+		} else if (isStory) {
+			descText = isTourney
+				? "Se você desistir agora, sofrerá derrota e o progresso atual do torneio será reiniciado da 1ª batalha."
+				: "Se você desistir agora, a partida será encerrada como derrota e a penalidade de Coroas será aplicada.";
+		} else {
+			descText = (typeof I18N !== "undefined") ? I18N.t("forfeit_popup_desc") : "Você perderá a partida atual imediatamente.";
+		}
 
 		ui.popup(
 			resumeLabel,
@@ -2190,6 +2277,17 @@ class Game {
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopAllTimers();
 			VersusMode.hideTurnHUD();
+			VersusMode.isActionExecuting = false;
+			VersusMode.isHandlingTimeout = false;
+		}
+		this.isTurnTransitioning = false;
+		this.isActionInProgress = false;
+		this.isCardBeingPlayed = false;
+		this.isAutoPlayingTimeout = false;
+		this.placedEffectsActive = false;
+
+		if (typeof Popup !== "undefined" && Popup.curr) {
+			Popup.curr.clear();
 		}
 		if (typeof Carousel !== "undefined" && Carousel.curr) {
 			Carousel.curr.exit();
@@ -2199,6 +2297,11 @@ class Game {
 		}
 		if (player_me) {
 			player_me.health = 0;
+			player_me.isPlayingCard = false;
+			const gem1Me = document.getElementById("gem1-me");
+			const gem2Me = document.getElementById("gem2-me");
+			if (gem1Me) gem1Me.classList.remove("gem-on");
+			if (gem2Me) gem2Me.classList.remove("gem-on");
 		}
 		if (player_op && player_op.health <= 0) {
 			player_op.health = 1;
@@ -2215,6 +2318,10 @@ class Game {
 	exitGame()
 	{
 		const isStory = (typeof StoryMode !== "undefined" && StoryMode.activeMatch);
+		if (isStory && this.state !== GameState.PLAYING) {
+			StoryMode.returnFromMatchToMap();
+			return;
+		}
 		AudioManager.playSFX('warning');
 		const restoreBoardInteraction = () => {
 			if (this.state === GameState.PLAYING && (this.currPlayer === player_me || (typeof Carousel !== "undefined" && Carousel.curr))) {
@@ -2225,25 +2332,21 @@ class Game {
 			const isTourney = StoryMode.activeMatch && StoryMode.activeMatch.isTournament;
 			ui.popup(
 				"Continuar Partida", restoreBoardInteraction,
-				"Retornar ao Mapa", () => {
-					if (typeof VersusMode !== "undefined") {
-						VersusMode.stopAllTimers();
-						VersusMode.hideTurnHUD();
-					}
-					if (typeof StoryMode.onMatchAbandoned === "function") {
-						StoryMode.onMatchAbandoned();
-					} else {
-						StoryMode.returnFromMatchToMap();
-					}
+				"Desistir e Sair", () => {
+					this.executeForfeit();
 				},
-				"Abandonar Partida?", 
+				"Sair da Partida?", 
 				isTourney
-					? "Deseja abandonar o torneio e retornar ao Mapa? O progresso atual do torneio será reiniciado da 1ª batalha."
-					: "Deseja sair do confronto e retornar ao Mapa da Campanha? A partida será considerada uma derrota."
+					? "Sair da partida equivale a desistir do torneio. Você sofrerá derrota e o progresso atual do torneio será reiniciado da 1ª batalha."
+					: "Sair da partida no Modo Exploração equivale a desistir do duelo. A partida será encerrada como derrota com penalidade de Coroas."
 			);
 			return;
 		}
 		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
+			if (this.state !== GameState.PLAYING) {
+				VersusMode.returnToPreMatchLobby();
+				return;
+			}
 			ui.popup(
 				(typeof I18N !== "undefined") ? I18N.t("forfeit_popup_resume") : "Continuar Partida",
 				restoreBoardInteraction,
@@ -2264,6 +2367,12 @@ class Game {
 				if (typeof VersusMode !== "undefined") {
 					VersusMode.stopAllTimers();
 					VersusMode.hideTurnHUD();
+				}
+				if (typeof Carousel !== "undefined" && Carousel.curr) {
+					Carousel.curr.exit();
+				}
+				if (typeof ui !== "undefined" && ui) {
+					ui.hidePreview();
 				}
 				this.reset();
 				if (player_me) player_me.reset();
@@ -2295,6 +2404,9 @@ class Game {
 		if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
 			VersusMode.returnToPreMatchLobby();
 			return;
+		}
+		if (typeof MusicManager !== "undefined") {
+			MusicManager.playMenuMusic();
 		}
 		EventManager.customizationOpened.dispatch();
 		document.getElementById("deck-customization").classList.remove("hide");
@@ -2752,30 +2864,38 @@ class MusicManager {
 		}
 	}
 
-	static playMapMusic() {
+	static playMapMusic(forceSwitch = false) {
 		MusicManager.init();
+		const wasMapMode = (MusicManager.currentMode === 'map');
 		MusicManager.isMenuMode = false;
 		MusicManager.currentMode = 'map';
 		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
 
 		if (MusicManager.audio) {
 			const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
-			const isAlreadyPlayingMap = MusicManager.MAP_TRACKS.some(t => currentSrc.endsWith(t)) && !MusicManager.audio.paused;
+			const isAlreadyPlayingMap = !forceSwitch && wasMapMode && MusicManager.MAP_TRACKS.some(t => currentSrc.endsWith(t)) && !MusicManager.audio.paused;
 			if (isAlreadyPlayingMap) {
 				MusicManager.isPlaying = true;
 				MusicManager.audio.loop = false;
 				return;
 			}
-			MusicManager.nextMapTrack();
+			MusicManager.isPlaying = true;
+			MusicManager.nextMapTrack(currentSrc);
 		}
 	}
 
-	static nextMapTrack() {
+	static nextMapTrack(avoidSrc = '') {
+		const currentSrc = avoidSrc || (MusicManager.audio ? decodeURIComponent(MusicManager.audio.src || '') : '');
 		if (MusicManager.MAP_TRACKS.length > 1) {
 			let nextIdx;
+			let safety = 0;
 			do {
 				nextIdx = Math.floor(Math.random() * MusicManager.MAP_TRACKS.length);
-			} while (nextIdx === MusicManager.mapTrackIndex && MusicManager.MAP_TRACKS.length > 1);
+				safety++;
+			} while (
+				safety < 25 &&
+				(nextIdx === MusicManager.mapTrackIndex || (currentSrc && currentSrc.endsWith(MusicManager.MAP_TRACKS[nextIdx])))
+			);
 			MusicManager.mapTrackIndex = nextIdx;
 		} else {
 			MusicManager.mapTrackIndex = 0;
@@ -2790,71 +2910,83 @@ class MusicManager {
 		}
 	}
 
-	static playDuelMusic() {
+	static playDuelMusic(forceSwitch = false) {
 		MusicManager.init();
+		const wasDuelMode = (MusicManager.currentMode === 'duel');
 		MusicManager.isMenuMode = false;
 		MusicManager.currentMode = 'duel';
 		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
 
 		if (MusicManager.audio) {
+			MusicManager.isPlaying = true;
 			MusicManager.audio.loop = (MusicManager.selectedMode !== "all");
+			const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
 
 			if (MusicManager.selectedMode === "all") {
-				const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
-				const isAlreadyPlayingDuel = MusicManager.tracks.some(t => currentSrc.endsWith(t)) && !MusicManager.audio.paused;
+				const isAlreadyPlayingDuel = !forceSwitch && wasDuelMode && MusicManager.tracks.some(t => currentSrc.endsWith(t)) && !MusicManager.audio.paused;
 				if (isAlreadyPlayingDuel) {
-					MusicManager.isPlaying = true;
 					return;
 				}
-				MusicManager.nextTrack();
+				MusicManager.nextTrack(currentSrc);
 			} else {
 				const idx = parseInt(MusicManager.selectedMode, 10) || 0;
 				const safeIdx = Math.max(0, Math.min(MusicManager.tracks.length - 1, idx));
 				MusicManager.currTrackIndex = safeIdx;
-				MusicManager.audio.src = MusicManager.tracks[safeIdx];
+				const targetTrack = MusicManager.tracks[safeIdx];
+				if (!forceSwitch && wasDuelMode && currentSrc.endsWith(targetTrack) && !MusicManager.audio.paused) {
+					return;
+				}
+				MusicManager.audio.src = targetTrack;
 				MusicManager.audio.volume = MusicManager.volume;
-				MusicManager.isPlaying = true;
-				MusicManager.audio.play().catch(e => console.log(e));
+				MusicManager.audio.loop = true;
+				MusicManager.audio.play().catch(e => console.log("Duel music play error:", e));
 			}
 		}
 	}
 
-	static playGameMusic() {
-		MusicManager.playDuelMusic();
+	static playGameMusic(forceSwitch = false) {
+		MusicManager.playDuelMusic(forceSwitch);
 	}
 
 	static setTrack(trackId) {
 		MusicManager.init();
 		MusicManager.selectedMode = trackId;
 		if (trackId === "all") {
-			if (MusicManager.currentMode === 'map') {
-				MusicManager.nextMapTrack();
-			} else if (MusicManager.currentMode === 'duel' || !MusicManager.isMenuMode) {
-				MusicManager.nextTrack();
+			if (MusicManager.currentMode === 'duel') {
+				if (MusicManager.audio) MusicManager.audio.loop = false;
+				if (MusicManager.audio && MusicManager.audio.paused && MusicManager.isPlaying) {
+					MusicManager.nextTrack();
+				}
 			}
 		} else {
 			const idx = parseInt(trackId, 10) || 0;
 			const safeIdx = Math.max(0, Math.min(MusicManager.tracks.length - 1, idx));
 			MusicManager.currTrackIndex = safeIdx;
-			if (MusicManager.audio) {
+			if (MusicManager.currentMode === 'duel' && MusicManager.audio) {
 				MusicManager.audio.src = MusicManager.tracks[safeIdx];
 				MusicManager.audio.loop = true;
 				MusicManager.audio.volume = MusicManager.volume;
-				if (MusicManager.isPlaying) {
+				if (MusicManager.isPlaying && (typeof Settings === "undefined" || Settings.music.isEnabled())) {
 					MusicManager.audio.play().catch(e => console.log(e));
 				}
 			}
 		}
 	}
 
-	static nextTrack() {
+	static nextTrack(avoidSrc = '') {
+		const currentSrc = avoidSrc || (MusicManager.audio ? decodeURIComponent(MusicManager.audio.src || '') : '');
 		if (MusicManager.selectedMode === "all") {
-			// Shuffle inteligente sem repetição imediata
+			// Shuffle inteligente garantindo troca real de faixa ao iniciar a partida
 			let nextIdx;
 			if (MusicManager.tracks.length > 1) {
+				let safety = 0;
 				do {
 					nextIdx = Math.floor(Math.random() * MusicManager.tracks.length);
-				} while (nextIdx === MusicManager.currTrackIndex);
+					safety++;
+				} while (
+					safety < 30 &&
+					(nextIdx === MusicManager.currTrackIndex || (currentSrc && currentSrc.endsWith(MusicManager.tracks[nextIdx])))
+				);
 			} else {
 				nextIdx = 0;
 			}
@@ -2867,21 +2999,22 @@ class MusicManager {
 			MusicManager.audio.src = MusicManager.tracks[MusicManager.currTrackIndex];
 			MusicManager.audio.volume = MusicManager.volume;
 			MusicManager.audio.loop = (MusicManager.selectedMode !== "all");
-			if (MusicManager.isPlaying) {
-				MusicManager.audio.play().catch(e => console.log(e));
+			if (MusicManager.isPlaying && (typeof Settings === "undefined" || Settings.music.isEnabled())) {
+				MusicManager.audio.play().catch(e => console.log("Duel nextTrack error:", e));
 			}
 		}
 	}
 
 	static play() {
-		const isMainMenuVisible = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
-		const isMapScreenVisible = document.getElementById("story-map-screen") && !document.getElementById("story-map-screen").classList.contains("hide");
-		if (isMainMenuVisible) {
-			MusicManager.playMenuMusic();
-		} else if (isMapScreenVisible) {
+		const isMapScreenVisible = (document.getElementById("story-map-screen") && !document.getElementById("story-map-screen").classList.contains("hide")) ||
+			(typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign);
+		const isBoardVisible = document.querySelector("main") && !document.querySelector("main").classList.contains("hide");
+		if (isMapScreenVisible) {
 			MusicManager.playMapMusic();
+		} else if (isBoardVisible && typeof game !== "undefined" && (game.state === GameState.PLAYING || game.state === GameState.END_SCREEN)) {
+			MusicManager.playDuelMusic(false);
 		} else {
-			MusicManager.playDuelMusic();
+			MusicManager.playMenuMusic();
 		}
 	}
 
@@ -3011,12 +3144,10 @@ class UI {
 		const enabled = Settings.music.isEnabled();
 		if (enabled) {
 			if (this.toggleMusic_elem) this.toggleMusic_elem.classList.remove("fade");
-			const isMenu = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
-			if (isMenu) MusicManager.playMenuMusic(); else MusicManager.playGameMusic();
+			MusicManager.play();
 			document.addEventListener('click', () => {
 				if (Settings.music.isEnabled() && (!MusicManager.audio || MusicManager.audio.paused)) {
-					const isMenuNow = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
-					if (isMenuNow) MusicManager.playMenuMusic(); else MusicManager.playGameMusic();
+					MusicManager.play();
 				}
 			}, { once: true });
 		} else {
@@ -3073,17 +3204,25 @@ class UI {
 	
 	// Called when the player selects a selectable card
 	async selectCard(card) {
-		let row = this.lastRow;
+		if (typeof game === "undefined" || game.state !== GameState.PLAYING)
+			return;
+		if (game.currPlayer !== player_me || game.placedEffectsActive || game.isActionInProgress || game.isTurnTransitioning || game.isCardBeingPlayed)
+			return;
+		if (!player_me || player_me.passed || player_me.turnPlayed || player_me.isPlayingCard)
+			return;
+
+		let row = board.row.find(r => r && r.cards && r.cards.includes(card)) || this.lastRow;
 		let pCard = this.previewCard;
 		if (card === pCard)
 			return;
-		if (pCard === null || card.holder.hand.cards.includes(card)) {
+		if (pCard === null || (card.holder && card.holder.hand && card.holder.hand.cards.includes(card))) {
 			this.setSelectable(null, false);
 			this.showPreview(card);
 		} else if (pCard.name === "Decoy") {
-			if (game.isActionInProgress || game.isTurnTransitioning) return;
+			if (!row || !card.isUnit()) return;
 			game.isActionInProgress = true;
 			game.isCardBeingPlayed = true;
+			player_me.isPlayingCard = true;
 			if (typeof VersusMode !== "undefined") {
 				VersusMode.stopTurnTimer();
 				VersusMode.isActionExecuting = true;
@@ -3102,11 +3241,17 @@ class UI {
 						rowType: rowType
 					});
 				}
-				board.toHand(card, row);
-				await board.moveTo(pCard, row, pCard.holder.hand);
+				await Promise.all([
+					board.toHand(card, row),
+					board.moveTo(pCard, row, pCard.holder.hand)
+				]);
 				pCard.holder.endTurn();
 			} finally {
 				game.isCardBeingPlayed = false;
+				if (player_me) player_me.isPlayingCard = false;
+				if (!game.isTurnTransitioning) {
+					game.isActionInProgress = false;
+				}
 				if (typeof VersusMode !== "undefined") {
 					VersusMode.isActionExecuting = false;
 					if (VersusMode.pendingTurnSync) {
@@ -3122,7 +3267,7 @@ class UI {
 	// Called when the player selects a selectable CardContainer
 	async selectRow(row){
 		EventManager.rowSelected.dispatch(row, player_me);
-		if (game.placedEffectsActive || game.isActionInProgress || game.isTurnTransitioning)
+		if (game.placedEffectsActive || game.isActionInProgress || game.isTurnTransitioning || game.isCardBeingPlayed)
 		{
 			return;
 		}
@@ -3131,12 +3276,20 @@ class UI {
 			await ui.viewCardsInContainer(row);
 			return;
 		}
+		if (game.state !== GameState.PLAYING || game.currPlayer !== player_me || !player_me || player_me.passed || player_me.turnPlayed || player_me.isPlayingCard) {
+			return;
+		}
 		if (this.previewCard.name === "Decoy")
+			return;
+		const isRowValid = (row.elem && row.elem.classList.contains("row-selectable")) ||
+		                   (row.elem_special && row.elem_special.classList.contains("row-selectable"));
+		if (!isRowValid)
 			return;
 
 		// BLOQUEIO ATÔMICO IMEDIATO: O jogador confirmou a jogada da carta na fileira!
 		game.isActionInProgress = true;
 		game.isCardBeingPlayed = true;
+		player_me.isPlayingCard = true;
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopTurnTimer();
 			VersusMode.isActionExecuting = true;
@@ -3158,6 +3311,14 @@ class UI {
 			} else {
 				if (typeof triggerHaptic === "function") triggerHaptic("medium");
 				await board.moveTo(card, row, card.holder.hand);
+				if (holder === player_me && typeof Achievements !== "undefined") {
+					if (card.abilities && card.abilities.includes("spy")) {
+						Achievements.recordSpyPlayed();
+					}
+					if (card.name === "Roach" || card.muster === "Roach") {
+						Achievements.recordRoach();
+					}
+				}
 			}
 			if (holder === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
 				const rowType = (card.name === "Scorch") ? "scorch" : (card.row === "weather" ? "weather" : ((typeof VersusMode.getRowTypeFromRow === "function") ? VersusMode.getRowTypeFromRow(row) : card.row));
@@ -3172,6 +3333,10 @@ class UI {
 			holder.endTurn();
 		} finally {
 			game.isCardBeingPlayed = false;
+			if (player_me) player_me.isPlayingCard = false;
+			if (!game.isTurnTransitioning) {
+				game.isActionInProgress = false;
+			}
 			if (typeof VersusMode !== "undefined") {
 				VersusMode.isActionExecuting = false;
 				if (VersusMode.pendingTurnSync) {
@@ -3766,6 +3931,29 @@ class DeckMaker {
 
 		setupTabs("bank-filter-tabs", f => { this.bankFilter = f; });
 		setupTabs("deck-filter-tabs", f => { this.deckFilter = f; });
+	}
+
+	updateFilter(filter = "all") {
+		this.bankFilter = filter || "all";
+		this.deckFilter = filter || "all";
+		["bank-filter-tabs", "deck-filter-tabs"].forEach(containerId => {
+			const container = document.getElementById(containerId);
+			if (!container) return;
+			container.querySelectorAll(".deck-filter-btn").forEach(btn => {
+				if ((btn.dataset && btn.dataset.filter) === this.bankFilter) {
+					btn.classList.add("active");
+				} else {
+					btn.classList.remove("active");
+				}
+			});
+		});
+		this.update();
+	}
+
+	makeVisible() {
+		if (this.elem) {
+			this.elem.classList.remove("hide");
+		}
 	}
 
 	matchesFilter(card, filter) {
@@ -4803,7 +4991,7 @@ class EventManager
 		EventManager.customizationOpened = new GameEvent('customize-opened', []);
 		EventManager.roundPassed = new GameEvent('round-passed', ['player', 'round']);
 		EventManager.roundStarted = new GameEvent('round-started', ['round', 'starting-player']);
-		EventManager.roundEnded = new GameEvent('round-started', ['round', 'points-me', 'points-op']);
+		EventManager.roundEnded = new GameEvent('round-ended', ['round', 'points-me', 'points-op']);
 		EventManager.gameStateChanged = new GameEvent('game-state-changed', ['oldState', 'newState']);
 	}
 }
@@ -4858,8 +5046,10 @@ async function translateTo(card, container_source, container_dest){
 	function getSourceElem(card, source, dest){
 		if (source instanceof HandAI)
 			return source.hidden_elem;
-		if (source instanceof Deck)
-			return source.elem.children[source.elem.children.length-2];
+		if (source instanceof Deck) {
+			const deckCardIdx = source.elem.children.length - 2;
+			return deckCardIdx >= 0 ? source.elem.children[deckCardIdx] : source.elem;
+		}
 		return source.elem;
 	}
 
@@ -4874,7 +5064,7 @@ async function translateTo(card, container_source, container_dest){
 				return dest.elem;
 			let index = dest.getSortedIndex(card);
 			let dcard = dest.cards[index === dest.cards.length ? index-1 : index];
-			return dcard.elem;
+			return (dcard && dcard.elem) ? dcard.elem : dest.elem;
 		}
 		return dest.elem;
 	}
@@ -5074,10 +5264,29 @@ async function playAudio(name, ext = "mp3")
 function asyncAudio(audio)
 {
 	if (!userInteracted || !audio)
-		return
+		return;
 	return new Promise(r => {
-		audio.play();
-		audio.onended = r;
+		let settled = false;
+		const finish = () => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(safetyTimer);
+			r();
+		};
+		const maxMs = (audio.duration && isFinite(audio.duration) && audio.duration > 0)
+			? Math.min(4000, Math.ceil(audio.duration * 1000) + 250)
+			: 1800;
+		const safetyTimer = setTimeout(finish, maxMs);
+		audio.onended = finish;
+		audio.onerror = finish;
+		try {
+			const playPromise = audio.play();
+			if (playPromise && typeof playPromise.catch === "function") {
+				playPromise.catch(finish);
+			}
+		} catch (e) {
+			finish();
+		}
 	});
 }
 

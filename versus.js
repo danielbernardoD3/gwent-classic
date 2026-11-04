@@ -928,7 +928,8 @@ class VersusMode {
 	static closeDeckBuilderForVersus() {
 		// Valida se o baralho respeita os limites mínimos/máximos do Gwent
 		if (window.dm && window.dm.stats) {
-			if (window.dm.stats.unit < 15) {
+			const unitCount = (window.dm.stats.units !== undefined) ? window.dm.stats.units : window.dm.stats.unit;
+			if (unitCount < 15) {
 				alert((typeof I18N !== "undefined") ? I18N.t("warn_min_units") : "Seu baralho deve ter pelo menos 15 cartas de unidade.");
 				return;
 			}
@@ -1094,7 +1095,6 @@ class VersusMode {
 	}
 
 	static startActualGame(iStartFirst, hostDeckOrder = null, guestDeckOrder = null) {
-		if (typeof MusicManager !== "undefined") MusicManager.playGameMusic();
 		VersusMode.stopAllTimers();
 		VersusMode.isActive = true;
 		VersusMode.isFirstTurn = iStartFirst;
@@ -1603,7 +1603,7 @@ class VersusMode {
 	// Tratamento de timeout de turno com watchdog anti-softlock
 	static async handleTurnTimeout(isMyTurn) {
 		if (typeof game === "undefined" || game.state !== GameState.PLAYING) return;
-		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || VersusMode.isActionExecuting || (player_me && player_me.isPlayingCard)) {
+		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || game.placedEffectsActive || VersusMode.isActionExecuting || (player_me && (player_me.isPlayingCard || (isMyTurn && player_me.turnPlayed)))) {
 			console.log("[TurnTimer] Ação manual ou transição de turno em andamento, ignorando timeout.");
 			return;
 		}
@@ -1623,11 +1623,11 @@ class VersusMode {
 				console.warn("[VersusHost] Tempo do Guest esgotou no árbitro. Aguardando buffer de tolerância de 2.5s...");
 				await sleep(2500);
 
-				if (typeof game !== "undefined" && game.state === GameState.PLAYING) {
+				if (typeof game !== "undefined" && game.state === GameState.PLAYING && !game.isTurnTransitioning && !game.isActionInProgress && !VersusMode.isActionExecuting) {
 					if (game.currPlayer === player_op && !player_op.passed) {
 						console.warn("[VersusHost] Oponente inativo. Árbitro forçando passe remoto para destravar a partida.");
 						VersusMode.sendPacket("ACTION_FORCE_PASS");
-						player_op.passRound();
+						player_op.passRound(true);
 						VersusMode.broadcastTurnSync();
 					} else if (game.currPlayer === player_me && !player_me.passed) {
 						console.warn("[VersusHost] Recuperando controle de turno local travado via árbitro.");
@@ -1652,7 +1652,7 @@ class VersusMode {
 	// Se o tempo de 1:00 encerrar e o jogador não jogar, joga a primeira carta disponível automaticamente
 	static async autoPlayFirstAvailableCard() {
 		if (typeof game === "undefined" || game.state !== GameState.PLAYING || game.currPlayer !== player_me) return;
-		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || VersusMode.isActionExecuting || (player_me && player_me.isPlayingCard)) {
+		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || game.placedEffectsActive || VersusMode.isActionExecuting || (player_me && (player_me.isPlayingCard || player_me.turnPlayed))) {
 			console.log("[autoPlay] Ação manual ou transição já em andamento, abortando auto-play.");
 			return;
 		}
@@ -1661,10 +1661,11 @@ class VersusMode {
 		game.isActionInProgress = true;
 		game.isCardBeingPlayed = true;
 		game.isAutoPlayingTimeout = true;
+		if (player_me) player_me.isPlayingCard = true;
 		VersusMode.isActionExecuting = true;
+		VersusMode.actionStartTime = Date.now();
 		VersusMode.stopTurnTimer();
 		ui.enablePlayer(false);
-		game.isAutoPlayingTimeout = true;
 
 		try {
 			// Fecha quaisquer popups, carousels ou pré-visualizações abertas
@@ -1680,20 +1681,20 @@ class VersusMode {
 				ui.enablePlayer(false);
 			}
 
-			if (!player_me || player_me.passed) {
+			if (!player_me || player_me.passed || player_me.turnPlayed) {
 				return;
 			}
 
 			const handCards = (player_me.hand && player_me.hand.cards) ? [...player_me.hand.cards] : [];
 			if (handCards.length === 0) {
-				player_me.passRound();
+				player_me.passRound(true);
 				return;
 			}
 
 			// Procura a primeira carta jogável na mão do jogador
 			let played = false;
 			for (const card of handCards) {
-				// Caso 1: Isca (Decoy) -> exige que exista ao menos uma unidade aliada no campo (fileiras 3..5)
+				// Caso 1: Isca (Decoy) -> exige que exista que ao menos uma unidade aliada no campo (fileiras 3..5)
 				if (card.name === "Decoy" || (card.abilities && card.abilities.includes("decoy"))) {
 					let targetUnit = null;
 					let targetRow = null;
@@ -1720,8 +1721,10 @@ class VersusMode {
 								rowType: rowType
 							});
 						}
-						await board.toHand(targetUnit, targetRow);
-						await board.moveTo(card, targetRow, player_me.hand);
+						await Promise.all([
+							board.toHand(targetUnit, targetRow),
+							board.moveTo(card, targetRow, player_me.hand)
+						]);
 						player_me.endTurn();
 						played = true;
 						break;
@@ -1792,6 +1795,14 @@ class VersusMode {
 					await sleep(700);
 					ui.hidePreview(card);
 					await board.moveTo(card, targetRow, player_me.hand);
+					if (typeof Achievements !== "undefined") {
+						if (card.abilities && card.abilities.includes("spy")) {
+							Achievements.recordSpyPlayed();
+						}
+						if (card.name === "Roach" || card.muster === "Roach") {
+							Achievements.recordRoach();
+						}
+					}
 					if (VersusMode.isActive) {
 						VersusMode.onLocalCardPlayed(card, {
 							rowType: rowType,
@@ -1809,16 +1820,27 @@ class VersusMode {
 
 			// Se nenhuma carta pôde ser jogada (ex: só tinha Isca sem unidades em campo), passa a rodada
 			if (!played && !player_me.passed) {
-				player_me.passRound();
+				player_me.passRound(true);
 			}
 		} catch (err) {
 			console.error("Erro no auto-play por tempo esgotado:", err);
 			if (player_me && !player_me.passed) {
-				player_me.passRound();
+				player_me.passRound(true);
 			}
 		} finally {
 			game.isAutoPlayingTimeout = false;
+			game.isCardBeingPlayed = false;
+			if (player_me) player_me.isPlayingCard = false;
+			if (typeof game !== "undefined" && !game.isTurnTransitioning) {
+				game.isActionInProgress = false;
+			}
+			VersusMode.isActionExecuting = false;
 			VersusMode.isHandlingTimeout = false;
+			if (VersusMode.pendingTurnSync) {
+				const sync = VersusMode.pendingTurnSync;
+				VersusMode.pendingTurnSync = null;
+				VersusMode.onTurnSyncReceived(sync);
+			}
 			if (VersusMode.isActive && VersusMode.isHost) {
 				VersusMode.broadcastTurnSync();
 			}
@@ -2075,6 +2097,10 @@ class VersusMode {
 			return;
 		}
 
+		if (game.isActionInProgress || game.isCardBeingPlayed || game.isTurnTransitioning || game.placedEffectsActive || (player_me && (player_me.isPlayingCard || (game.currPlayer === player_me && player_me.turnPlayed)))) {
+			return;
+		}
+
 		// Caso 1: Ambos os jogadores passaram, mas a rodada ainda não foi encerrada
 		if (player_me.passed && player_op.passed) {
 			if (!game.isEndingRound) {
@@ -2305,6 +2331,9 @@ class VersusMode {
 
 		if (notifyPeer) {
 			VersusMode.sendPacket("RETURN_TO_LOBBY");
+		}
+		if (typeof MusicManager !== "undefined") {
+			MusicManager.playMenuMusic();
 		}
 
 		// Fecha tabuleiro e tela de fim

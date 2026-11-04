@@ -248,7 +248,6 @@ class MenuController {
 	}
 
 	static startGame(difficulty = "medium") {
-		if (typeof MusicManager !== "undefined") MusicManager.playGameMusic();
 		if (typeof Settings !== "undefined" && Settings.difficulty) {
 			Settings.difficulty.set(difficulty);
 		} else {
@@ -314,7 +313,10 @@ class MenuController {
 		}
 
 		const standardBack = document.getElementById("btn-back-to-menu");
-		if (standardBack) standardBack.classList.remove("hide");
+		if (standardBack) {
+			standardBack.classList.remove("hide");
+			standardBack.style.display = "";
+		}
 
 		const storyBackToMap = document.getElementById("btn-story-back-to-map");
 		if (storyBackToMap) storyBackToMap.classList.add("hide");
@@ -389,7 +391,10 @@ class MenuController {
 		}
 
 		const standardBack = document.getElementById("btn-back-to-menu");
-		if (standardBack) standardBack.classList.remove("hide");
+		if (standardBack) {
+			standardBack.classList.remove("hide");
+			standardBack.style.display = "";
+		}
 
 		const storyBackToMap = document.getElementById("btn-story-back-to-map");
 		if (storyBackToMap) storyBackToMap.classList.add("hide");

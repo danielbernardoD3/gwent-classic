@@ -1,12 +1,13 @@
 {
-  "version": "1.2.4",
-  "versionCode": 7,
+  "version": "1.2.5",
+  "versionCode": 8,
   "releaseDate": "2026-11-04",
   "title": "Gwent Classic",
   "changelog": [
-    "Correção de travamento da IA contra o baralho de Monstros e fallbacks defensivos contra erros de execução de turnos",
-    "Ajuste e refinamento do espaçamento uniforme entre as cartas no momento de troca (mulligan)",
-    "Trilha sonora separada por contexto: músicas dedicadas para o Modo Exploração no mapa e para os duelos no tabuleiro"
+    "Correção da troca automática para músicas de batalha ao iniciar duelos e separação estrita entre trilhas do Menu, Modo Exploração e Tabuleiro",
+    "Correção da habilidade Tropa Regular (Muster) para invocar todas as unidades simultaneamente sem atraso sequencial",
+    "Correção do botão 'Sair do jogo' durante partidas do Modo Exploração para aplicar a mesma penalidade de desistência",
+    "Auditoria completa e aprimoramento do motor de batalhas, cálculo de pontuação (Isca/Rei Bran), habilidades, transições de turnos e cronômetro"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "154 MB",
