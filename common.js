@@ -636,14 +636,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.3",
-	CURRENT_VERSION_CODE: 6,
+	CURRENT_VERSION: "1.2.4",
+	CURRENT_VERSION_CODE: 7,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
 
 	syncVersionUI(v) {
-		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.3";
+		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.4";
 		const formatted = "v" + String(ver).replace(/^v/, "");
 		const badges = document.querySelectorAll(".menu-version-badge, #menu-version-badge");
 		badges.forEach(b => {
@@ -711,7 +711,7 @@ const InGameUpdater = {
 						const pcAsset = (rel.assets || []).find(a => a.name && a.name.endsWith(".zip"));
 						const notes = rel.body ? rel.body.split("\n").filter(l => l.trim().startsWith("- ")).map(l => l.replace(/^-\s*/, "").trim()) : [];
 						data = {
-							version: tagVer || InGameUpdater.CURRENT_VERSION || "1.2.3",
+							version: tagVer || InGameUpdater.CURRENT_VERSION || "1.2.4",
 							versionCode: 999,
 							title: "Gwent Classic",
 							changelog: notes.length > 0 ? notes : ["Melhorias de desempenho e correções gerais."],

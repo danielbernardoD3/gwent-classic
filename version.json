@@ -1,12 +1,12 @@
 {
-  "version": "1.2.3",
-  "versionCode": 6,
-  "releaseDate": "2026-11-03",
+  "version": "1.2.4",
+  "versionCode": 7,
+  "releaseDate": "2026-11-04",
   "title": "Gwent Classic",
   "changelog": [
-    "Sincronização dinâmica da versão exibida no menu principal diretamente com o Git e version.json",
-    "Badge de versão interativo com verificação rápida de atualizações ao clicar",
-    "Automação no script de build mobile para garantir badges sempre atualizados em todas as plataformas"
+    "Correção de travamento da IA contra o baralho de Monstros e fallbacks defensivos contra erros de execução de turnos",
+    "Ajuste e refinamento do espaçamento uniforme entre as cartas no momento de troca (mulligan)",
+    "Trilha sonora separada por contexto: músicas dedicadas para o Modo Exploração no mapa e para os duelos no tabuleiro"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "154 MB",

@@ -24,69 +24,91 @@ class ControllerAI {
 		this.player = player;
 	}
 	
+	async fallbackPlayOrPass(player, excludeCard = null) {
+		const playable = player.hand.cards.filter(c => c !== excludeCard && c.isUnit());
+		if (playable.length > 0) {
+			await player.playCard(playable[0]);
+		} else {
+			await player.passRound();
+		}
+	}
+
 	// Collects data and weighs options before taking a weighted random action
 	async startTurn(player){
-		if (player.opponent().passed && (player.winning || 
-				player.deck.faction === "nilfgaard" && player.total === player.opponent().total) ){
-			await player.passRound();
-			return;
-		}
-		let data_max = this.getMaximums();
-		let data_board = this.getBoardData();
-		let weights = player.hand.cards.map(c => 
-			({weight: this.weightCard(c, data_max, data_board), action: async () => await this.playCard(c, data_max, data_board)}) );
-		if (player.leaderAvailable)
-			weights.push( {weight: this.weightLeader(player.leader, data_max, data_board), action: async () => await player.activateLeader()} );
-		weights.push( {weight: this.weightPass(), action: async () => await player.passRound()} );
-		let weightTotal = weights.reduce( (a,c) => a + c.weight, 0);
-		if (weightTotal === 0){
-			for (let i=0; i<player.hand.cards.length; ++i) {
-				let card = player.hand.cards[i];
-				if (card.row === "weather" && this.weightWeather(card) > -1 || card.abilities.includes("avenger")) {
-					await weights[i].action();
-					return;
-				}
+		try {
+			if (player.opponent().passed && (player.winning || 
+					player.deck.faction === "nilfgaard" && player.total === player.opponent().total) ){
+				await player.passRound();
+				return;
 			}
-			await player.passRound();
-		} else {
-			const diff = (typeof Settings !== "undefined" && Settings.difficulty) 
-				? Settings.difficulty.value 
-				: (localStorage.getItem("gc-difficulty") || "medium");
+			let data_max = this.getMaximums();
+			let data_board = this.getBoardData();
+			let weights = player.hand.cards.map(c => 
+				({weight: Math.max(0, this.weightCard(c, data_max, data_board) || 0), action: async () => await this.playCard(c, data_max, data_board)}) );
+			if (player.leaderAvailable && player.leader && player.leader.activated && player.leader.activated.length > 0) {
+				const lWeight = Math.max(0, this.weightLeader(player.leader, data_max, data_board) || 0);
+				weights.push( {weight: lWeight, action: async () => await player.activateLeader()} );
+			}
+			weights.push( {weight: Math.max(0, this.weightPass() || 0), action: async () => await player.passRound()} );
+			let weightTotal = weights.reduce( (a,c) => a + c.weight, 0);
+			if (weightTotal <= 0){
+				for (let i=0; i<player.hand.cards.length; ++i) {
+					let card = player.hand.cards[i];
+					if (card.row === "weather" && this.weightWeather(card) > -1 || card.abilities.includes("avenger")) {
+						await weights[i].action();
+						return;
+					}
+				}
+				await this.fallbackPlayOrPass(player);
+			} else {
+				const diff = (typeof Settings !== "undefined" && Settings.difficulty) 
+					? Settings.difficulty.value 
+					: (localStorage.getItem("gc-difficulty") || "medium");
 
-			if (diff === "hard") {
-				// Hard: Sort actions by calculated weight descending and pick optimal move
-				weights.sort((a,b) => b.weight - a.weight);
-				let chosen = (weights.length > 1 && Math.random() < 0.12 && weights[1].weight > 0) ? weights[1] : weights[0];
-				await chosen.action();
-			} else if (diff === "easy") {
-				// Easy: Relaxed strategy with 35% chance to play casually/suboptimally
-				if (Math.random() < 0.35 && weights.length > 1) {
-					let playWeights = weights.filter(w => w.weight > 0);
-					if (playWeights.length > 0) {
-						let randIdx = randomInt(playWeights.length);
-						await playWeights[randIdx].action();
+				if (diff === "hard") {
+					// Hard: Sort actions by calculated weight descending and pick optimal move
+					weights.sort((a,b) => b.weight - a.weight);
+					let chosen = (weights.length > 1 && Math.random() < 0.12 && weights[1].weight > 0) ? weights[1] : weights[0];
+					await (chosen ? chosen.action() : this.fallbackPlayOrPass(player));
+				} else if (diff === "easy") {
+					// Easy: Relaxed strategy with 35% chance to play casually/suboptimally
+					if (Math.random() < 0.35 && weights.length > 1) {
+						let playWeights = weights.filter(w => w.weight > 0);
+						if (playWeights.length > 0) {
+							let randIdx = randomInt(playWeights.length);
+							await playWeights[randIdx].action();
+						} else {
+							await (weights[0] ? weights[0].action() : this.fallbackPlayOrPass(player));
+						}
 					} else {
-						await weights[0].action();
+						let rand = randomInt(weightTotal);
+						let chosenAction = null;
+						for (var i=0; i < weights.length; ++i) {
+							rand -= weights[i].weight;
+							if (rand < 0) {
+								chosenAction = weights[i].action;
+								break;
+							}
+						}
+						await (chosenAction ? chosenAction() : (weights[0] ? weights[0].action() : this.fallbackPlayOrPass(player)));
 					}
 				} else {
+					// Medium: Original weighted random logic
 					let rand = randomInt(weightTotal);
+					let chosenAction = null;
 					for (var i=0; i < weights.length; ++i) {
 						rand -= weights[i].weight;
-						if (rand < 0)
+						if (rand < 0) {
+							chosenAction = weights[i].action;
 							break;
+						}
 					}
-					await weights[i].action();
+					await (chosenAction ? chosenAction() : (weights[0] ? weights[0].action() : this.fallbackPlayOrPass(player)));
 				}
-			} else {
-				// Medium: Original weighted random logic
-				let rand = randomInt(weightTotal);
-				for (var i=0; i < weights.length; ++i) {
-					rand -= weights[i].weight;
-					if (rand < 0)
-						break;
-				}
-				await weights[i].action();
 			}
+		} catch (err) {
+			console.error("[ControllerAI] Erro durante o turno da IA:", err);
+			await this.fallbackPlayOrPass(player);
 		}
 	}
 	
@@ -202,7 +224,7 @@ class ControllerAI {
 	// Plays a Commander's Horn to the most beneficial row. Assumes at least one viable row.
 	async horn(card){
 		let rows = [0,1,2].map(i => board.row[i]).filter(r => r.special === null);
-		let max_row;
+		let max_row = rows[0] || null;
 		let max = 0;
 		for (let i=0; i<rows.length; ++i) {
 			let r = rows[i];
@@ -217,12 +239,16 @@ class ControllerAI {
 				max_row = r;
 			}
 		}
+		if (!max_row) {
+			await this.fallbackPlayOrPass(this.player, card);
+			return;
+		}
 		await this.player.playCardToRow(card, max_row);
 	}
 	
 	// Plays a Mardroeme to the most beneficial row. Assumes at least one viable row.
 	async mardroeme(card){ // TODO skellige
-		let row, max = 0;
+		let row = board.row[1], max = 0;
 		for (let i=1; i<3; i++){
 			let curr = this.weightMardroemeRow(card, board.row[i]);
 			if (curr > max){
@@ -230,6 +256,7 @@ class ControllerAI {
 				row = board.row[i];
 			}
 		}
+		if (!row) row = board.row[1];
 		await this.player.playCardToRow(card, row);
 	}
 	
@@ -266,16 +293,30 @@ class ControllerAI {
 			let pairs = max.rmax.filter((r,i) => i<3 && r.cards.length).reduce((a,r) => 
 				r.cards.map(c => ({r:r.row, c:c})).concat(a)
 			, []);
+			if (!pairs || pairs.length === 0) {
+				let safeCard = this.player.hand.cards.find(c => c !== card && c.isUnit());
+				if (safeCard) {
+					await this.player.playCard(safeCard);
+				} else {
+					await this.player.passRound();
+				}
+				return;
+			}
 			let pair = pairs[randomInt(pairs.length)];
 			targ = pair.c;
 			row = pair.r;
 		}
 		
-		for (let i = 0; !row ; ++i){
-			if (board.row[i].cards.indexOf(targ) !== -1){
+		for (let i = 0; !row && i < board.row.length; ++i){
+			if (board.row[i] && board.row[i].cards && board.row[i].cards.indexOf(targ) !== -1){
 				row = board.row[i];
 				break;
 			}
+		}
+
+		if (!row || !targ) {
+			await this.fallbackPlayOrPass(this.player, card);
+			return;
 		}
 		
 		setTimeout(() => board.toHand(targ, row), 1000);
@@ -316,12 +357,15 @@ class ControllerAI {
 	
 	// Assigns a weight for how likely the controller is to activate its leader ability
 	weightLeader(card, max, data) {
-		let w = ability_dict[card.abilities[0]].weight;
-		if (ability_dict[card.abilities[0]].weight) {
-			let score = w(card, this, max, data);
-			return score;
+		if (!card || !card.abilities || !card.abilities.length) return 0;
+		const ab = ability_dict[card.abilities[0]];
+		if (!ab) return 0;
+		if (ab.weight) {
+			let score = ab.weight(card, this, max, data);
+			return Math.max(0, score || 0);
 		}
-		return 10 + (game.roundCount-1) * 15;
+		if (!card.activated || card.activated.length === 0) return 0;
+		return Math.max(0, 10 + (Math.max(1, game.roundCount) - 1) * 15);
 	}
 	
 	// Assigns a weight for how likely the controller will use a scorch-row card
@@ -593,7 +637,12 @@ class Player {
 		}
 		
 		if (this.controller instanceof ControllerAI) {
-			await this.controller.startTurn(this);
+			try {
+				await this.controller.startTurn(this);
+			} catch (aiErr) {
+				console.error("[Player.startTurn] Erro no controlador IA:", aiErr);
+				await this.passRound();
+			}
 		} else if (typeof ControllerPeer !== "undefined" && this.controller instanceof ControllerPeer) {
 			await this.controller.startTurn(this);
 		}
@@ -718,6 +767,12 @@ class Player {
 			VersusMode.actionStartTime = Date.now();
 		}
 		try {
+			if (!this.leader || !this.leader.activated || !this.leader.activated[0]) {
+				console.warn("[Player.activateLeader] Líder não possui habilidade ativa.");
+				this.disableLeader();
+				this.endTurn();
+				return;
+			}
 			ui.showPreviewVisuals(this.leader);
 			await sleep(1500);
 			ui.hidePreview(this.leader);
@@ -1680,6 +1735,9 @@ class Game {
 		EventManager.gameOpened.dispatch();
 		this.initPlayers(player_me, player_op);
 		this.setState(GameState.PLAYING);
+		if (typeof MusicManager !== "undefined") {
+			MusicManager.playDuelMusic();
+		}
 		AudioManager.playSFX('game_opening');
 		await this.runEffects(this.gameStart);
 		await this.coinToss();
@@ -2583,12 +2641,35 @@ class MusicManager {
 	];
 
 	static currTrackIndex = 0;
+	static mapTrackIndex = 0;
 	static audio = null;
 	static isPlaying = false;
 	static initialized = false;
 	static selectedMode = 'all';
 	static volume = 0.6;
 	static isMenuMode = true;
+	static currentMode = 'menu'; // 'menu' | 'map' | 'duel'
+
+	// Trilhas exclusivas do Modo Exploração (Mapa do Continente)
+	static MAP_TRACKS = [
+		'music/02 Geralt of Rivia.mp3',
+		'music/03 Eredin, King of the Hunt.mp3',
+		'music/04 Wake Up, Ciri.mp3',
+		'music/07 Emhyr var Emreis.mp3',
+		'music/08 Spikeroog.mp3',
+		'music/09 King Bran\'s Final Voyage.mp3',
+		'music/11 Whispers of Oxenfurt.mp3',
+		'music/14 The Hunter\'s Path.mp3',
+		'music/16 Kaer Morhen.mp3',
+		'music/18 Witch Hunters.mp3',
+		'music/20 Fate Calls.mp3',
+		'music/21 The Vagabond.mp3',
+		'music/24 Yes, I Do....mp3',
+		'music/27 After the Storm.mp3',
+		'music/29 Farewell, Old Friend.mp3',
+		'music/32 The Fields of Ard Skellig.mp3',
+		'music/34 Merchants of Novigrad.mp3'
+	];
 
 	static init() {
 		if (MusicManager.initialized) return;
@@ -2615,9 +2696,11 @@ class MusicManager {
 		MusicManager.audio.loop = true;
 
 		MusicManager.audio.addEventListener('ended', () => {
-			if (MusicManager.isMenuMode) {
+			if (MusicManager.currentMode === 'menu' || MusicManager.isMenuMode) {
 				MusicManager.audio.currentTime = 0;
 				if (MusicManager.isPlaying) MusicManager.audio.play().catch(e => console.log(e));
+			} else if (MusicManager.currentMode === 'map') {
+				MusicManager.nextMapTrack();
 			} else if (MusicManager.selectedMode === "all") {
 				MusicManager.nextTrack();
 			} else {
@@ -2628,7 +2711,9 @@ class MusicManager {
 
 		MusicManager.audio.addEventListener('error', (e) => {
 			console.warn("Track failed to load, moving to next:", MusicManager.audio ? MusicManager.audio.src : "unknown");
-			if (!MusicManager.isMenuMode) {
+			if (MusicManager.currentMode === 'map') {
+				MusicManager.nextMapTrack();
+			} else if (!MusicManager.isMenuMode) {
 				MusicManager.nextTrack();
 			}
 		});
@@ -2647,6 +2732,7 @@ class MusicManager {
 	static playMenuMusic() {
 		MusicManager.init();
 		MusicManager.isMenuMode = true;
+		MusicManager.currentMode = 'menu';
 		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
 
 		if (MusicManager.audio) {
@@ -2666,9 +2752,48 @@ class MusicManager {
 		}
 	}
 
-	static playGameMusic() {
+	static playMapMusic() {
 		MusicManager.init();
 		MusicManager.isMenuMode = false;
+		MusicManager.currentMode = 'map';
+		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
+
+		if (MusicManager.audio) {
+			const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
+			const isAlreadyPlayingMap = MusicManager.MAP_TRACKS.some(t => currentSrc.endsWith(t)) && !MusicManager.audio.paused;
+			if (isAlreadyPlayingMap) {
+				MusicManager.isPlaying = true;
+				MusicManager.audio.loop = false;
+				return;
+			}
+			MusicManager.nextMapTrack();
+		}
+	}
+
+	static nextMapTrack() {
+		if (MusicManager.MAP_TRACKS.length > 1) {
+			let nextIdx;
+			do {
+				nextIdx = Math.floor(Math.random() * MusicManager.MAP_TRACKS.length);
+			} while (nextIdx === MusicManager.mapTrackIndex && MusicManager.MAP_TRACKS.length > 1);
+			MusicManager.mapTrackIndex = nextIdx;
+		} else {
+			MusicManager.mapTrackIndex = 0;
+		}
+
+		if (MusicManager.audio) {
+			MusicManager.audio.src = MusicManager.MAP_TRACKS[MusicManager.mapTrackIndex];
+			MusicManager.audio.volume = MusicManager.volume;
+			MusicManager.audio.loop = false;
+			MusicManager.isPlaying = true;
+			MusicManager.audio.play().catch(e => console.log("Map music play error:", e));
+		}
+	}
+
+	static playDuelMusic() {
+		MusicManager.init();
+		MusicManager.isMenuMode = false;
+		MusicManager.currentMode = 'duel';
 		if (typeof Settings !== "undefined" && !Settings.music.isEnabled()) return;
 
 		if (MusicManager.audio) {
@@ -2676,12 +2801,12 @@ class MusicManager {
 
 			if (MusicManager.selectedMode === "all") {
 				const currentSrc = decodeURIComponent(MusicManager.audio.src || '');
-				if (currentSrc.includes('gwent_main.mp3') || MusicManager.audio.paused) {
-					MusicManager.nextTrack();
-				} else {
+				const isAlreadyPlayingDuel = MusicManager.tracks.some(t => currentSrc.endsWith(t)) && !MusicManager.audio.paused;
+				if (isAlreadyPlayingDuel) {
 					MusicManager.isPlaying = true;
-					MusicManager.audio.play().catch(e => console.log(e));
+					return;
 				}
+				MusicManager.nextTrack();
 			} else {
 				const idx = parseInt(MusicManager.selectedMode, 10) || 0;
 				const safeIdx = Math.max(0, Math.min(MusicManager.tracks.length - 1, idx));
@@ -2694,11 +2819,17 @@ class MusicManager {
 		}
 	}
 
+	static playGameMusic() {
+		MusicManager.playDuelMusic();
+	}
+
 	static setTrack(trackId) {
 		MusicManager.init();
 		MusicManager.selectedMode = trackId;
 		if (trackId === "all") {
-			if (!MusicManager.isMenuMode) {
+			if (MusicManager.currentMode === 'map') {
+				MusicManager.nextMapTrack();
+			} else if (MusicManager.currentMode === 'duel' || !MusicManager.isMenuMode) {
 				MusicManager.nextTrack();
 			}
 		} else {
@@ -2744,10 +2875,13 @@ class MusicManager {
 
 	static play() {
 		const isMainMenuVisible = document.getElementById("main-menu") && !document.getElementById("main-menu").classList.contains("hide");
+		const isMapScreenVisible = document.getElementById("story-map-screen") && !document.getElementById("story-map-screen").classList.contains("hide");
 		if (isMainMenuVisible) {
 			MusicManager.playMenuMusic();
+		} else if (isMapScreenVisible) {
+			MusicManager.playMapMusic();
 		} else {
-			MusicManager.playGameMusic();
+			MusicManager.playDuelMusic();
 		}
 	}
 

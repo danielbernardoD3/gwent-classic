@@ -897,7 +897,7 @@ class StoryMode {
 		StoryMode.focusCurrentNode();
 
 		if (typeof MusicManager !== "undefined") {
-			MusicManager.play();
+			MusicManager.playMapMusic();
 		}
 	}
 
@@ -2352,6 +2352,10 @@ class StoryMode {
 
 		const mainGame = document.querySelector("main");
 		if (mainGame) mainGame.classList.remove("hide");
+
+		if (typeof MusicManager !== "undefined") {
+			MusicManager.playDuelMusic();
+		}
 
 		if (typeof game !== "undefined") {
 			game.startGame();

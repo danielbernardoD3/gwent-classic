@@ -166,21 +166,23 @@ var ability_dict = {
 		description: "Find any cards with the same name in your deck and play them instantly. ",
 		placed: async (card) => {
 			let i = card.name.indexOf('-');
-			let cardName = i === -1 ?  card.name : card.name.substring(0, i);
+			let cardName = (i === -1 ?  card.name : card.name.substring(0, i)).trim();
 			if (card['muster'])
 			{
-				cardName = card['muster'];
+				cardName = card['muster'].trim();
 			}
 			if (card.holder === player_me && cardName === "Roach" && typeof Achievements !== "undefined") {
 				Achievements.recordRoach();
 			}
-			let pred = c => c.name.startsWith(cardName);
+			let pred = c => c.name.trim().startsWith(cardName);
 			let units = card.holder.hand.getCards(pred).map(x => [card.holder.hand, x])
 			.concat(card.holder.deck.getCards(pred).map( x => [card.holder.deck, x] ) );
 			if (units.length === 0)
 				return;
 			await card.animate("muster");
-			await Promise.all( units.map( async p =>  await board.addCardToRow(p[1], p[1].row, p[1].holder, p[0])));
+			for (const p of units) {
+				await board.addCardToRow(p[1], p[1].row, p[1].holder, p[0]);
+			}
 		}
 	},
 	spy: {
@@ -462,7 +464,11 @@ var ability_dict = {
 	eredin_commander: {
 		description: "Double the strength of all your Close Combat units (unless a Commander's horn is 	also present on that row).",
 		activated: async card => await board.getRow(card, "close", card.holder).leaderHorn(),
-		weight: (card, ai) => ai.weightHornRow(card, board.getRow(card, "close", card.holder))
+		weight: (card, ai) => {
+			const row = board.getRow(card, "close", card.holder);
+			if (row.special !== null) return 0;
+			return row.cards.filter(c => c.isUnit() && !c.isHero()).reduce((s, c) => s + c.power, 0);
+		}
 	},
 	eredin_bringer_of_death: {
 		name: "Eredin : Bringer of Death",
@@ -488,17 +494,19 @@ var ability_dict = {
 			if (newCard)
 				await board.toHand(newCard, card.holder.grave);
 		},
-		weight: (card, ai, max, data) => ai.weightMedic(data, 0, card.holder)
+		weight: (card, ai, max, data) => Math.max(0, ai.weightMedic(data, 0, card.holder) || 0)
 	},
 	eredin_destroyer: {
 		description: "Discard 2 card and draw 1 card of your choice from your deck.",
 		activated: async (card) => {
-			let hand = board.getRow(card, "hand", card.holder);
-			let deck = board.getRow(card, "deck", card.holder);
+			let hand = card.holder.hand;
+			let deck = card.holder.deck;
 			if (card.holder.controller instanceof ControllerAI) {
 				let cards = card.holder.controller.discardOrder(card).splice(0,2).filter(c => c.basePower < 7);
-				await Promise.all(cards.map(async c => await board.toGrave(c, card.holder.hand)));
-				card.holder.deck.draw(card.holder.hand);
+				if (cards.length > 0) {
+					await Promise.all(cards.map(async c => await board.toGrave(c, card.holder.hand)));
+					await card.holder.deck.draw(card.holder.hand);
+				}
 				return;
 			}
 			if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
@@ -537,9 +545,12 @@ var ability_dict = {
 	eredin_king: {
 		description: "Pick any weather card from your deck and play it instantly.",
 		activated: async card => {
-			let deck = board.getRow(card, "deck", card.holder);
+			let deck = card.holder.deck;
 			if (card.holder.controller instanceof ControllerAI) {
-				await ability_dict["eredin_king"].helper(card).card.autoplay(card.holder.deck);
+				const h = ability_dict["eredin_king"].helper(card);
+				if (h && h.card) {
+					await h.card.autoplay(card.holder.deck);
+				}
 			} else if (typeof ControllerPeer !== "undefined" && card.holder.controller instanceof ControllerPeer) {
 				const lData = card.holder.controller.nextLeaderData || {};
 				const wCard = lData.weatherName
@@ -556,11 +567,11 @@ var ability_dict = {
 				}, c => c.faction === "weather", true);
 			}
 		},
-		weight: (card, ai, max) => ability_dict["eredin_king"].helper(card).weight,
+		weight: (card, ai, max) => Math.max(0, ability_dict["eredin_king"].helper(card)?.weight || 0),
 		helper: card => {
 			let weather = card.holder.deck.cards.filter(c => c.row === "weather").reduce((a,c) =>a.map(c => c.name).includes(c.name) ? a : a.concat([c]), [] );
 			
-			let out, weight = -1;
+			let out, weight = 0;
 			weather.forEach( c => {
 				let w = card.holder.controller.weightWeatherFromDeck(c, c.abilities[0]);
 				if (w > weight) {
@@ -568,11 +579,12 @@ var ability_dict = {
 					out = c;
 				}
 			});
-			return {card: out, weight: weight};
+			return {card: out, weight: Math.max(0, weight)};
 		}			
 	},
 	eredin_treacherous: {
 		description: "Doubles the strength of all spy cards (affects both players).",
+		weight: () => 0,
 		gameStart: () => game.doubleSpyPower = true
 	},
 	francesca_queen: {
