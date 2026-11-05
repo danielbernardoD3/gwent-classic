@@ -39,6 +39,8 @@ public class MainActivity extends BridgeActivity {
                 java.net.URL url = new java.net.URL(apkUrl);
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestProperty("User-Agent", "GwentClassic-Android");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
                 conn.setInstanceFollowRedirects(true);
                 conn.connect();
 
@@ -50,6 +52,8 @@ public class MainActivity extends BridgeActivity {
                     url = new java.net.URL(newUrl);
                     conn = (java.net.HttpURLConnection) url.openConnection();
                     conn.setRequestProperty("User-Agent", "GwentClassic-Android");
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(30000);
                     conn.setInstanceFollowRedirects(true);
                     conn.connect();
                     responseCode = conn.getResponseCode();
@@ -148,6 +152,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        setupUpdaterBridge();
         if (downloadedApkFile != null && downloadedApkFile.exists()) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
                 File toInstall = downloadedApkFile;

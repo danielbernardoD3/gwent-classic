@@ -636,14 +636,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.5",
-	CURRENT_VERSION_CODE: 8,
+	CURRENT_VERSION: "1.2.6",
+	CURRENT_VERSION_CODE: 9,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
 
 	syncVersionUI(v) {
-		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.5";
+		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.6";
 		const formatted = "v" + String(ver).replace(/^v/, "");
 		const badges = document.querySelectorAll(".menu-version-badge, #menu-version-badge");
 		badges.forEach(b => {
@@ -711,7 +711,7 @@ const InGameUpdater = {
 						const pcAsset = (rel.assets || []).find(a => a.name && a.name.endsWith(".zip"));
 						const notes = rel.body ? rel.body.split("\n").filter(l => l.trim().startsWith("- ")).map(l => l.replace(/^-\s*/, "").trim()) : [];
 						data = {
-							version: tagVer || InGameUpdater.CURRENT_VERSION || "1.2.5",
+							version: tagVer || InGameUpdater.CURRENT_VERSION || "1.2.6",
 							versionCode: 999,
 							title: "Gwent Classic",
 							changelog: notes.length > 0 ? notes : ["Melhorias de desempenho e correções gerais."],
@@ -736,16 +736,24 @@ const InGameUpdater = {
 				InGameUpdater.showUpdateModal(data);
 			} else {
 				if (manual) {
-					alert(`Você já está jogando a versão mais recente do Gwent Classic (v${InGameUpdater.CURRENT_VERSION})!`);
+					const msg = `Você já está jogando a versão mais recente do Gwent Classic (v${InGameUpdater.CURRENT_VERSION})!`;
+					if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+						MenuController.showAlert(msg, "GWENT CLASSIC ATUALIZADO", "🐺");
+					} else {
+						alert(msg);
+					}
 				}
 			}
 		} catch (e) {
 			console.warn("[InGameUpdater] Erro ao verificar atualizações:", e);
 			if (manual) {
-				if (e && e.message && e.message.includes("404")) {
-					alert("Servidor de atualizações não encontrado (Erro 404).\n\nSe o repositório no GitHub estiver configurado como PRIVADO, altere a visibilidade para PÚBLICO (nas Configurações do Repositório no GitHub) para que o jogo consiga checar novidades e baixar os arquivos.");
+				const msg = (e && e.message && e.message.includes("404"))
+					? "Servidor de atualizações não encontrado (Erro 404).\n\nVerifique as permissões de acesso ao repositório."
+					: "Não foi possível conectar ao servidor de atualizações no momento. Verifique sua conexão à internet.";
+				if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+					MenuController.showAlert(msg, "ATUALIZADOR DE GWENT", "🐺");
 				} else {
-					alert("Não foi possível conectar ao servidor de atualizações no momento. Verifique sua conexão à internet.");
+					alert(msg);
 				}
 			}
 		} finally {
@@ -771,6 +779,8 @@ const InGameUpdater = {
 		const modal = document.getElementById("game-updater-modal");
 		if (!modal) return;
 
+		modal.style.zIndex = "60000";
+
 		const titleElem = document.getElementById("updater-title");
 		const versionBadge = document.getElementById("updater-version-badge");
 		const changelogList = document.getElementById("updater-changelog-list");
@@ -778,7 +788,7 @@ const InGameUpdater = {
 		const progressBox = document.getElementById("updater-progress-box");
 		const actionBtn = document.getElementById("updater-action-btn");
 
-		if (titleElem) titleElem.innerText = data.title || "Atualização de Gwent Classic Disponível!";
+		if (titleElem) titleElem.innerText = data.title ? `⚔️ ${data.title} Disponível` : "⚔️ Atualização de Gwent Classic Disponível!";
 		if (versionBadge) versionBadge.innerText = `v${InGameUpdater.CURRENT_VERSION} ➔ v${data.version}`;
 		if (sizeElem) sizeElem.innerText = data.apkSize ? `Tamanho do pacote: ${data.apkSize}` : "";
 
@@ -833,10 +843,17 @@ const InGameUpdater = {
 			if (progressBar) progressBar.style.width = "0%";
 			if (progressText) progressText.innerText = "Iniciando download...";
 
-			window.AndroidAppUpdater.downloadAndInstall(data.apkUrl);
+			try {
+				window.AndroidAppUpdater.downloadAndInstall(data.apkUrl);
+			} catch (err) {
+				console.error("[InGameUpdater] Erro ao disparar download nativo:", err);
+				InGameUpdater.isDownloading = false;
+				window.open(data.apkUrl, "_blank");
+			}
 		} else {
-			// PC / Navegador
-			const downloadUrl = data.pcUrl || data.apkUrl;
+			// PC / Navegador ou fallback
+			const isNative = (window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
+			const downloadUrl = isNative ? data.apkUrl : (data.pcUrl || data.apkUrl);
 			window.open(downloadUrl, "_blank");
 			InGameUpdater.closeUpdateModal();
 		}
