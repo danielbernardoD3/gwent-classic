@@ -3,7 +3,7 @@
    Authentic The Witcher 3 aesthetic: parchment, golden filigree, leather, wax seals
    ========================================================================== */
 
-/* Fullscreen Story Map Screen */
+/* Fullscreen Story Map Screen (Strictly isolated from Board Screen) */
 #story-map-screen {
 	position: fixed;
 	top: 0;
@@ -16,11 +16,51 @@
 	display: flex;
 	flex-direction: column;
 	font-family: "Gwent", "Cinzel", "Times New Roman", serif;
+	font-size: 16px;
+	line-height: 1.4;
+	color: #f4e8c1;
 	user-select: none;
+	isolation: isolate;
+	contain: layout style paint;
 }
 
 #story-map-screen.hide {
 	display: none !important;
+}
+
+/* ==========================================================================
+   STRICT SCREEN ISOLATION (DESLIGAMENTO TOTAL ENTRE MAPA E TABULEIRO)
+   Garante que alterações e elementos do Tabuleiro nunca afetem a Tela do Mapa
+   e que elementos do Mapa nunca fiquem ativos durante a Tela do Tabuleiro.
+   ========================================================================== */
+body[data-screen="map"] main,
+body[data-screen="map"] #board-screen,
+body[data-screen="map"] #open-game-settings,
+body[data-screen="map"] #toggle-notifications,
+body[data-screen="map"] #versus-emote-wheel-container,
+body[data-screen="map"] #quick-card-inspect-modal,
+body[data-screen="menu"] main,
+body[data-screen="menu"] #board-screen,
+body[data-screen="menu"] #story-map-screen,
+body[data-screen="deck"] main,
+body[data-screen="deck"] #board-screen,
+body[data-screen="deck"] #story-map-screen {
+	display: none !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+body[data-screen="board"] #story-map-screen,
+body[data-screen="board"] #story-gamepad-cursor,
+body[data-screen="board"] #story-stats-drawer,
+body[data-screen="board"] #story-battle-modal,
+body[data-screen="board"] #story-tournament-modal,
+body[data-screen="board"] #story-shop-modal,
+body[data-screen="board"] #story-compendium-modal,
+body[data-screen="board"] #story-card-inspect-modal {
+	display: none !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
 }
 
 /* Map Top HUD Bar */
@@ -423,7 +463,9 @@
 	width: 2894px;
 	height: 4096px;
 	transform-origin: 0 0;
-	transition: transform 0.05s linear;
+	will-change: transform;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
 	touch-action: none;
 }
 
@@ -435,9 +477,39 @@
 	height: 4096px;
 	display: block;
 	pointer-events: none;
+	z-index: 0;
+	backface-visibility: hidden;
+	transform: translateZ(0);
 }
 
-/* SVG Roads Layer */
+/* 8K Dynamic Tile Grid Layer (LOD + Viewport Culling) */
+#story-map-tiles-layer {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 2894px;
+	height: 4096px;
+	pointer-events: none;
+	z-index: 1;
+	contain: strict;
+}
+
+.story-map-tile {
+	position: absolute;
+	display: none;
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-drag: none;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	transform: translateZ(0);
+}
+
+.story-map-tile.tile-visible {
+	display: block;
+}
+
+/* SVG Roads Layer (GPU-optimized without per-frame Gaussian blur filters) */
 #story-map-svg-roads {
 	position: absolute;
 	top: 0;
@@ -451,34 +523,26 @@
 .story-road-line {
 	stroke-linecap: round;
 	stroke-linejoin: round;
-	transition: all 0.3s ease;
 }
 
 .story-road-line.locked {
-	stroke: rgba(25, 18, 12, 0.65);
+	stroke: rgba(25, 18, 12, 0.72);
 	stroke-width: 4.5;
 	stroke-dasharray: 8 10;
-	filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.1));
 	opacity: 0.90;
-	transition: opacity 0.3s ease;
+}
+
+.story-road-glow {
+	stroke: rgba(255, 195, 0, 0.28);
+	stroke-width: 13;
+	stroke-linecap: round;
+	pointer-events: none;
 }
 
 .story-road-line.unlocked {
 	stroke: #ffd700;
-	stroke-width: 6.5;
+	stroke-width: 6;
 	stroke-dasharray: 14 8;
-	filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.95));
-	animation: roadPulse 3s infinite linear;
-}
-
-@keyframes roadPulse {
-	0% {
-		stroke-dashoffset: 0;
-	}
-
-	100% {
-		stroke-dashoffset: -44;
-	}
 }
 
 /* Nodes Layer */
@@ -572,7 +636,6 @@
 	border-color: #ffd700;
 	background: radial-gradient(circle, #33250b 0%, #0d0903 100%);
 	box-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 4px 14px rgba(0, 0, 0, 0.95);
-	animation: pinGlow 2s infinite ease-in-out;
 }
 
 .story-map-pin.available .pin-icon {

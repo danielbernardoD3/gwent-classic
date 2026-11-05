@@ -262,6 +262,12 @@ class MenuController {
 		const menu = document.getElementById("main-menu");
 		if (menu) menu.classList.add("hide");
 
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("deck");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "deck");
+		}
+
 		// Show Deck Customization
 		const deckCustom = document.getElementById("deck-customization");
 		if (deckCustom) {
@@ -337,6 +343,12 @@ class MenuController {
 	}
 
 	static returnToMainMenu() {
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("menu");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "menu");
+		}
+
 		// Hide game & deck customization
 		const deckCustom = document.getElementById("deck-customization");
 		if (deckCustom) {

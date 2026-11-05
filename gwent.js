@@ -1802,6 +1802,11 @@ class Game {
 		if (typeof fitGameBoard === "function") fitGameBoard();
 		const mainEl = document.querySelector("main");
 		if (mainEl) mainEl.classList.remove("hide");
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("board");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "board");
+		}
 		const endScr = document.getElementById("end-screen");
 		if (endScr) endScr.classList.add("hide");
 		this.playerMeSpiesPlayed = 0;
@@ -2407,6 +2412,11 @@ class Game {
 		}
 		if (typeof MusicManager !== "undefined") {
 			MusicManager.playMenuMusic();
+		}
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("deck");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "deck");
 		}
 		EventManager.customizationOpened.dispatch();
 		document.getElementById("deck-customization").classList.remove("hide");

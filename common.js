@@ -111,11 +111,47 @@ function randomInt(n) {
 
 
 // ---------------------------------------------------------------------------
+// SCREEN ISOLATION MANAGER (SEPARAÇÃO ESTRITA ENTRE MENU, MAPA, BARALHO E TABULEIRO)
+// Garante que a Tela do Mapa (#story-map-screen) e a Tela do Tabuleiro (<main>)
+// fiquem 100% desligadas uma da outra quando não estão ativas.
+// ---------------------------------------------------------------------------
+const ScreenManager = {
+	current: "menu",
+	setScreen(mode) {
+		this.current = mode;
+		if (document.body) {
+			document.body.setAttribute("data-screen", mode);
+		}
+		const mainBoard = document.querySelector("main");
+		const mapScreen = document.getElementById("story-map-screen");
+		const deckCustom = document.getElementById("deck-customization");
+
+		if (mode !== "map") {
+			if (typeof StoryMode !== "undefined" && typeof StoryMode.suspendMapRendering === "function") {
+				StoryMode.suspendMapRendering();
+			}
+			if (mapScreen) mapScreen.classList.add("hide");
+		}
+		if (mode !== "board") {
+			if (mainBoard) mainBoard.classList.add("hide");
+		} else {
+			if (mainBoard) mainBoard.classList.remove("hide");
+			fitGameBoard();
+		}
+		if (mode !== "deck" && deckCustom && mode !== "menu") {
+			deckCustom.classList.add("hide");
+		}
+	}
+};
+window.ScreenManager = ScreenManager;
+
+// ---------------------------------------------------------------------------
 // RESPONSIVE GAME BOARD FITTER (LETTERBOXING / PILLARBOXING COM BARRAS PRETAS)
 // Garante que todo o tabuleiro 16:9 caiba verticalmente na tela sem rolagem,
 // centralizando e gerando barras pretas nas laterais em telas ultrawide e celulares.
 // ---------------------------------------------------------------------------
 function fitGameBoard() {
+	if (document.body && document.body.getAttribute("data-screen") === "map") return;
 	const main = document.querySelector("main");
 	const deckCust = document.getElementById("deck-customization");
 	const w = window.innerWidth;
@@ -636,14 +672,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.6",
-	CURRENT_VERSION_CODE: 9,
+	CURRENT_VERSION: "1.2.7",
+	CURRENT_VERSION_CODE: 10,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
 
 	syncVersionUI(v) {
-		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.6";
+		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.7";
 		const formatted = "v" + String(ver).replace(/^v/, "");
 		const badges = document.querySelectorAll(".menu-version-badge, #menu-version-badge");
 		badges.forEach(b => {

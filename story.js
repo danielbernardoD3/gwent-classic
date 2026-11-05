@@ -21,6 +21,11 @@ class StoryMode {
 	static isDragging = false;
 	static dragStartX = 0;
 	static dragStartY = 0;
+	static _lastNodeScaleStr = "";
+	static _mapTiles = [];
+	static COL_BOUNDS = [0, 724, 1447, 2171, 2894];
+	static ROW_BOUNDS = [0, 1024, 2048, 3072, 4096];
+	static TILE_LOD_THRESHOLD = 0.65;
 	static filters = {
 		shops: true,
 		tourneys: true,
@@ -36,9 +41,128 @@ class StoryMode {
 		if (STORY_DATA.MAP_WIDTH) StoryMode.MAP_WIDTH = STORY_DATA.MAP_WIDTH;
 		if (STORY_DATA.MAP_HEIGHT) StoryMode.MAP_HEIGHT = STORY_DATA.MAP_HEIGHT;
 
+		StoryMode.initMapTiles();
 		StoryMode.migrateLegacySave();
 		StoryMode.setupEventListeners();
 		StoryMode.updateContinueButton();
+	}
+
+	/**
+	 * Initializes the 4x4 8K WebP tile grid inside #story-map-tiles-layer for dynamic Viewport Culling (LOD).
+	 * Tiles start hidden (display: none) and are only activated when zoomed in and intersecting the viewport.
+	 */
+	static initMapTiles() {
+		const layer = document.getElementById("story-map-tiles-layer");
+		if (!layer) return;
+		if (StoryMode._mapTiles.length === 16 && layer.children.length === 16) return;
+
+		layer.innerHTML = "";
+		StoryMode._mapTiles = [];
+
+		for (let r = 0; r < 4; r++) {
+			const y0 = StoryMode.ROW_BOUNDS[r];
+			const y1 = StoryMode.ROW_BOUNDS[r + 1];
+			const h = y1 - y0;
+			for (let c = 0; c < 4; c++) {
+				const x0 = StoryMode.COL_BOUNDS[c];
+				const x1 = StoryMode.COL_BOUNDS[c + 1];
+				const w = x1 - x0;
+
+				const img = document.createElement("img");
+				img.className = "story-map-tile";
+				img.decoding = "async";
+				img.loading = "lazy";
+				img.alt = "";
+				img.draggable = false;
+				img.dataset.src = `img/story/tiles/tile_${r}_${c}.webp`;
+				img.style.left = x0 + "px";
+				img.style.top = y0 + "px";
+				img.style.width = w + "px";
+				img.style.height = h + "px";
+
+				layer.appendChild(img);
+				StoryMode._mapTiles.push({
+					r,
+					c,
+					x0,
+					y0,
+					x1,
+					y1,
+					el: img,
+					loaded: false,
+					visible: false
+				});
+			}
+		}
+	}
+
+	/**
+	 * Dynamic Viewport Culling + LOD:
+	 * - Below TILE_LOD_THRESHOLD (continental overview), hides all 8K tiles so only the lightweight 2K base map is rendered.
+	 * - At or above TILE_LOD_THRESHOLD, enables only the 8K tiles intersecting the current viewport (+180px margin).
+	 */
+	static updateVisibleMapTiles() {
+		if (!StoryMode._mapTiles || StoryMode._mapTiles.length === 0) {
+			StoryMode.initMapTiles();
+		}
+		if (!StoryMode._mapTiles.length) return;
+
+		const isMapActive = document.body && document.body.getAttribute("data-screen") === "map";
+		if (!isMapActive || StoryMode.mapZoom < StoryMode.TILE_LOD_THRESHOLD) {
+			for (let i = 0; i < StoryMode._mapTiles.length; i++) {
+				const t = StoryMode._mapTiles[i];
+				if (t.visible) {
+					t.visible = false;
+					t.el.classList.remove("tile-visible");
+				}
+			}
+			return;
+		}
+
+		const viewport = document.getElementById("story-map-viewport");
+		const vW = viewport ? (viewport.clientWidth || window.innerWidth) : window.innerWidth;
+		const vH = viewport ? (viewport.clientHeight || window.innerHeight) : window.innerHeight;
+
+		const margin = 180; // pre-fetch margin in logical map pixels
+		const viewMinX = (-StoryMode.mapPanX / StoryMode.mapZoom) - margin;
+		const viewMinY = (-StoryMode.mapPanY / StoryMode.mapZoom) - margin;
+		const viewMaxX = ((vW - StoryMode.mapPanX) / StoryMode.mapZoom) + margin;
+		const viewMaxY = ((vH - StoryMode.mapPanY) / StoryMode.mapZoom) + margin;
+
+		for (let i = 0; i < StoryMode._mapTiles.length; i++) {
+			const t = StoryMode._mapTiles[i];
+			const intersects = !(t.x1 < viewMinX || t.x0 > viewMaxX || t.y1 < viewMinY || t.y0 > viewMaxY);
+			if (intersects) {
+				if (!t.loaded) {
+					t.el.src = t.el.dataset.src;
+					t.loaded = true;
+				}
+				if (!t.visible) {
+					t.visible = true;
+					t.el.classList.add("tile-visible");
+				}
+			} else if (t.visible) {
+				t.visible = false;
+				t.el.classList.remove("tile-visible");
+			}
+		}
+	}
+
+	/**
+	 * Immediately hides all 8K tiles and resets map drag state when leaving the Map screen
+	 * so the GPU frees VRAM while on the Gwent Board or Main Menu.
+	 */
+	static suspendMapRendering() {
+		StoryMode.isDragging = false;
+		if (StoryMode._mapTiles && StoryMode._mapTiles.length > 0) {
+			for (let i = 0; i < StoryMode._mapTiles.length; i++) {
+				const t = StoryMode._mapTiles[i];
+				if (t.visible) {
+					t.visible = false;
+					t.el.classList.remove("tile-visible");
+				}
+			}
+		}
 	}
 
 	/**
@@ -547,12 +671,14 @@ class StoryMode {
 
 			// Map wheel zoom: exact cursor-centered zoom
 			mapContainer.addEventListener("wheel", (e) => {
+				if (document.body.getAttribute("data-screen") !== "map") return;
 				e.preventDefault();
 				const zoomDelta = e.deltaY < 0 ? 0.16 : -0.16;
 				StoryMode.zoomMap(zoomDelta, e.clientX, e.clientY);
 			}, { passive: false });
 
 			window.addEventListener("resize", () => {
+				if (document.body.getAttribute("data-screen") !== "map") return;
 				StoryMode.clampPan();
 				StoryMode.applyMapTransform();
 			});
@@ -870,6 +996,12 @@ class StoryMode {
 			return;
 		}
 
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("map");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "map");
+		}
+
 		const menu = document.getElementById("main-menu");
 		if (menu) menu.classList.add("hide");
 
@@ -887,6 +1019,7 @@ class StoryMode {
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.remove("hide");
 
+		StoryMode.initMapTiles();
 		StoryMode.syncCollectionAndTokens();
 		if (typeof Achievements !== "undefined" && typeof Achievements.checkStoryAchievements === "function") {
 			Achievements.checkStoryAchievements(StoryMode.save);
@@ -902,6 +1035,13 @@ class StoryMode {
 	}
 
 	static closeMapToMenu() {
+		StoryMode.suspendMapRendering();
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("menu");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "menu");
+		}
+
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.add("hide");
 
@@ -1006,6 +1146,16 @@ class StoryMode {
 				const isNodeUnlocked = StoryMode.save.unlockedNodes.includes(node.id);
 				const isTargetUnlocked = StoryMode.save.unlockedNodes.includes(target.id);
 				const isRoadUnlocked = isNodeUnlocked && isTargetUnlocked;
+
+				if (isRoadUnlocked) {
+					const glowLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+					glowLine.setAttribute("x1", node.x);
+					glowLine.setAttribute("y1", node.y);
+					glowLine.setAttribute("x2", target.x);
+					glowLine.setAttribute("y2", target.y);
+					glowLine.setAttribute("class", "story-road-glow");
+					svgRoads.appendChild(glowLine);
+				}
 
 				const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
 				line.setAttribute("x1", node.x);
@@ -2132,6 +2282,12 @@ class StoryMode {
 	static openCampaignDeckBuilder() {
 		StoryMode.isCustomizingCampaign = true;
 		StoryMode.syncCollectionAndTokens();
+		StoryMode.suspendMapRendering();
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("deck");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "deck");
+		}
 
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.add("hide");
@@ -2348,6 +2504,13 @@ class StoryMode {
 		}
 		player_me = new Player(0, StoryMode.save.playerName, meDeckData);
 		player_op = new Player(1, opponentName, opDeck);
+
+		StoryMode.suspendMapRendering();
+		if (typeof ScreenManager !== "undefined") {
+			ScreenManager.setScreen("board");
+		} else if (document.body) {
+			document.body.setAttribute("data-screen", "board");
+		}
 
 		const mapScreen = document.getElementById("story-map-screen");
 		if (mapScreen) mapScreen.classList.add("hide");
@@ -2803,13 +2966,17 @@ class StoryMode {
 	static applyMapTransform() {
 		const mapCanvas = document.getElementById("story-map-canvas");
 		if (!mapCanvas) return;
-		mapCanvas.style.transform = `translate(${StoryMode.mapPanX}px, ${StoryMode.mapPanY}px) scale(${StoryMode.mapZoom})`;
+		mapCanvas.style.transform = `translate3d(${StoryMode.mapPanX}px, ${StoryMode.mapPanY}px, 0) scale(${StoryMode.mapZoom})`;
 
-		// Ajuste dinâmico do tamanho dos nós conforme o zoom:
-		// Quanto maior o zoom, menor os nós (para não ficarem em cima uns dos outros).
-		// Quanto menor o zoom, maiores os nós (com tamanho limite) para melhor visualização e toque.
+		// Ajuste dinâmico do tamanho dos nós conforme o zoom (só atualiza CSS custom property quando o zoom muda):
 		const nodeScale = Math.max(0.48, Math.min(2.1, Math.pow(1 / StoryMode.mapZoom, 0.65)));
-		mapCanvas.style.setProperty('--node-scale', nodeScale.toFixed(3));
+		const scaleStr = nodeScale.toFixed(3);
+		if (scaleStr !== StoryMode._lastNodeScaleStr) {
+			StoryMode._lastNodeScaleStr = scaleStr;
+			mapCanvas.style.setProperty('--node-scale', scaleStr);
+		}
+
+		StoryMode.updateVisibleMapTiles();
 	}
 
 	static zoomMap(delta, pivotX, pivotY) {

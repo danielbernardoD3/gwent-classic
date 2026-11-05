@@ -1,14 +1,14 @@
 {
-  "version": "1.2.6",
-  "versionCode": 9,
+  "version": "1.2.7",
+  "versionCode": 10,
   "releaseDate": "2026-11-05",
   "title": "Gwent Classic",
   "changelog": [
-    "Correção crítica de sobreposição visual (z-index) do modal do Atualizador Automático (In-Game Updater) sobre o menu e configurações",
-    "Aprimoramento do download nativo de APK com timeouts de conexão e reconexão resiliente do bridge Android",
-    "Feedback visual explícito e imediato na verificação de novas versões no PC e no Mobile"
+    "Otimização avançada do Mapa do Modo Exploração: sistema híbrido com camada base 2K + grade de 16 blocos 8K em WebP com Viewport Culling dinâmico (LOD) e aceleração de GPU",
+    "Isolamento estrito (ScreenManager + CSS contain/isolation) entre a Tela do Mapa e a Tela do Tabuleiro para eliminar interferências visuais",
+    "Novo logotipo oficial GCLogo no Menu Principal, remoção do fundo escuro atrás dos botões e aumento dos ícones do menu"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
-  "apkSize": "154 MB",
+  "apkSize": "140 MB",
   "pcUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic-PC.zip"
 }
