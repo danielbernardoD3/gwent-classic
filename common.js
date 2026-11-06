@@ -946,6 +946,7 @@ window.onUpdaterError = function(errorMsg) {
 document.addEventListener("DOMContentLoaded", () => {
 	InGameUpdater.init();
 	BoardManager.init();
+	GameRules.init();
 });
 
 // ===========================================================================
@@ -1064,3 +1065,236 @@ const BoardManager = {
 };
 
 window.BoardManager = BoardManager;
+
+// ===========================================================================
+// REGRAS ADICIONAIS & MODIFICADORES DE PARTIDA (GAME RULES)
+// ===========================================================================
+const GameRules = {
+	STORAGE_KEY: "gc_custom_match_rules",
+
+	current: {
+		noSpies: false,           // Proibido cartas de Espião
+		tacticalSpies: false,     // Espião compra 1 carta em vez de 2
+		noScorch: false,          // Proibido Queimar especial e habilidades Queimar
+		clearSkies: false,        // Proibido cartas de Clima e líderes de clima
+		noLeaderAbilities: false, // Proibido Habilidades de Líder
+		noHeroes: false,          // Proibido Cartas Herói
+		noMedics: false,          // Proibido Habilidade de Médico
+		singleTroops: false       // Cartas de Tropa (Reunir) não invocam outras tropas
+	},
+
+	METADATA: {
+		noSpies: {
+			id: "noSpies",
+			icon: "🕵️‍♂️",
+			name: "Sem Espiões",
+			desc: "Cartas com a habilidade Espião são banidas da partida."
+		},
+		tacticalSpies: {
+			id: "tacticalSpies",
+			icon: "📜",
+			name: "Espião Tático (1 Carta)",
+			desc: "Espiões compram apenas 1 carta do baralho em vez de 2.",
+			disabledIf: "noSpies"
+		},
+		noScorch: {
+			id: "noScorch",
+			icon: "🔥",
+			name: "Chamas Proibidas (Sem Queimar)",
+			desc: "A carta Queimar e todas as tropas com efeito Queimar são banidas."
+		},
+		clearSkies: {
+			id: "clearSkies",
+			icon: "❄️",
+			name: "Céu Limpo (Sem Clima)",
+			desc: "Cartas de Clima e líderes com clima são banidos."
+		},
+		noLeaderAbilities: {
+			id: "noLeaderAbilities",
+			icon: "👑",
+			name: "Líder Neutro (Sem Habilidades)",
+			desc: "As habilidades dos Líderes ficam desativadas durante a partida."
+		},
+		noHeroes: {
+			id: "noHeroes",
+			icon: "⭐",
+			name: "Batalha de Mortais (Sem Heróis)",
+			desc: "Cartas de Herói douradas são banidas da partida."
+		},
+		noMedics: {
+			id: "noMedics",
+			icon: "💉",
+			name: "Destino Selado (Sem Médicos)",
+			desc: "Cartas com habilidade de Médico são banidas da partida."
+		},
+		singleTroops: {
+			id: "singleTroops",
+			icon: "🛡️",
+			name: "Tropas Solitárias (Sem Reunir)",
+			desc: "Cartas de Reunir podem ser jogadas, mas não convocam outras tropas."
+		}
+	},
+
+	PRESETS: {
+		default: {
+			name: "Padrão",
+			rules: { noSpies: false, tacticalSpies: false, noScorch: false, clearSkies: false, noLeaderAbilities: false, noHeroes: false, noMedics: false, singleTroops: false }
+		},
+		mortals: {
+			name: "Batalha de Mortais",
+			rules: { noSpies: true, tacticalSpies: false, noScorch: true, clearSkies: false, noLeaderAbilities: false, noHeroes: true, noMedics: false, singleTroops: false }
+		},
+		clear: {
+			name: "Céu Aberto",
+			rules: { noSpies: false, tacticalSpies: false, noScorch: false, clearSkies: true, noLeaderAbilities: false, noHeroes: false, noMedics: false, singleTroops: false }
+		},
+		pure: {
+			name: "Duelo Tático",
+			rules: { noSpies: false, tacticalSpies: true, noScorch: false, clearSkies: false, noLeaderAbilities: true, noHeroes: false, noMedics: true, singleTroops: true }
+		}
+	},
+
+	init() {
+		this.load();
+	},
+
+	load() {
+		try {
+			if (typeof localStorage !== "undefined") {
+				const saved = localStorage.getItem(this.STORAGE_KEY);
+				if (saved) {
+					const parsed = JSON.parse(saved);
+					for (const k in this.current) {
+						if (typeof parsed[k] === "boolean") {
+							this.current[k] = parsed[k];
+						}
+					}
+					if (this.current.noSpies) this.current.tacticalSpies = false;
+				}
+			}
+		} catch (e) {
+			console.warn("[GameRules] Erro ao carregar regras:", e);
+		}
+	},
+
+	save() {
+		try {
+			if (typeof localStorage !== "undefined") {
+				localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.current));
+			}
+		} catch (e) {
+			console.warn("[GameRules] Erro ao salvar regras:", e);
+		}
+	},
+
+	isActive(ruleKey) {
+		if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) return false;
+		return Boolean(this.current && this.current[ruleKey]);
+	},
+
+	getActiveRulesList() {
+		const list = [];
+		for (const k in this.current) {
+			if (this.isActive(k) && this.METADATA[k]) {
+				list.push(this.METADATA[k]);
+			}
+		}
+		return list;
+	},
+
+	getActiveCount() {
+		return this.getActiveRulesList().length;
+	},
+
+	setRule(ruleKey, value) {
+		if (this.current.hasOwnProperty(ruleKey)) {
+			this.current[ruleKey] = Boolean(value);
+			if (ruleKey === "noSpies" && value) {
+				this.current.tacticalSpies = false;
+			}
+			this.save();
+		}
+	},
+
+	setRules(newRules) {
+		if (!newRules || typeof newRules !== "object") return;
+		for (const k in this.current) {
+			if (typeof newRules[k] === "boolean") {
+				this.current[k] = newRules[k];
+			}
+		}
+		if (this.current.noSpies) this.current.tacticalSpies = false;
+		this.save();
+	},
+
+	applyPreset(presetKey) {
+		const p = this.PRESETS[presetKey];
+		if (!p) return;
+		for (const k in p.rules) {
+			this.current[k] = p.rules[k];
+		}
+		this.save();
+	},
+
+	reset() {
+		this.applyPreset("default");
+	},
+
+	isWeatherLeaderAbility(card) {
+		if (!card) return false;
+		const abilityName = (typeof card === "string") ? card : (card.ability || (card.abilities && card.abilities[0]) || "");
+		const weatherAbilities = ["foltest_king", "foltest_lord", "emhyr_imperial", "eredin_king", "francesca_pureblood", "king_bran"];
+		return weatherAbilities.includes(abilityName);
+	},
+
+	isCardProhibited(card) {
+		if (card == null) return false;
+		if (typeof StoryMode !== "undefined" && StoryMode.activeMatch) return false;
+
+		let cardObj = card;
+		if (typeof card === "number") {
+			cardObj = (typeof card_dict !== "undefined") ? card_dict[card] : null;
+		} else if (typeof card === "object" && typeof card.index === "number" && !card.ability && !card.name) {
+			cardObj = (typeof card_dict !== "undefined") ? card_dict[card.index] : null;
+		}
+		if (!cardObj) return false;
+
+		const abilities = Array.isArray(cardObj.abilities) 
+			? cardObj.abilities 
+			: (cardObj.ability ? String(cardObj.ability).split(" ") : []);
+		const isHero = abilities.includes("hero") || Boolean(cardObj.hero);
+		const row = cardObj.row || "";
+		const deck = cardObj.deck || "";
+		const name = (cardObj.name || "").trim();
+
+		// 1. Sem Espiões
+		if (this.isActive("noSpies")) {
+			if (abilities.includes("spy")) return true;
+		}
+
+		// 2. Chamas Proibidas (Sem Queimar)
+		if (this.isActive("noScorch")) {
+			if (name === "Scorch") return true;
+			if (abilities.some(a => a.startsWith("scorch"))) return true;
+		}
+
+		// 3. Céu Limpo (Sem Clima)
+		if (this.isActive("clearSkies")) {
+			if (row === "weather" || deck === "weather") return true;
+		}
+
+		// 4. Batalha de Mortais (Sem Heróis)
+		if (this.isActive("noHeroes")) {
+			if (isHero) return true;
+		}
+
+		// 5. Destino Selado (Sem Médicos)
+		if (this.isActive("noMedics")) {
+			if (abilities.includes("medic")) return true;
+		}
+
+		return false;
+	}
+};
+
+window.GameRules = GameRules;

@@ -89,6 +89,22 @@ class AIDifficultyScaler {
 			}
 		}
 
+		// Se regras adicionais estiverem ativas, aplica banimentos e restrições ao baralho da IA
+		if (typeof GameRules !== "undefined") {
+			for (const idx of [...cardMap.keys()]) {
+				if (GameRules.isCardProhibited(idx)) {
+					cardMap.delete(idx);
+				}
+			}
+			// Se Céu Limpo estiver ativo e o líder da IA tiver habilidade de clima, substitui por um líder sem clima
+			if (GameRules.isActive("clearSkies") && deckObj.leader && GameRules.isWeatherLeaderAbility(deckObj.leader)) {
+				const safeLeaders = card_dict.filter(c => c.row === "leader" && c.deck === faction && !GameRules.isWeatherLeaderAbility(c));
+				if (safeLeaders.length > 0) {
+					deckObj.leader = safeLeaders[randomInt(safeLeaders.length)];
+				}
+			}
+		}
+
 		const countUnits = () => {
 			let u = 0;
 			for (const [idx, cnt] of cardMap.entries()) {
@@ -319,6 +335,7 @@ class AIDifficultyScaler {
 				if (maxC <= 0) return;
 				if (AIDifficultyScaler.isHeroCard(c)) return;
 				if (AIDifficultyScaler.isScorchCard(idx) || AIDifficultyScaler.isSpyCard(idx)) return;
+				if (typeof GameRules !== "undefined" && GameRules.isCardProhibited(c)) return;
 				if (c.ability && (c.ability.includes("muster") || c.ability.includes("avenger"))) return;
 				const str = Number(c.strength) || 0;
 				if (diff === "easy" && str > 6) return;
@@ -336,6 +353,14 @@ class AIDifficultyScaler {
 				const cur = cardMap.get(cand.idx) || 0;
 				while (countUnits() < 22 && (cardMap.get(cand.idx) || 0) < cand.maxC) {
 					cardMap.set(cand.idx, (cardMap.get(cand.idx) || 0) + 1);
+				}
+			}
+		}
+
+		if (typeof GameRules !== "undefined") {
+			for (const idx of [...cardMap.keys()]) {
+				if (GameRules.isCardProhibited(idx)) {
+					cardMap.delete(idx);
 				}
 			}
 		}
@@ -544,7 +569,9 @@ class ControllerAI {
 	discardOrder(card) {
 		let cards = [];
 		let groups = {};
-		let musters = card.holder.hand.cards.filter(c => c.abilities.includes("muster"));
+		let musters = (typeof GameRules !== "undefined" && GameRules.isActive("singleTroops"))
+			? []
+			: card.holder.hand.cards.filter(c => c.abilities.includes("muster"));
 		while (musters.length > 0) {
 			let curr = musters.pop();
 			let name;
@@ -1368,14 +1395,24 @@ class Player {
 	
 	// Enable access to leader ability and toggles leader visuals to on state
 	enableLeader() {
-		this.leaderAvailable = this.leader.activated.length > 0;
+		let isLeaderAllowed = true;
+		if (typeof GameRules !== "undefined") {
+			if (GameRules.isActive("noLeaderAbilities")) isLeaderAllowed = false;
+			if (GameRules.isActive("clearSkies") && GameRules.isWeatherLeaderAbility(this.leader)) isLeaderAllowed = false;
+		}
+		this.leaderAvailable = isLeaderAllowed && (this.leader.activated.length > 0);
 		let elem = this.elem_leader.cloneNode(true);
 		this.elem_leader.parentNode.replaceChild(elem, this.elem_leader);
 		this.elem_leader = elem;
-		this.elem_leader.children[0].classList.remove("fade");
-		this.elem_leader.children[1].classList.remove("hide");
+		if (this.leaderAvailable) {
+			this.elem_leader.children[0].classList.remove("fade");
+			this.elem_leader.children[1].classList.remove("hide");
+		} else {
+			this.elem_leader.children[0].classList.add("fade");
+			this.elem_leader.children[1].classList.add("hide");
+		}
 		
-		if (this.id === 0 && this.leader.activated.length > 0){
+		if (this.id === 0 && this.leaderAvailable){
 			this.elem_leader.addEventListener("click", 
 				async () => await ui.viewCard(this.leader, async () => {
 					AudioManager.playSFX('open');
@@ -1384,10 +1421,9 @@ class Player {
 			this.elem_leader.children[0].setAttribute('data-title', "Play leader");
 		} else {
 			this.elem_leader.addEventListener("click", async () => await ui.viewCard(this.leader), false);
+			this.elem_leader.children[0].setAttribute('data-title', "View leader");
 		}
 		this.elem_leader.addEventListener('mouseenter', CLICK_EVENT_SFX);
-		
-		// TODO set crown color
 	}
 	
 }
@@ -1612,6 +1648,9 @@ class Deck extends CardContainer {
 	// Populates a this deck with a list of card data and associated those cards with the owner of this deck.
 	initialize(card_data_list, player){
 		for (let i=0; i<card_data_list.length; ++i) {
+			if (typeof GameRules !== "undefined" && GameRules.isCardProhibited(card_data_list[i])) {
+				continue;
+			}
 			let card = new Card(card_data_list[i], player);
 			this.addCardRandom(card);
 			this.addCardElement();
@@ -2004,6 +2043,9 @@ class Weather extends CardContainer {
 	
 	// Adds a card if unique and clears all weather if 'clear weather' card added
 	async addCard(card) {
+		if (typeof GameRules !== "undefined" && GameRules.isActive("clearSkies")) {
+			return;
+		}
 		const isDuplicate = !!this.cards.find(c => c.name === card.name);
 		super.addCard(card);
 		AudioManager.playSFX(card.audio);
@@ -4426,8 +4468,14 @@ class DeckMaker {
 		DeckMaker.openBoardModal = () => this.openBoardModal();
 		DeckMaker.closeBoardModal = () => this.closeBoardModal();
 		DeckMaker.setQuickBoard = (b) => this.setQuickBoard(b);
+		DeckMaker.openRulesModal = () => this.openRulesModal();
+		DeckMaker.closeRulesModal = () => this.closeRulesModal();
+		DeckMaker.onRuleCheckboxChange = (k, c) => this.onRuleCheckboxChange(k, c);
+		DeckMaker.applyRulesPreset = (p) => this.applyRulesPreset(p);
+		DeckMaker.openRulesSummaryModal = () => this.openRulesSummaryModal();
 
 		this.updateQuickBoardUI();
+		this.updateRulesPreviewUI();
 		this.loadFactionDeck(Settings.lastFaction.get(), true);
 	}
 
@@ -4528,6 +4576,116 @@ class DeckMaker {
 		}
 		if (titleEl) titleEl.textContent = info.name;
 		if (subEl) subEl.textContent = info.subtitle;
+	}
+
+	openRulesModal() {
+		const modal = document.getElementById("rules-modal");
+		if (modal) {
+			modal.classList.remove("hide");
+			this.updateRulesModalUI();
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_tab_open");
+			}
+		}
+	}
+
+	closeRulesModal() {
+		const modal = document.getElementById("rules-modal");
+		if (modal) {
+			modal.classList.add("hide");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_back");
+			}
+			this.updateRulesPreviewUI();
+			if (typeof VersusMode !== "undefined" && VersusMode.isHost) {
+				VersusMode.broadcastRulesUpdate();
+			}
+		}
+	}
+
+	onRuleCheckboxChange(ruleKey, isChecked) {
+		if (typeof GameRules !== "undefined") {
+			GameRules.setRule(ruleKey, isChecked);
+			this.updateRulesModalUI();
+			this.updateRulesPreviewUI();
+			if (typeof VersusMode !== "undefined" && VersusMode.isHost) {
+				VersusMode.broadcastRulesUpdate();
+			}
+		}
+	}
+
+	applyRulesPreset(presetKey) {
+		if (typeof GameRules !== "undefined") {
+			GameRules.applyPreset(presetKey);
+			this.updateRulesModalUI();
+			this.updateRulesPreviewUI();
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_confirm");
+			}
+			if (typeof VersusMode !== "undefined" && VersusMode.isHost) {
+				VersusMode.broadcastRulesUpdate();
+			}
+		}
+	}
+
+	updateRulesModalUI() {
+		if (typeof GameRules === "undefined") return;
+		for (const key in GameRules.current) {
+			const cb = document.getElementById("rule-check-" + key);
+			if (cb) {
+				cb.checked = Boolean(GameRules.current[key]);
+			}
+		}
+		const tacItem = document.getElementById("rule-item-tacticalSpies");
+		const tacCb = document.getElementById("rule-check-tacticalSpies");
+		if (tacItem && tacCb) {
+			if (GameRules.current.noSpies) {
+				tacItem.classList.add("disabled-rule");
+				tacCb.disabled = true;
+			} else {
+				tacItem.classList.remove("disabled-rule");
+				tacCb.disabled = false;
+			}
+		}
+	}
+
+	updateRulesPreviewUI() {
+		if (typeof GameRules === "undefined") return;
+		const activeCount = GameRules.getActiveCount();
+		const titleEl = document.getElementById("rules-preview-title");
+		const subEl = document.getElementById("rules-preview-subtitle");
+		const iconEl = document.getElementById("rules-preview-icon");
+
+		if (activeCount === 0) {
+			if (titleEl) titleEl.textContent = "Regras Padrão";
+			if (subEl) subEl.textContent = "Nenhuma restrição ativa";
+			if (iconEl) iconEl.textContent = "📜";
+		} else {
+			const list = GameRules.getActiveRulesList();
+			const names = list.map(r => r.name).slice(0, 2).join(", ") + (list.length > 2 ? "..." : "");
+			if (titleEl) titleEl.textContent = `Regras Ativas (${activeCount})`;
+			if (subEl) subEl.textContent = names;
+			if (iconEl) iconEl.textContent = "⚔️";
+		}
+	}
+
+	openRulesSummaryModal() {
+		if (typeof GameRules === "undefined") return;
+		const list = GameRules.getActiveRulesList();
+		if (list.length === 0) {
+			if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+				MenuController.showAlert("Esta partida está sendo disputada com as regras clássicas padrão.", "REGRAS DA PARTIDA", "📜");
+			} else {
+				alert("Esta partida está sendo disputada com as regras clássicas padrão.");
+			}
+			return;
+		}
+		const desc = list.map(r => `${r.icon} ${r.name}:\n${r.desc}`).join("\n\n");
+		if (typeof MenuController !== "undefined" && typeof MenuController.showAlert === "function") {
+			MenuController.showAlert(desc, `REGRAS ATIVAS NO DUELO (${list.length})`, "⚔️");
+		} else {
+			alert(desc);
+		}
 	}
 
 	initFilterTabs() {
@@ -5115,15 +5273,32 @@ class DeckMaker {
 			BoardManager.applyQuickMatchBoard();
 		}
 
+		let filteredMeCards = this.deck.filter(x => x.count > 0);
+		if (typeof GameRules !== "undefined") {
+			filteredMeCards = filteredMeCards.filter(x => !GameRules.isCardProhibited(x));
+		}
 		const me_deck = { 
 			faction: this.faction,
 			leader: card_dict[this.leader.index], 
-			cards: this.deck.filter(x => x.count > 0)
+			cards: filteredMeCards
 		};
 		const op_deck = this.constructOpponentDeck(true);
 		
 		player_me = new Player(0, (typeof I18N !== "undefined") ? I18N.t("player_name") : "Geralt", me_deck);
 		player_op = new Player(1, (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Opponent", op_deck);
+		
+		// Atualiza indicador de regras ativas na tela do tabuleiro
+		const rulesIndicator = document.getElementById("match-rules-indicator");
+		const rulesText = document.getElementById("match-rules-indicator-text");
+		if (rulesIndicator && rulesText && typeof GameRules !== "undefined") {
+			const count = GameRules.getActiveCount();
+			if (count > 0) {
+				rulesIndicator.classList.remove("hide");
+				rulesText.textContent = `Regras (${count})`;
+			} else {
+				rulesIndicator.classList.add("hide");
+			}
+		}
 		
 		this.elem.classList.add("hide");
 		const mainEl = document.querySelector("main");

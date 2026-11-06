@@ -1,12 +1,14 @@
 {
-  "version": "1.3.1",
-  "versionCode": 13,
+  "version": "1.3.2",
+  "versionCode": 14,
   "releaseDate": "2026-11-06",
   "title": "Gwent Classic",
   "changelog": [
-    "Invocação assimétrica das tropas de Reunir: Gaunter O'Dimm (Cerco) convoca Gaunter O'Dimm - Escuridão e Arachas: Gigante (Cerco) convoca as Arachas de combate corpo a corpo",
-    "Proteção de Cerco: ao jogar Gaunter O'Dimm - Escuridão ou Arachas de combate corpo a corpo, as tropas de Cerco não são mais puxadas indevidamente para o campo de batalha",
-    "Otimização do algoritmo de mulligan e descarte da Inteligência Artificial para tropas de Cerco com habilidade Reunir"
+    "Sistema de Regras Adicionais e Modificadores de Partida (House Rules) na Partida Rápida de Gwent e Modo Versus (PvP)",
+    "8 Regras Customizáveis: Sem Espiões, Espião Tático (1 Carta), Chamas Proibidas (Sem Queimar), Céu Limpo (Sem Clima), Líder Neutro (Sem Habilidades), Batalha de Mortais (Sem Heróis), Destino Selado (Sem Médicos) e Tropas Solitárias (Sem Invocação em Massa)",
+    "Modos Rápidos Pré-definidos: Clássico (Padrão), Batalha de Mortais, Céu Aberto e Duelo Tático",
+    "Sincronização em tempo real das regras do Host para o Convidado no Lobby do Modo Versus e exibição de indicador de regras no tabuleiro",
+    "Inteligência Artificial adaptada dinamicamente: banimento automático de cartas proibidas e recomposição de baralho legal competitivo"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "150 MB",

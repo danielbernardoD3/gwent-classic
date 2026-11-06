@@ -2419,6 +2419,12 @@ class StoryMode {
 			boardPreview.style.display = "none";
 		}
 
+		const rulesPreview = document.getElementById("rules-preview");
+		if (rulesPreview) {
+			rulesPreview.classList.add("hide");
+			rulesPreview.style.display = "none";
+		}
+
 		const standardBack = document.getElementById("btn-back-to-menu");
 		if (standardBack) {
 			standardBack.classList.add("hide");
@@ -2585,6 +2591,12 @@ class StoryMode {
 		if (boardPreview) {
 			boardPreview.classList.remove("hide");
 			boardPreview.style.display = "";
+		}
+
+		const rulesPreview = document.getElementById("rules-preview");
+		if (rulesPreview) {
+			rulesPreview.classList.remove("hide");
+			rulesPreview.style.display = "";
 		}
 
 		const standardBack = document.getElementById("btn-back-to-menu");

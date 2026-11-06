@@ -284,6 +284,10 @@
 	<section id="panel-left" class="panel">
 
 		<div id="exit-game" data-i18n-title="title_exit_game" data-title="Sair da partida" role="button" aria-label="Sair da partida" tabindex="0"></div>
+		<div id="match-rules-indicator" class="match-rules-indicator hide" onclick="DeckMaker.openRulesSummaryModal()" title="Clique para ver as Regras Ativas desta partida">
+			<span class="rules-pill-icon">📜</span>
+			<span id="match-rules-indicator-text" class="rules-pill-text">Regras (0)</span>
+		</div>
 	
 		<div id="leader-op" class="leader-box">
 			<div class="leader-container center" data-i18n-title="title_view_leader" data-title="View leader"> 
@@ -672,6 +676,21 @@
 				</div>
 			</div>
 
+			<!-- Quick Match Rules Selector Component -->
+			<div id="rules-preview" class="witcher-op-selector witcher-rules-selector">
+				<div class="op-selector-header">
+					<p>Regras da Partida</p>
+				</div>
+				<div id="rules-preview-card" class="op-preview-card-btn" onclick="DeckMaker.openRulesModal()" title="Clique para personalizar as regras adicionais do jogo">
+					<div id="rules-preview-icon" class="op-faction-crest rules-crest-icon">📜</div>
+					<div class="op-info">
+						<div id="rules-preview-title" class="op-title">Regras Padrão</div>
+						<small id="rules-preview-subtitle" class="op-subtitle">Nenhuma restrição ativa</small>
+					</div>
+					<span class="op-change-icon">⚙</span>
+				</div>
+			</div>
+
 			<!-- Start Game CTA Button (Oculto no Modo Exploração) -->
 			<button id="start-game" class="witcher-btn-start" data-i18n="btn_start_game">
 				<span class="btn-sword">⚔</span>
@@ -874,6 +893,125 @@
 			<button class="witcher-btn-header primary" onclick="DeckMaker.closeBoardModal()" data-i18n="btn_confirm">
 				Confirmar
 			</button>
+		</div>
+	</div>
+</div>
+
+<!-- Modal de Regras Adicionais da Partida -->
+<div id="rules-modal" class="witcher-modal hide">
+	<div class="witcher-modal-backdrop" onclick="DeckMaker.closeRulesModal()"></div>
+	<div class="witcher-modal-content rules-modal-content">
+		<div class="witcher-modal-header">
+			<h2 class="witcher-modal-title">⚔️ REGRAS ADICIONAIS DA PARTIDA</h2>
+			<button class="witcher-modal-close" onclick="DeckMaker.closeRulesModal()">✕</button>
+		</div>
+		<p class="witcher-modal-desc">Personalize restrições e modificadores para o duelo:</p>
+
+		<!-- Presets Bar -->
+		<div class="rules-presets-bar">
+			<span class="rules-presets-label">Modos Rápidos:</span>
+			<button type="button" class="rules-preset-btn" onclick="DeckMaker.applyRulesPreset('default')">Padrão</button>
+			<button type="button" class="rules-preset-btn" onclick="DeckMaker.applyRulesPreset('mortals')">Batalha de Mortais</button>
+			<button type="button" class="rules-preset-btn" onclick="DeckMaker.applyRulesPreset('clear')">Céu Aberto</button>
+			<button type="button" class="rules-preset-btn" onclick="DeckMaker.applyRulesPreset('pure')">Duelo Tático</button>
+		</div>
+
+		<!-- Grid de Categorias -->
+		<div class="rules-categories-grid">
+			<!-- Categoria 1: Banimentos de Cartas -->
+			<div class="rules-category-card">
+				<h3 class="rules-category-title">🚫 Restrições de Cartas</h3>
+				<div class="rules-checkbox-group">
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-noSpies" onchange="DeckMaker.onRuleCheckboxChange('noSpies', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>🕵️‍♂️ Sem Espiões</strong>
+							<small>Cartas com habilidade de Espião são banidas.</small>
+						</div>
+					</label>
+
+					<label class="rules-checkbox-item indent-item" id="rule-item-tacticalSpies">
+						<input type="checkbox" id="rule-check-tacticalSpies" onchange="DeckMaker.onRuleCheckboxChange('tacticalSpies', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>📜 Espião Tático (1 Carta)</strong>
+							<small>Espiões compram apenas 1 carta do baralho em vez de 2.</small>
+						</div>
+					</label>
+
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-noScorch" onchange="DeckMaker.onRuleCheckboxChange('noScorch', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>🔥 Chamas Proibidas (Sem Queimar)</strong>
+							<small>A carta Queimar e todas as tropas com efeito Queimar são banidas.</small>
+						</div>
+					</label>
+
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-clearSkies" onchange="DeckMaker.onRuleCheckboxChange('clearSkies', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>❄️ Céu Limpo (Sem Clima)</strong>
+							<small>Cartas de Clima e líderes com clima são banidos.</small>
+						</div>
+					</label>
+				</div>
+			</div>
+
+			<!-- Categoria 2: Poderes & Liderança -->
+			<div class="rules-category-card">
+				<h3 class="rules-category-title">👑 Poderes & Liderança</h3>
+				<div class="rules-checkbox-group">
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-noLeaderAbilities" onchange="DeckMaker.onRuleCheckboxChange('noLeaderAbilities', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>👑 Líder Neutro (Sem Habilidade)</strong>
+							<small>Habilidades dos Líderes ficam desativadas durante o jogo.</small>
+						</div>
+					</label>
+
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-noHeroes" onchange="DeckMaker.onRuleCheckboxChange('noHeroes', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>⭐ Batalha de Mortais (Sem Heróis)</strong>
+							<small>Cartas douradas de Herói são banidas da partida.</small>
+						</div>
+					</label>
+				</div>
+			</div>
+
+			<!-- Categoria 3: Habilidades de Combate -->
+			<div class="rules-category-card">
+				<h3 class="rules-category-title">⚔️ Habilidades de Combate</h3>
+				<div class="rules-checkbox-group">
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-noMedics" onchange="DeckMaker.onRuleCheckboxChange('noMedics', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>💉 Destino Selado (Sem Médicos)</strong>
+							<small>Cartas com habilidade de Médico são banidas da partida.</small>
+						</div>
+					</label>
+
+					<label class="rules-checkbox-item">
+						<input type="checkbox" id="rule-check-singleTroops" onchange="DeckMaker.onRuleCheckboxChange('singleTroops', this.checked)">
+						<span class="rules-cb-custom"></span>
+						<div class="rules-cb-text">
+							<strong>🛡️ Tropas Solitárias (Sem Reunir)</strong>
+							<small>Tropas de Reunir entram em campo sem convocar reforços.</small>
+						</div>
+					</label>
+				</div>
+			</div>
+		</div>
+
+		<div class="rules-modal-actions">
+			<button type="button" class="witcher-btn-header" onclick="DeckMaker.applyRulesPreset('default')">Restaurar Padrão</button>
+			<button type="button" class="witcher-btn-header primary" onclick="DeckMaker.closeRulesModal()">Confirmar Regras</button>
 		</div>
 	</div>
 </div>
@@ -1748,6 +1886,20 @@
 						<div class="versus-board-thumb" style="background-image: url('img/boards/royal_board.png');"></div>
 						<span>Real</span>
 					</button>
+				</div>
+			</div>
+
+			<!-- Seletor / Visualizador de Regras da Partida no Modo Versus -->
+			<div id="versus-prematch-rules-box" class="versus-rules-picker-section prematch-rules-section">
+				<div class="versus-rules-picker-header">
+					<span id="versus-prematch-rules-role-text">📜 Regras da Partida:</span>
+					<button id="btn-versus-open-rules" class="witcher-btn-compact versus-btn-rules-edit" onclick="VersusMode.openRulesConfig()" title="Personalizar regras da sala">
+						<span class="btn-icon">⚙</span>
+						<span class="btn-text">Configurar Regras</span>
+					</button>
+				</div>
+				<div id="versus-prematch-rules-badges" class="versus-rules-badges-container">
+					<span class="versus-rule-badge active">📜 Padrão (Sem Restrições)</span>
 				</div>
 			</div>
 

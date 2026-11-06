@@ -1409,3 +1409,78 @@ main.hide ~ #toggle-notifications,
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
+
+/* ==========================================================================
+   VERSUS PREMATCH RULES PICKER / BADGES
+   ========================================================================== */
+.versus-rules-picker-section {
+	margin: 0.6rem auto 1.1rem auto;
+	padding: 0.65rem 1rem;
+	background: rgba(12, 9, 7, 0.78);
+	border: 1px solid rgba(197, 160, 89, 0.35);
+	border-radius: 6px;
+	max-width: 680px;
+	box-sizing: border-box;
+}
+
+.versus-rules-picker-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	font-size: 0.88rem;
+	color: #cbbba0;
+	margin-bottom: 0.5rem;
+}
+
+.versus-rules-picker-header span {
+	font-weight: 700;
+	color: #ffd700;
+	letter-spacing: 0.5px;
+}
+
+.versus-btn-rules-edit {
+	padding: 0.35rem 0.75rem !important;
+	font-size: 0.8rem !important;
+	background: linear-gradient(180deg, #2b2014 0%, #15100a 100%) !important;
+	border: 1px solid #c5973b !important;
+	color: #ffd700 !important;
+	border-radius: 4px !important;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.versus-btn-rules-edit:hover {
+	border-color: #ffd700 !important;
+	box-shadow: 0 0 10px rgba(255, 215, 0, 0.45);
+	transform: translateY(-1px);
+}
+
+.versus-rules-badges-container {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	align-items: center;
+}
+
+.versus-rule-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.3rem 0.7rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	background: rgba(22, 17, 12, 0.85);
+	border: 1px solid rgba(197, 151, 59, 0.4);
+	color: #e6dac3;
+	border-radius: 12px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+	transition: all 0.2s ease;
+}
+
+.versus-rule-badge.active {
+	border-color: #d4a34b;
+	color: #ffd700;
+	background: rgba(38, 28, 17, 0.9);
+}

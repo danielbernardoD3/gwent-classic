@@ -102,6 +102,7 @@ var ability_dict = {
 			await board.toGrave(card, card.holder.hand);
 		},
 		placed: async (card, row) => {
+			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const getRowMaxExcludingSelf = (r) => {
 				let max = [];
 				for (let i = 0; i < r.cards.length; ++i) {
@@ -137,6 +138,7 @@ var ability_dict = {
 		name: "Scorch - Close Combat",
 		description: "Destroy your enemy's strongest Close Combat unit(s) if the combined strength of all his or her Close Combat units is 10 or more. ",
 		placed: async (card) => {
+			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const row = board.getRow(card, "close", card.holder.opponent());
 			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
 				Achievements.recordScorchKill();
@@ -148,6 +150,7 @@ var ability_dict = {
 		name: "Scorch - Ranged",
 		description: "Destroy your enemy's strongest Ranged Combat unit(s) if the combined strength of all his or her Ranged Combat units is 10 or more. ",
 		placed: async (card) => {
+			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const row = board.getRow(card, "ranged", card.holder.opponent());
 			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
 				Achievements.recordScorchKill();
@@ -159,6 +162,7 @@ var ability_dict = {
 		name: "Scorch - Siege",
 		description: "Destroys your enemy's strongest Siege Combat unit(s) if the combined strength of all his or her Siege Combat units is 10 or more. ",
 		placed: async (card) => {
+			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const row = board.getRow(card, "siege", card.holder.opponent());
 			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
 				Achievements.recordScorchKill();
@@ -174,6 +178,9 @@ var ability_dict = {
 		name:"muster", 
 		description: "Find any cards with the same name in your deck and play them instantly. ",
 		placed: async (card) => {
+			if (typeof GameRules !== "undefined" && GameRules.isActive("singleTroops")) {
+				return;
+			}
 			const trimmedCardName = card.name.trim();
 			const lowerCardName = trimmedCardName.toLowerCase();
 			let pred;
@@ -228,7 +235,8 @@ var ability_dict = {
 		audio: "spy",
 		placed: async (card) => {
 			await card.animate("spy");
-			for (let i=0;i<2;i++) {
+			const drawCount = (typeof GameRules !== "undefined" && GameRules.isActive("tacticalSpies")) ? 1 : 2;
+			for (let i=0; i<drawCount; i++) {
 				if (card.holder.deck.cards.length > 0)
 					await card.holder.deck.draw(card.holder.hand);
 			}
@@ -241,6 +249,7 @@ var ability_dict = {
 		description: "Choose one card from your discard pile and play it instantly (no Heroes or Special Cards). ",
 		audio: "medic",
 		placed: async (card) => {
+			if (typeof GameRules !== "undefined" && GameRules.isActive("noMedics")) return;
 			let grave = board.getRow(card, "grave", card.holder);
 			let units = card.holder.grave.findCards(c => c.isUnit());
 			if (units.length <= 0)

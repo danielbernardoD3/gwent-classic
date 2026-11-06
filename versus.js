@@ -331,7 +331,8 @@ class VersusMode {
 						ready: VersusMode.localReady,
 						deck: localDeck,
 						deckCards: localDeck.cards,
-						selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined
+						selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
+						selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
 					});
 				}
 			};
@@ -572,7 +573,8 @@ class VersusMode {
 				ready: VersusMode.localReady,
 				deck: localDeck,
 				deckCards: localDeck.cards,
-				selectedBoard: VersusMode.selectedBoard
+				selectedBoard: VersusMode.selectedBoard,
+				selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined
 			});
 		}
 	}
@@ -611,6 +613,73 @@ class VersusMode {
 			} else {
 				btn.classList.remove("active");
 			}
+		});
+	}
+
+	static openRulesConfig() {
+		if (!VersusMode.isHost) return;
+		if (typeof DeckMaker !== "undefined" && typeof DeckMaker.openRulesModal === "function") {
+			DeckMaker.openRulesModal();
+		} else {
+			const modal = document.getElementById("rules-modal");
+			if (modal) modal.classList.remove("hide");
+		}
+	}
+
+	static updateLobbyRulesUI() {
+		const roleText = document.getElementById("versus-prematch-rules-role-text");
+		const btnEdit = document.getElementById("btn-versus-open-rules");
+		const badgesContainer = document.getElementById("versus-prematch-rules-badges");
+
+		if (roleText) {
+			roleText.innerText = VersusMode.isHost
+				? "📜 Regras da Partida (Sua Escolha):"
+				: "📜 Regras da Partida (Definidas pelo Host):";
+		}
+
+		if (btnEdit) {
+			if (VersusMode.isHost) {
+				btnEdit.classList.remove("hide");
+				btnEdit.style.display = "";
+			} else {
+				btnEdit.classList.add("hide");
+				btnEdit.style.display = "none";
+			}
+		}
+
+		if (badgesContainer && typeof GameRules !== "undefined") {
+			badgesContainer.innerHTML = "";
+			const activeList = GameRules.getActiveRulesList();
+			if (activeList.length === 0) {
+				const b = document.createElement("span");
+				b.className = "versus-rule-badge active";
+				b.textContent = "📜 Padrão (Sem Restrições)";
+				badgesContainer.appendChild(b);
+			} else {
+				activeList.forEach(rule => {
+					const b = document.createElement("span");
+					b.className = "versus-rule-badge active";
+					b.textContent = `${rule.icon} ${rule.name}`;
+					b.title = rule.desc;
+					badgesContainer.appendChild(b);
+				});
+			}
+		}
+	}
+
+	static broadcastRulesUpdate() {
+		VersusMode.updateLobbyRulesUI();
+		if (!VersusMode.isHost || !VersusMode.conn || !VersusMode.conn.open || VersusMode.isActive) return;
+		const localDeck = VersusMode.constructLocalDeck();
+		VersusMode.sendPacket("LOBBY_SYNC", {
+			name: VersusMode.localPlayerName,
+			faction: VersusMode.localFaction,
+			leaderIndex: VersusMode.localLeaderIndex,
+			ready: VersusMode.localReady,
+			deck: localDeck,
+			deckCards: localDeck.cards,
+			selectedBoard: VersusMode.selectedBoard,
+			selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined
 		});
 	}
 
@@ -774,7 +843,8 @@ class VersusMode {
 				ready: false,
 				deck: localDeck,
 				deckCards: localDeck.cards,
-				selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined
+				selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
+				selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
 			});
 		};
 
@@ -885,6 +955,7 @@ class VersusMode {
 
 		// Atualiza seletor/visualizador de tabuleiro na sala pré-jogo
 		VersusMode.updateLobbyBoardUI();
+		VersusMode.updateLobbyRulesUI();
 
 		// Botão Iniciar Partida e Mensagens de Status
 		const btnStart = document.getElementById("btn-versus-start-match");
@@ -939,7 +1010,8 @@ class VersusMode {
 			ready: VersusMode.localReady,
 			deck: localDeck,
 			deckCards: localDeck.cards,
-			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined
+			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
+			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
 		});
 
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -993,6 +1065,8 @@ class VersusMode {
 		if (opPreview) opPreview.style.display = "none";
 		const boardPreview = document.getElementById("board-preview");
 		if (boardPreview) boardPreview.style.display = "none";
+		const rulesPreview = document.getElementById("rules-preview");
+		if (rulesPreview) rulesPreview.style.display = "none";
 
 		// 6. Carrega a facção e líder selecionados no DeckMaker a partir do slot exclusivo do Modo Versus
 		try {
@@ -1079,6 +1153,8 @@ class VersusMode {
 		if (opPreview) opPreview.style.display = "";
 		const boardPreview = document.getElementById("board-preview");
 		if (boardPreview) boardPreview.style.display = "";
+		const rulesPreview = document.getElementById("rules-preview");
+		if (rulesPreview) rulesPreview.style.display = "";
 
 		// 3. Oculta o Deck Customization e remove classe versus-deck-mode
 		const deckCustom = document.getElementById("deck-customization");
@@ -1107,7 +1183,8 @@ class VersusMode {
 			ready: false,
 			deck: localDeck,
 			deckCards: localDeck.cards,
-			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined
+			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
+			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
 		});
 
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -1214,7 +1291,8 @@ class VersusMode {
 			hostDeck: hostDeckData,
 			hostDeckOrder: hostDeckOrder,
 			guestDeckOrder: guestDeckOrder,
-			selectedBoard: VersusMode.selectedBoard || "classic"
+			selectedBoard: VersusMode.selectedBoard || "classic",
+			selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined
 		});
 
 		VersusMode.startActualGame(coinTossIsHost, hostDeckOrder, guestDeckOrder);
@@ -1330,6 +1408,19 @@ class VersusMode {
 		if (emoteBtn) emoteBtn.classList.remove("hide");
 		VersusMode.initEmotes();
 
+		// Atualiza indicador de regras ativas na tela do tabuleiro
+		const rulesIndicator = document.getElementById("match-rules-indicator");
+		const rulesText = document.getElementById("match-rules-indicator-text");
+		if (rulesIndicator && rulesText && typeof GameRules !== "undefined") {
+			const count = GameRules.getActiveCount();
+			if (count > 0) {
+				rulesIndicator.classList.remove("hide");
+				rulesText.textContent = `Regras (${count})`;
+			} else {
+				rulesIndicator.classList.add("hide");
+			}
+		}
+
 		// Inicia o jogo
 		game.reset();
 		game.startGame();
@@ -1354,6 +1445,10 @@ class VersusMode {
 			if (!VersusMode.isHost && payload.selectedBoard && (typeof BoardManager === "undefined" || BoardManager.isValidBoard(payload.selectedBoard))) {
 				VersusMode.selectedBoard = payload.selectedBoard;
 			}
+			if (!VersusMode.isHost && payload.selectedRules && typeof GameRules !== "undefined") {
+				GameRules.setRules(payload.selectedRules);
+				VersusMode.updateLobbyRulesUI();
+			}
 			VersusMode.updatePreMatchUI();
 			VersusMode.checkBothReady();
 			return;
@@ -1363,6 +1458,9 @@ class VersusMode {
 			const iStartFirst = payload.firstTurn === "guest_me";
 			if (payload.selectedBoard && (typeof BoardManager === "undefined" || BoardManager.isValidBoard(payload.selectedBoard))) {
 				VersusMode.selectedBoard = payload.selectedBoard;
+			}
+			if (payload.selectedRules && typeof GameRules !== "undefined") {
+				GameRules.setRules(payload.selectedRules);
 			}
 			if (payload.hostDeck) {
 				VersusMode.remoteDeckData = payload.hostDeck;
