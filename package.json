@@ -1,10 +1,14 @@
 {
   "name": "gwent-classic",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "The Witcher 3 Gwent Classic - Web & Mobile Edition",
   "main": "gwent.js",
   "scripts": {
     "build": "node scripts/build-mobile.js",
+    "start": "node scripts/dev-server.js",
+    "dev": "node scripts/dev-server.js",
+    "dev:exe": "node scripts/dev-server.js --exe",
+    "debug": "node scripts/dev-server.js",
     "cap:sync": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:copy": "npm run build && npx cap copy android",

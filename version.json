@@ -1,14 +1,15 @@
 {
-  "version": "1.3.2",
-  "versionCode": 14,
+  "version": "1.3.3",
+  "versionCode": 15,
   "releaseDate": "2026-11-06",
   "title": "Gwent Classic",
   "changelog": [
-    "Sistema de Regras Adicionais e Modificadores de Partida (House Rules) na Partida Rápida de Gwent e Modo Versus (PvP)",
-    "8 Regras Customizáveis: Sem Espiões, Espião Tático (1 Carta), Chamas Proibidas (Sem Queimar), Céu Limpo (Sem Clima), Líder Neutro (Sem Habilidades), Batalha de Mortais (Sem Heróis), Destino Selado (Sem Médicos) e Tropas Solitárias (Sem Invocação em Massa)",
-    "Modos Rápidos Pré-definidos: Clássico (Padrão), Batalha de Mortais, Céu Aberto e Duelo Tático",
-    "Sincronização em tempo real das regras do Host para o Convidado no Lobby do Modo Versus e exibição de indicador de regras no tabuleiro",
-    "Inteligência Artificial adaptada dinamicamente: banimento automático de cartas proibidas e recomposição de baralho legal competitivo"
+    "Ambiente Integrado de Desenvolvimento e Depuração Local (npm run dev / dev-server.js)",
+    "Painel de Debug e Inspetor de Duelo no Jogo (Atalho F2 ou ~): visualização de placar detalhado por fileira, clima, regras ativas e cartas na mão da IA",
+    "Invocador de Cartas (Card Spawner) e Comandos de Teste: compra imediata, adição de qualquer carta à mão e forçar ações de turno",
+    "Captura Global de Erros com alerta visual em tela e visualizador de logs com cópia rápida para a área de transferência",
+    "GwentClassic.exe atualizado com suporte a flags de depuração (--debug), menu de contexto e DevTools F12",
+    "Live Reload automático ao salvar arquivos no workspace"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "150 MB",

@@ -22,13 +22,26 @@ namespace GwentClassic
     {
         private WebView2 webView;
         private bool isFullscreen = false;
+        private bool isDebugMode = false;
         private FormWindowState previousWindowState;
         private FormBorderStyle previousBorderStyle;
         private Rectangle previousBounds;
 
         public MainWindow()
         {
-            this.Text = "Gwent Classic - The Witcher 3";
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 1; i < args.Length; i++)
+            {
+                string a = args[i];
+                if (string.Equals(a, "--debug", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(a, "-d", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(a, "--dev", StringComparison.OrdinalIgnoreCase))
+                {
+                    isDebugMode = true;
+                }
+            }
+
+            this.Text = isDebugMode ? "Gwent Classic [DEBUG]" : "Gwent Classic";
             this.BackColor = Color.FromArgb(13, 15, 18);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Size = new Size(1366, 800);
@@ -65,10 +78,10 @@ namespace GwentClassic
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder, options);
                 await webView.EnsureCoreWebView2Async(env);
 
-                webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
-                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                webView.CoreWebView2.Settings.IsStatusBarEnabled = isDebugMode;
+                webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = isDebugMode;
                 webView.CoreWebView2.Settings.AreDevToolsEnabled = true;
-                webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                webView.CoreWebView2.Settings.IsZoomControlEnabled = isDebugMode;
 
                 webView.CoreWebView2.WindowCloseRequested += (s, e) => this.Close();
                 webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
@@ -80,7 +93,15 @@ namespace GwentClassic
                     CoreWebView2HostResourceAccessKind.Allow
                 );
 
-                webView.CoreWebView2.Navigate("http://gwent.local/index.html");
+                if (isDebugMode)
+                {
+                    webView.CoreWebView2.OpenDevToolsWindow();
+                    webView.CoreWebView2.Navigate("http://gwent.local/index.html?dev=1");
+                }
+                else
+                {
+                    webView.CoreWebView2.Navigate("http://gwent.local/index.html");
+                }
             }
             catch (Exception ex)
             {
@@ -178,7 +199,7 @@ namespace GwentClassic
                 ToggleFullscreen();
                 return true;
             }
-            if (keyData == Keys.F5)
+            if (keyData == Keys.F5 || keyData == (Keys.Control | Keys.R))
             {
                 if (webView != null && webView.CoreWebView2 != null)
                 {
@@ -186,7 +207,7 @@ namespace GwentClassic
                     return true;
                 }
             }
-            if (keyData == Keys.F12)
+            if (keyData == Keys.F12 || keyData == (Keys.Control | Keys.Shift | Keys.I))
             {
                 if (webView != null && webView.CoreWebView2 != null)
                 {

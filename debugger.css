@@ -1,0 +1,535 @@
+/* ===========================================================================
+   GWENT CLASSIC — IN-GAME DEBUGGER & MATCH INSPECTOR STYLES
+   Aparência Dark Fantasy / Witcher 3
+   =========================================================================== */
+
+/* Botão Flutuante de Abertura */
+#gc-debug-toggle-btn {
+	position: fixed;
+	bottom: 12px;
+	right: 12px;
+	z-index: 99999;
+	background: linear-gradient(180deg, #2b2216 0%, #15110c 100%);
+	color: #d1b16a;
+	border: 1px solid #7a5f2a;
+	border-radius: 6px;
+	padding: 6px 12px;
+	font-family: "Gwent", "Cinzel", "Georgia", serif;
+	font-size: 12px;
+	font-weight: bold;
+	cursor: pointer;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 220, 140, 0.2);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.2s ease;
+	user-select: none;
+}
+
+#gc-debug-toggle-btn:hover {
+	background: linear-gradient(180deg, #3d301f 0%, #1f1912 100%);
+	border-color: #c9a44e;
+	color: #fff;
+	transform: translateY(-1px);
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.85), 0 0 8px rgba(201, 164, 78, 0.4);
+}
+
+#gc-debug-toggle-btn.has-error {
+	background: linear-gradient(180deg, #5a1414 0%, #290808 100%);
+	border-color: #ff4d4d;
+	color: #fff;
+	animation: gc-debug-pulse 1.5s infinite;
+}
+
+@keyframes gc-debug-pulse {
+	0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.6); }
+	70% { box-shadow: 0 0 0 8px rgba(255, 77, 77, 0); }
+	100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
+}
+
+/* Banner Notificador de Erros Globais */
+#gc-debug-error-banner {
+	position: fixed;
+	top: 14px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 100000;
+	background: rgba(45, 10, 10, 0.95);
+	border: 1px solid #e03131;
+	color: #ffc9c9;
+	padding: 10px 18px;
+	border-radius: 6px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 14px rgba(224, 49, 49, 0.4);
+	display: none;
+	align-items: center;
+	gap: 12px;
+	font-family: "Segoe UI", Arial, sans-serif;
+	font-size: 13px;
+	max-width: 90vw;
+	animation: gc-banner-slide-down 0.25s ease-out;
+}
+
+@keyframes gc-banner-slide-down {
+	from { opacity: 0; transform: translate(-50%, -20px); }
+	to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+#gc-debug-error-banner .banner-msg {
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 600px;
+}
+
+#gc-debug-error-banner .banner-btn {
+	background: #7a1d1d;
+	color: #fff;
+	border: 1px solid #ff6b6b;
+	padding: 4px 10px;
+	border-radius: 4px;
+	font-size: 11px;
+	cursor: pointer;
+	font-weight: bold;
+}
+
+#gc-debug-error-banner .banner-btn:hover {
+	background: #a32424;
+}
+
+/* Modal Principal do Debugger */
+#gc-debugger-modal {
+	position: fixed;
+	top: 50px;
+	right: 20px;
+	width: 540px;
+	max-width: calc(100vw - 40px);
+	height: 640px;
+	max-height: calc(100vh - 80px);
+	background: #12100d;
+	border: 2px solid #5a4524;
+	border-radius: 8px;
+	box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 215, 130, 0.15);
+	z-index: 99998;
+	display: none;
+	flex-direction: column;
+	font-family: "Segoe UI", Arial, sans-serif;
+	color: #e6dfd3;
+	overflow: hidden;
+}
+
+#gc-debugger-modal.maximized {
+	top: 10px !important;
+	left: 10px !important;
+	right: 10px !important;
+	bottom: 10px !important;
+	width: calc(100vw - 20px) !important;
+	height: calc(100vh - 20px) !important;
+	max-width: none !important;
+	max-height: none !important;
+}
+
+/* Header do Modal */
+.gc-dbg-header {
+	background: linear-gradient(180deg, #241c13 0%, #15110c 100%);
+	border-bottom: 1px solid #4a381c;
+	padding: 8px 14px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	user-select: none;
+	cursor: move;
+}
+
+.gc-dbg-title {
+	font-family: "Gwent", "Cinzel", "Georgia", serif;
+	font-size: 13px;
+	font-weight: bold;
+	color: #d1b16a;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	letter-spacing: 0.5px;
+}
+
+.gc-dbg-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.gc-dbg-btn-icon {
+	background: #1c1813;
+	border: 1px solid #5a4524;
+	color: #bfa67a;
+	width: 24px;
+	height: 24px;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 11px;
+}
+
+.gc-dbg-btn-icon:hover {
+	background: #332616;
+	color: #fff;
+	border-color: #c9a44e;
+}
+
+/* Barra de Abas */
+.gc-dbg-tabs {
+	display: flex;
+	background: #0d0b09;
+	border-bottom: 1px solid #362815;
+}
+
+.gc-dbg-tab {
+	flex: 1;
+	padding: 8px 6px;
+	background: transparent;
+	border: none;
+	border-bottom: 2px solid transparent;
+	color: #8c8273;
+	font-family: "Gwent", "Cinzel", "Georgia", serif;
+	font-size: 11px;
+	font-weight: bold;
+	cursor: pointer;
+	text-align: center;
+	transition: all 0.2s;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+}
+
+.gc-dbg-tab:hover {
+	color: #d1b16a;
+	background: rgba(209, 177, 106, 0.05);
+}
+
+.gc-dbg-tab.active {
+	color: #f0cb78;
+	border-bottom-color: #d1b16a;
+	background: rgba(209, 177, 106, 0.1);
+}
+
+.gc-dbg-tab .tab-badge {
+	background: #5a1414;
+	color: #ff9999;
+	font-size: 9px;
+	padding: 1px 5px;
+	border-radius: 8px;
+	display: none;
+}
+
+/* Corpo das Abas */
+.gc-dbg-content {
+	flex: 1;
+	overflow-y: auto;
+	padding: 12px;
+	background: #12100d;
+	font-size: 12px;
+}
+
+.gc-dbg-tab-panel {
+	display: none;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.gc-dbg-tab-panel.active {
+	display: flex;
+}
+
+/* Seções de Card / Grupo */
+.gc-dbg-card {
+	background: #181511;
+	border: 1px solid #362916;
+	border-radius: 6px;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.gc-dbg-card-title {
+	font-family: "Gwent", "Cinzel", "Georgia", serif;
+	font-size: 11px;
+	font-weight: bold;
+	color: #c9a44e;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	border-bottom: 1px solid #2b2112;
+	padding-bottom: 4px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+/* Grid de Status do Tabuleiro */
+.gc-dbg-status-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.gc-dbg-stat-box {
+	background: #0f0d0a;
+	border: 1px solid #2a2012;
+	border-radius: 4px;
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.gc-dbg-stat-label {
+	font-size: 10px;
+	color: #8c8273;
+	text-transform: uppercase;
+}
+
+.gc-dbg-stat-value {
+	font-size: 14px;
+	font-weight: bold;
+	color: #f5eedf;
+}
+
+.gc-dbg-stat-value.highlight {
+	color: #d1b16a;
+}
+
+/* Detalhamento de Fileiras */
+.gc-dbg-rows-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 11px;
+}
+
+.gc-dbg-rows-table th, .gc-dbg-rows-table td {
+	padding: 4px 6px;
+	border: 1px solid #2a2012;
+	text-align: center;
+}
+
+.gc-dbg-rows-table th {
+	background: #1e1811;
+	color: #c9a44e;
+	font-weight: 600;
+}
+
+.gc-dbg-rows-table td {
+	background: #110e0b;
+}
+
+.gc-dbg-rows-table .row-highlight {
+	color: #ffdf78;
+	font-weight: bold;
+}
+
+/* Lista de Cartas da Mão da IA */
+.gc-dbg-ai-hand-list {
+	max-height: 180px;
+	overflow-y: auto;
+	background: #0d0b09;
+	border: 1px solid #2a2012;
+	border-radius: 4px;
+	padding: 6px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.gc-dbg-ai-card-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 4px 8px;
+	background: #16120e;
+	border: 1px solid #2a2012;
+	border-radius: 4px;
+	font-size: 11px;
+}
+
+.gc-dbg-ai-card-item.hero {
+	border-color: #8a6a24;
+	background: #241c10;
+	color: #ffd700;
+}
+
+.gc-dbg-ai-card-power {
+	background: #2a2012;
+	color: #fff;
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-weight: bold;
+	font-size: 10px;
+}
+
+/* Painel de Ações & Card Spawner */
+.gc-dbg-actions-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.gc-dbg-btn {
+	background: linear-gradient(180deg, #2a2114 0%, #18130b 100%);
+	border: 1px solid #5a4524;
+	color: #dfcd9f;
+	padding: 7px 10px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: 600;
+	cursor: pointer;
+	text-align: center;
+	transition: all 0.15s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	user-select: none;
+}
+
+.gc-dbg-btn:hover {
+	background: linear-gradient(180deg, #3d301f 0%, #241d13 100%);
+	border-color: #c9a44e;
+	color: #fff;
+}
+
+.gc-dbg-btn:active {
+	transform: translateY(1px);
+}
+
+.gc-dbg-btn.danger {
+	background: linear-gradient(180deg, #4a1515 0%, #240808 100%);
+	border-color: #8f2626;
+	color: #ffc9c9;
+}
+
+.gc-dbg-btn.danger:hover {
+	background: linear-gradient(180deg, #6b1f1f 0%, #360d0d 100%);
+	border-color: #e03131;
+	color: #fff;
+}
+
+/* Card Spawner */
+.gc-dbg-spawner-form {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.gc-dbg-input, .gc-dbg-select {
+	background: #0f0d0a;
+	border: 1px solid #3d301f;
+	color: #f5eedf;
+	padding: 6px 10px;
+	border-radius: 4px;
+	font-size: 11px;
+	outline: none;
+}
+
+.gc-dbg-input:focus, .gc-dbg-select:focus {
+	border-color: #c9a44e;
+	box-shadow: 0 0 6px rgba(201, 164, 78, 0.3);
+}
+
+/* Console & Logs */
+.gc-dbg-log-toolbar {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 6px;
+}
+
+.gc-dbg-log-filters {
+	display: flex;
+	gap: 4px;
+}
+
+.gc-dbg-filter-chip {
+	background: #1c1813;
+	border: 1px solid #362916;
+	color: #8c8273;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 10px;
+	cursor: pointer;
+}
+
+.gc-dbg-filter-chip.active {
+	background: #3d301f;
+	border-color: #c9a44e;
+	color: #fff;
+}
+
+.gc-dbg-console-output {
+	flex: 1;
+	min-height: 250px;
+	max-height: 380px;
+	background: #080706;
+	border: 1px solid #2a2012;
+	border-radius: 4px;
+	padding: 8px;
+	overflow-y: auto;
+	font-family: "Consolas", "Courier New", monospace;
+	font-size: 11px;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.gc-dbg-log-entry {
+	display: flex;
+	gap: 6px;
+	line-height: 1.4;
+	word-break: break-all;
+	padding: 2px 4px;
+	border-radius: 2px;
+}
+
+.gc-dbg-log-entry.info {
+	color: #c7beaf;
+}
+
+.gc-dbg-log-entry.warn {
+	color: #ffd43b;
+	background: rgba(255, 212, 59, 0.08);
+}
+
+.gc-dbg-log-entry.error {
+	color: #ff8787;
+	background: rgba(255, 135, 135, 0.12);
+	border-left: 2px solid #e03131;
+}
+
+.gc-dbg-log-entry .time {
+	color: #6b6357;
+	font-size: 10px;
+	flex-shrink: 0;
+}
+
+/* Toast de Ação */
+.gc-dbg-toast {
+	position: fixed;
+	bottom: 50px;
+	right: 20px;
+	background: #1f1911;
+	border: 1px solid #c9a44e;
+	color: #f7e7c4;
+	padding: 8px 16px;
+	border-radius: 4px;
+	font-size: 12px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8);
+	z-index: 100001;
+	animation: gc-toast-in 0.2s ease-out;
+}
+
+@keyframes gc-toast-in {
+	from { opacity: 0; transform: translateY(10px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+

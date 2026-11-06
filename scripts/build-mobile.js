@@ -58,6 +58,7 @@ const files = [
   'menu.css',
   'story.css',
   'versus.css',
+  'debugger.css',
   'common.js',
   'cards.js',
   'decks.js',
@@ -72,6 +73,7 @@ const files = [
   'versus.js',
   'menu.js',
   'gamepad.js',
+  'debugger.js',
   'Appico.png',
   'app.ico',
   'version.json'
