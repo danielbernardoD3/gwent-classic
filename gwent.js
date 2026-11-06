@@ -18,22 +18,389 @@ const addMouseEnterSFXBySelector = selector => {
 
 class Controller {}
 
+// Scales opponent decks dynamically according to active AI difficulty (easy | medium | hard)
+class AIDifficultyScaler {
+	static SCORCH_INDICES = [10, 14, 138, 186, 213];
+	static SPY_INDICES = [0, 41, 47, 49, 81, 84, 88];
+	static MUSTER_FAMILIES = [
+		{ name: "crones", indices: [105, 106, 107], easyMax: 2, medMax: 2 },
+		{ name: "vampires", indices: [131, 132, 133, 134, 135], easyMax: 2, medMax: 4 },
+		{ name: "arachas", indices: [98, 99, 100, 101], easyMax: 2, medMax: 3 },
+		{ name: "ghouls", indices: [117, 118, 119], easyMax: 2, medMax: 2 },
+		{ name: "nekkers", indices: [127, 128, 129], easyMax: 2, medMax: 2 },
+		{ name: "dwarves", indices: [151, 152, 153], easyMax: 2, medMax: 2 },
+		{ name: "elves", indices: [155, 156, 157], easyMax: 2, medMax: 2 },
+		{ name: "smugglers", indices: [162, 163, 164], easyMax: 2, medMax: 2 },
+		{ name: "gaunter", indices: [18, 19], easyMax: 2, medMax: 3 },
+		{ name: "cerys", indices: [184, 187, 188, 189], easyMax: 2, medMax: 3 },
+		{ name: "longships", indices: [200], easyMax: 1, medMax: 2 }
+	];
+
+	static normalizeDifficulty(rawDiff) {
+		if (rawDiff === "easy") return "easy";
+		if (rawDiff === "hard" || rawDiff === "master") return "hard";
+		return "medium";
+	}
+
+	static getActiveDifficulty() {
+		if (typeof StoryMode !== "undefined" && StoryMode.activeMatch && StoryMode.save && StoryMode.save.difficulty) {
+			return AIDifficultyScaler.normalizeDifficulty(StoryMode.save.difficulty);
+		}
+		const raw = (typeof Settings !== "undefined" && Settings.difficulty)
+			? Settings.difficulty.get()
+			: (typeof localStorage !== "undefined" ? localStorage.getItem("gc-difficulty") : "medium");
+		return AIDifficultyScaler.normalizeDifficulty(raw || "medium");
+	}
+
+	static isUnitCard(c) {
+		return Boolean(c && c.row !== "leader" && c.deck !== "special" && c.deck !== "weather");
+	}
+
+	static isHeroCard(c) {
+		return Boolean(c && c.ability && c.ability.split(" ").includes("hero"));
+	}
+
+	static isScorchCard(idx) {
+		if (AIDifficultyScaler.SCORCH_INDICES.includes(idx)) return true;
+		const c = card_dict[idx];
+		if (!c || !c.ability) return false;
+		return c.ability.includes("scorch");
+	}
+
+	static isSpyCard(idx) {
+		if (AIDifficultyScaler.SPY_INDICES.includes(idx)) return true;
+		const c = card_dict[idx];
+		return Boolean(c && c.ability && c.ability.split(" ").includes("spy"));
+	}
+
+	static scaleOpponentDeck(deckObj, rawDifficulty = null) {
+		if (!deckObj || !Array.isArray(deckObj.cards)) return deckObj;
+		const diff = AIDifficultyScaler.normalizeDifficulty(rawDifficulty || AIDifficultyScaler.getActiveDifficulty());
+		const faction = deckObj.faction || (deckObj.leader ? deckObj.leader.deck : "realms");
+
+		// Clone map index -> count
+		const cardMap = new Map();
+		for (const item of deckObj.cards) {
+			const idx = Array.isArray(item) ? Number(item[0]) : Number(item.index);
+			const cnt = Array.isArray(item) ? Number(item[1]) : Number(item.count);
+			if (!isNaN(idx) && card_dict[idx] && cnt > 0 && card_dict[idx].row !== "leader") {
+				const maxAllowed = Math.max(1, Number(card_dict[idx].count) || 1);
+				cardMap.set(idx, Math.min(maxAllowed, (cardMap.get(idx) || 0) + cnt));
+			}
+		}
+
+		const countUnits = () => {
+			let u = 0;
+			for (const [idx, cnt] of cardMap.entries()) {
+				if (AIDifficultyScaler.isUnitCard(card_dict[idx])) u += cnt;
+			}
+			return u;
+		};
+
+		const countSpecials = () => {
+			let s = 0;
+			for (const [idx, cnt] of cardMap.entries()) {
+				const c = card_dict[idx];
+				if (c && (c.deck === "special" || c.deck === "weather")) s += cnt;
+			}
+			return s;
+		};
+
+		if (diff === "easy") {
+			// 1. No Fácil: Remover todas as cartas Queimar (Scorch e unidades com scorch)
+			for (const idx of [...cardMap.keys()]) {
+				if (AIDifficultyScaler.isScorchCard(idx)) {
+					cardMap.delete(idx);
+				}
+			}
+
+			// If leader has a scorch ability on Easy, swap to a non-scorch leader of the same faction if available
+			if (deckObj.leader && deckObj.leader.ability && ["foltest_steelforged", "foltest_son", "francesca_queen"].includes(deckObj.leader.ability)) {
+				const safeLeaders = card_dict.filter(c => c.row === "leader" && c.deck === faction && !["foltest_steelforged", "foltest_son", "francesca_queen"].includes(c.ability));
+				if (safeLeaders.length > 0) {
+					deckObj.leader = safeLeaders[randomInt(safeLeaders.length)];
+				}
+			}
+
+			// 2. No Fácil: Tropas Muster nunca completas (ex: nunca as 3 Moiras ou 5 Vampiros)
+			for (const fam of AIDifficultyScaler.MUSTER_FAMILIES) {
+				let present = [];
+				for (const idx of fam.indices) {
+					const cnt = cardMap.get(idx) || 0;
+					for (let k = 0; k < cnt; k++) present.push(idx);
+				}
+				const cap = (fam.name === "crones") ? (Math.random() < 0.55 ? 1 : 2) : fam.easyMax;
+				if (present.length > cap) {
+					// Shuffle and keep at most `cap`
+					for (let i = present.length - 1; i > 0; i--) {
+						const j = randomInt(i + 1);
+						[present[i], present[j]] = [present[j], present[i]];
+					}
+					for (const idx of fam.indices) cardMap.delete(idx);
+					for (let i = 0; i < cap; i++) {
+						cardMap.set(present[i], (cardMap.get(present[i]) || 0) + 1);
+					}
+				}
+			}
+
+			// 3. No Fácil: No máximo 1 carta Espião em todo o baralho
+			let spyList = [];
+			for (const [idx, cnt] of cardMap.entries()) {
+				if (AIDifficultyScaler.isSpyCard(idx)) {
+					for (let k = 0; k < cnt; k++) spyList.push(idx);
+				}
+			}
+			if (spyList.length > 1) {
+				// Prefer keeping a non-hero higher-power spy over 0-power Mysterious Elf on Easy
+				spyList.sort((a, b) => (Number(card_dict[b].strength) || 0) - (Number(card_dict[a].strength) || 0));
+				const keepSpy = spyList[0];
+				for (const idx of spyList) cardMap.delete(idx);
+				cardMap.set(keepSpy, 1);
+			}
+
+			// 4. No Fácil: Poucas cartas muito fortes / Heróis (ainda usa, mas com baixa frequência)
+			let heroes = [];
+			let strongUnits = [];
+			for (const [idx, cnt] of cardMap.entries()) {
+				const c = card_dict[idx];
+				if (!AIDifficultyScaler.isUnitCard(c)) continue;
+				if (AIDifficultyScaler.isHeroCard(c) && !AIDifficultyScaler.isSpyCard(idx)) {
+					for (let k = 0; k < cnt; k++) heroes.push(idx);
+				} else if ((Number(c.strength) || 0) >= 8) {
+					for (let k = 0; k < cnt; k++) strongUnits.push(idx);
+				}
+			}
+			const maxHeroesEasy = Math.random() < 0.65 ? 1 : 2;
+			if (heroes.length > maxHeroesEasy) {
+				// Prefer keeping 7-10 str faction heroes rather than multiple 15-str heroes
+				heroes.sort((a, b) => (Number(card_dict[a].strength) || 0) - (Number(card_dict[b].strength) || 0));
+				const keepH = heroes.slice(0, maxHeroesEasy);
+				for (const idx of heroes) cardMap.delete(idx);
+				for (const idx of keepH) cardMap.set(idx, (cardMap.get(idx) || 0) + 1);
+			}
+			const maxStrongEasy = 2;
+			if (strongUnits.length > maxStrongEasy) {
+				for (const idx of strongUnits) cardMap.delete(idx);
+				for (let i = 0; i < maxStrongEasy; i++) {
+					cardMap.set(strongUnits[i], (cardMap.get(strongUnits[i]) || 0) + 1);
+				}
+			}
+		} else if (diff === "medium") {
+			// 1. No Médio: Queimar permitido (máx 1 feitiço Scorch + 1 unidade Scorch)
+			if ((cardMap.get(10) || 0) > 1) {
+				cardMap.set(10, 1);
+			} else if (!cardMap.has(10) && countSpecials() < 10 && Math.random() < 0.6) {
+				cardMap.set(10, 1);
+			}
+
+			// 2. No Médio: Tropas Muster "quase completas" (ex: 2/3 Moiras, 3-4/5 Vampiros)
+			for (const fam of AIDifficultyScaler.MUSTER_FAMILIES) {
+				let present = [];
+				for (const idx of fam.indices) {
+					const cnt = cardMap.get(idx) || 0;
+					for (let k = 0; k < cnt; k++) present.push(idx);
+				}
+				const cap = (fam.name === "vampires") ? (Math.random() < 0.5 ? 3 : 4) : fam.medMax;
+				if (present.length > cap) {
+					for (const idx of fam.indices) cardMap.delete(idx);
+					for (let i = 0; i < cap; i++) {
+						cardMap.set(present[i], (cardMap.get(present[i]) || 0) + 1);
+					}
+				}
+			}
+
+			// 3. No Médio: Pode usar mais de 1 espião (até 2 no baralho)
+			let spyList = [];
+			for (const [idx, cnt] of cardMap.entries()) {
+				if (AIDifficultyScaler.isSpyCard(idx)) {
+					for (let k = 0; k < cnt; k++) spyList.push(idx);
+				}
+			}
+			if (spyList.length > 2) {
+				for (const idx of spyList) cardMap.delete(idx);
+				for (let i = 0; i < 2; i++) {
+					cardMap.set(spyList[i], 1);
+				}
+			} else if (spyList.length < 2) {
+				const availFactionSpies = AIDifficultyScaler.SPY_INDICES.filter(
+					idx => idx !== 0 && card_dict[idx] && card_dict[idx].deck === faction && !cardMap.has(idx)
+				);
+				while (spyList.length < 2 && availFactionSpies.length > 0) {
+					const nextSpy = availFactionSpies.shift();
+					cardMap.set(nextSpy, 1);
+					spyList.push(nextSpy);
+				}
+			}
+
+			// 4. No Médio: Cartas fortes e Heróis com frequência moderada (até 3-4 Heróis)
+			let heroes = [];
+			for (const [idx, cnt] of cardMap.entries()) {
+				if (AIDifficultyScaler.isHeroCard(card_dict[idx]) && !AIDifficultyScaler.isSpyCard(idx)) {
+					for (let k = 0; k < cnt; k++) heroes.push(idx);
+				}
+			}
+			if (heroes.length > 4) {
+				for (const idx of heroes) cardMap.delete(idx);
+				for (let i = 0; i < 4; i++) {
+					cardMap.set(heroes[i], 1);
+				}
+			}
+		} else {
+			// HARD / MASTER: Tudo ou nada!
+			// 1. Completar 100% de todas as famílias Muster já presentes no baralho
+			for (const fam of AIDifficultyScaler.MUSTER_FAMILIES) {
+				const hasAny = fam.indices.some(idx => (cardMap.get(idx) || 0) > 0);
+				if (hasAny) {
+					for (const idx of fam.indices) {
+						const c = card_dict[idx];
+						if (c && [faction, "neutral"].includes(c.deck)) {
+							cardMap.set(idx, Math.max(1, Number(c.count) || 1));
+						}
+					}
+				}
+			}
+
+			// 2. Garantir todos os Espiões disponíveis da facção + Elfo Misterioso [0]
+			for (const spyIdx of AIDifficultyScaler.SPY_INDICES) {
+				const c = card_dict[spyIdx];
+				if (c && (c.deck === faction || c.deck === "neutral")) {
+					cardMap.set(spyIdx, 1);
+				}
+			}
+
+			// 3. Garantir Queimar (Scorch [10] + Villentretenmerth [14]) e Isca (Decoy [1]) se couber nos especiais
+			if (!cardMap.has(14)) cardMap.set(14, 1);
+			const curScorch = cardMap.get(10) || 0;
+			if (curScorch < 2 && countSpecials() < 9) {
+				cardMap.set(10, Math.min(2, curScorch + (10 - countSpecials())));
+			} else if (curScorch === 0 && countSpecials() < 10) {
+				cardMap.set(10, 1);
+			}
+			if (!cardMap.has(1) && countSpecials() < 10) {
+				cardMap.set(1, 1);
+			}
+
+			// 4. Garantir os Heróis mais fortes da facção e neutros (Geralt [8], Cirilla [3], Yennefer [15])
+			for (const heroIdx of [8, 3, 15]) {
+				if (!cardMap.has(heroIdx)) cardMap.set(heroIdx, 1);
+			}
+			card_dict.forEach((c, idx) => {
+				if (c.deck === faction && AIDifficultyScaler.isHeroCard(c) && (Number(c.strength) || 0) >= 10) {
+					cardMap.set(idx, 1);
+				}
+			});
+
+			// 5. Enxugar unidades fracas sem habilidade (força <= 4) caso o baralho fique inchado (> 26 unidades),
+			// aumentando a consistência de compra das cartas mais apelonas no Difícil!
+			const weakFillers = [];
+			for (const [idx, cnt] of cardMap.entries()) {
+				const c = card_dict[idx];
+				if (AIDifficultyScaler.isUnitCard(c) && !c.ability && (Number(c.strength) || 0) <= 4) {
+					weakFillers.push({ idx, str: Number(c.strength) || 0, cnt });
+				}
+			}
+			weakFillers.sort((a, b) => a.str - b.str);
+			for (const wf of weakFillers) {
+				while (countUnits() > 25 && (cardMap.get(wf.idx) || 0) > 0) {
+					const nextCnt = (cardMap.get(wf.idx) || 0) - 1;
+					if (nextCnt <= 0) cardMap.delete(wf.idx);
+					else cardMap.set(wf.idx, nextCnt);
+				}
+			}
+		}
+
+		// Backfill safety: ensure AI always has at least 22 unit cards (using regular 4-6 str faction/neutral units)
+		if (countUnits() < 22) {
+			const candidates = [];
+			card_dict.forEach((c, idx) => {
+				if (!AIDifficultyScaler.isUnitCard(c)) return;
+				if (![faction, "neutral"].includes(c.deck)) return;
+				const maxC = Number(c.count) || 0;
+				if (maxC <= 0) return;
+				if (AIDifficultyScaler.isHeroCard(c)) return;
+				if (AIDifficultyScaler.isScorchCard(idx) || AIDifficultyScaler.isSpyCard(idx)) return;
+				if (c.ability && (c.ability.includes("muster") || c.ability.includes("avenger"))) return;
+				const str = Number(c.strength) || 0;
+				if (diff === "easy" && str > 6) return;
+				if (str >= 2 && str <= 6) {
+					candidates.push({ idx, maxC, str });
+				}
+			});
+			// Shuffle candidates for variety
+			for (let i = candidates.length - 1; i > 0; i--) {
+				const j = randomInt(i + 1);
+				[candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+			}
+			for (const cand of candidates) {
+				if (countUnits() >= 22) break;
+				const cur = cardMap.get(cand.idx) || 0;
+				while (countUnits() < 22 && (cardMap.get(cand.idx) || 0) < cand.maxC) {
+					cardMap.set(cand.idx, (cardMap.get(cand.idx) || 0) + 1);
+				}
+			}
+		}
+
+		deckObj.cards = Array.from(cardMap.entries()).map(([index, count]) => ({ index, count }));
+		return deckObj;
+	}
+}
+
 // Makes decisions for the AI opponent player
 class ControllerAI {
 	constructor(player) {
 		this.player = player;
+		this.spiesPlayedInMatch = 0;
+	}
+
+	getDifficulty() {
+		return AIDifficultyScaler.getActiveDifficulty();
+	}
+
+	canUseScorch() {
+		return this.getDifficulty() !== "easy";
+	}
+
+	canPlayAnotherSpy() {
+		const diff = this.getDifficulty();
+		if (this.player && this.player.deck && this.player.deck.cards.length === 0) {
+			return false;
+		}
+		if (diff === "easy") {
+			return this.spiesPlayedInMatch < 1;
+		}
+		if (diff === "medium") {
+			return this.spiesPlayedInMatch < 3;
+		}
+		return true;
+	}
+
+	isScorchLikeCard(c) {
+		if (!c) return false;
+		if (c.name === "Scorch") return true;
+		if (!c.abilities) return false;
+		return c.abilities.some(a => a === "scorch" || a === "scorch_c" || a === "scorch_r" || a === "scorch_s");
 	}
 	
 	async fallbackPlayOrPass(player, excludeCard = null) {
-		const playable = player.hand.cards.filter(c => c !== excludeCard && (c.isUnit() || c.isHero() || c.row === "weather"));
+		const playable = player.hand.cards.filter(c => {
+			if (c === excludeCard) return false;
+			if (!this.canUseScorch() && this.isScorchLikeCard(c)) return false;
+			if (c.abilities && c.abilities.includes("spy") && !this.canPlayAnotherSpy()) return false;
+			return c.isUnit() || c.isHero() || c.row === "weather";
+		});
 		if (playable.length > 0) {
-			await player.playCard(playable[0]);
+			// On Easy, prefer playing a lower/medium card rather than dumping strongest card blindly
+			const chosen = playable[0];
+			if (chosen.abilities && chosen.abilities.includes("spy")) {
+				this.spiesPlayedInMatch++;
+			}
+			await player.playCard(chosen);
 		} else {
 			player.passRound(true);
 		}
 	}
 
-	// Collects data and weighs options before taking a weighted random action
+	// Collects data and weighs options before taking a weighted action based on AI difficulty
 	async startTurn(player){
 		try {
 			if (player.opponent().passed && (player.winning || 
@@ -41,19 +408,22 @@ class ControllerAI {
 				await player.passRound();
 				return;
 			}
+			const diff = this.getDifficulty();
 			let data_max = this.getMaximums();
 			let data_board = this.getBoardData();
 			let weights = player.hand.cards.map(c => 
-				({weight: Math.max(0, this.weightCard(c, data_max, data_board) || 0), action: async () => await this.playCard(c, data_max, data_board)}) );
+				({card: c, weight: Math.max(0, this.weightCard(c, data_max, data_board) || 0), action: async () => await this.playCard(c, data_max, data_board)}) );
 			if (player.leaderAvailable && player.leader && player.leader.activated && player.leader.activated.length > 0) {
 				const lWeight = Math.max(0, this.weightLeader(player.leader, data_max, data_board) || 0);
-				weights.push( {weight: lWeight, action: async () => await player.activateLeader()} );
+				weights.push( {card: null, isLeader: true, weight: lWeight, action: async () => await player.activateLeader()} );
 			}
-			weights.push( {weight: Math.max(0, this.weightPass() || 0), action: async () => await player.passRound()} );
+			weights.push( {card: null, isPass: true, weight: Math.max(0, this.weightPass() || 0), action: async () => await player.passRound()} );
 			let weightTotal = weights.reduce( (a,c) => a + c.weight, 0);
 			if (weightTotal <= 0){
 				for (let i=0; i<player.hand.cards.length; ++i) {
 					let card = player.hand.cards[i];
+					if (!this.canUseScorch() && this.isScorchLikeCard(card)) continue;
+					if (card.abilities && card.abilities.includes("spy") && !this.canPlayAnotherSpy()) continue;
 					if (card.row === "weather" && this.weightWeather(card) > -1 || card.abilities.includes("avenger")) {
 						await weights[i].action();
 						return;
@@ -61,25 +431,17 @@ class ControllerAI {
 				}
 				await this.fallbackPlayOrPass(player);
 			} else {
-				const diff = (typeof Settings !== "undefined" && Settings.difficulty) 
-					? Settings.difficulty.value 
-					: (localStorage.getItem("gc-difficulty") || "medium");
-
 				if (diff === "hard") {
-					// Hard: Sort actions by calculated weight descending and pick optimal move
+					// Hard: Ruthless deterministic optimal play (always picks highest tactical value)
 					weights.sort((a,b) => b.weight - a.weight);
-					let chosen = (weights.length > 1 && Math.random() < 0.12 && weights[1].weight > 0) ? weights[1] : weights[0];
-					await (chosen ? chosen.action() : this.fallbackPlayOrPass(player));
+					const best = weights[0];
+					await (best && best.weight > 0 ? best.action() : this.fallbackPlayOrPass(player));
 				} else if (diff === "easy") {
-					// Easy: Relaxed strategy with 35% chance to play casually/suboptimally
-					if (Math.random() < 0.35 && weights.length > 1) {
-						let playWeights = weights.filter(w => w.weight > 0);
-						if (playWeights.length > 0) {
-							let randIdx = randomInt(playWeights.length);
-							await playWeights[randIdx].action();
-						} else {
-							await (weights[0] ? weights[0].action() : this.fallbackPlayOrPass(player));
-						}
+					// Easy: Casual, forgiving play — avoids optimal spikes 45% of the time
+					let validPlays = weights.filter(w => w.weight > 0);
+					if (Math.random() < 0.45 && validPlays.length > 1) {
+						let randIdx = randomInt(validPlays.length);
+						await validPlays[randIdx].action();
 					} else {
 						let rand = randomInt(weightTotal);
 						let chosenAction = null;
@@ -90,20 +452,27 @@ class ControllerAI {
 								break;
 							}
 						}
-						await (chosenAction ? chosenAction() : (weights[0] ? weights[0].action() : this.fallbackPlayOrPass(player)));
+						await (chosenAction ? chosenAction() : (validPlays[0] ? validPlays[0].action() : this.fallbackPlayOrPass(player)));
 					}
 				} else {
-					// Medium: Original weighted random logic
-					let rand = randomInt(weightTotal);
-					let chosenAction = null;
-					for (var i=0; i < weights.length; ++i) {
-						rand -= weights[i].weight;
-						if (rand < 0) {
-							chosenAction = weights[i].action;
-							break;
+					// Medium: Balanced tactical play (biases toward top 3 choices)
+					let validPlays = weights.filter(w => w.weight > 0).sort((a, b) => b.weight - a.weight);
+					const topSlice = validPlays.slice(0, Math.min(3, validPlays.length));
+					const sliceTotal = topSlice.reduce((s, w) => s + w.weight, 0);
+					if (sliceTotal > 0) {
+						let rand = randomInt(sliceTotal);
+						let chosenAction = topSlice[0].action;
+						for (let i = 0; i < topSlice.length; i++) {
+							rand -= topSlice[i].weight;
+							if (rand < 0) {
+								chosenAction = topSlice[i].action;
+								break;
+							}
 						}
+						await chosenAction();
+					} else {
+						await this.fallbackPlayOrPass(player);
 					}
-					await (chosenAction ? chosenAction() : (weights[0] ? weights[0].action() : this.fallbackPlayOrPass(player)));
 				}
 			}
 		} catch (err) {
@@ -209,6 +578,17 @@ class ControllerAI {
 	
 	// Tells the Player that this object controls to play a card
 	async playCard(c, max, data){
+		if (!this.canUseScorch() && this.isScorchLikeCard(c)) {
+			await this.fallbackPlayOrPass(this.player, c);
+			return;
+		}
+		if (c.abilities && c.abilities.includes("spy")) {
+			if (!this.canPlayAnotherSpy()) {
+				await this.fallbackPlayOrPass(this.player, c);
+				return;
+			}
+			this.spiesPlayedInMatch++;
+		}
 		if (c.name === "Commander's Horn")
 			await this.horn(c);
 		else if (c.name === "Mardroeme")
@@ -264,16 +644,18 @@ class ControllerAI {
 	medic(card, grave){
 		let data = this.countCards(grave);
 		let targ;
-		if (data.spy.length){
+		if (data.spy.length && this.canPlayAnotherSpy()){
 			let min = data.spy.reduce( (a,c) => Math.min(a, c.power), Number.MAX_VALUE);
 			targ = data.spy.filter(c => c.power === min)[0];
+			if (targ) this.spiesPlayedInMatch++;
 		} else if (data.medic.length) {
 			let max = data.medic.reduce( (a,c) => Math.max(a, c.power), Number.MIN_VALUE);
 			targ = data.medic.filter(c => c.power === max)[0];
-		} else if (data.scorch.length) {
+		} else if (data.scorch.length && this.canUseScorch()) {
 			targ = data.scorch[randomInt(data.scorch.length)];
 		} else {
-			let units = grave.findCards(c => c.isUnit());
+			let units = grave.findCards(c => c.isUnit() && (this.canUseScorch() || !this.isScorchLikeCard(c)) && (this.canPlayAnotherSpy() || !c.abilities.includes("spy")));
+			if (!units.length) units = grave.findCards(c => c.isUnit());
 			targ = units.reduce( (a,c) => a.power < c.power ? c : a, units[0] );
 		}
 		return targ;
@@ -282,24 +664,19 @@ class ControllerAI {
 	// Selects a card to return to the Hand and replaces it with a Decoy. Assumes at least one valid card.
 	async decoy(card, max, data) {
 		let targ, row;
-		if (data.spy.length){
+		if (data.spy.length && this.canPlayAnotherSpy()){
 			let min = data.spy.reduce( (a,c) => Math.min(a, c.power), Number.MAX_VALUE);
 			targ = data.spy.filter(c => c.power === min)[0];
 		} else if (data.medic.length) {
 			targ = data.medic[randomInt(data.medic.length)];
-		} else if (data.scorch.length) {
+		} else if (data.scorch.length && this.canUseScorch()) {
 			targ = data.scorch[randomInt(data.scorch.length)];
 		} else {
 			let pairs = max.rmax.filter((r,i) => i<3 && r.cards.length).reduce((a,r) => 
 				r.cards.map(c => ({r:r.row, c:c})).concat(a)
 			, []);
 			if (!pairs || pairs.length === 0) {
-				let safeCard = this.player.hand.cards.find(c => c !== card && c.isUnit());
-				if (safeCard) {
-					await this.player.playCard(safeCard);
-				} else {
-					await this.player.passRound();
-				}
+				await this.fallbackPlayOrPass(this.player, card);
 				return;
 			}
 			let pair = pairs[randomInt(pairs.length)];
@@ -329,6 +706,10 @@ class ControllerAI {
 	
 	// Tells the controlled Player to play the Scorch card
 	async scorch(card, max, data){
+		if (!this.canUseScorch()) {
+			await this.fallbackPlayOrPass(this.player, card);
+			return;
+		}
 		await this.player.playScorch(card);
 	}
 
@@ -347,27 +728,58 @@ class ControllerAI {
 		return dif > 0 ? close : dif < 0 ? ranged : Math.random() >0.5 ? close : ranged; 
 	}
 
-	// Assigns a weight for how likely the conroller is to Pass the round
+	// Assigns a weight for how likely the controller is to Pass the round
 	weightPass(){
 		if (this.player.health === 1)
 			return 0;
-		let dif = this.player.opponent().total - this.player.total;
-		if (dif > 30)
-			return 100;
+		const diff = this.getDifficulty();
+		let dif = this.player.opponent().total - this.player.total; // >0 means AI is losing, <0 means AI is winning
 		const oppCards = this.player.opponent().hand ? this.player.opponent().hand.cards.length : 0;
 		const myCards = this.player.hand ? this.player.hand.cards.length : 0;
-		if (dif < -30 && oppCards - myCards > 2)
+
+		if (diff === "hard") {
+			// On Hard, never randomly pass early while tied or barely ahead unless opponent is way ahead
+			if (this.player.opponent().passed) {
+				// Opponent passed and AI is losing (winning case already handled at top of startTurn):
+				// Concede round strategically if deficit is huge and AI has 2 lives
+				if (dif > 24 && myCards <= oppCards + 1) return 120;
+				return 0;
+			}
+			// Opponent hasn't passed yet, AI has 2 lives:
+			if (dif >= 28 && myCards <= oppCards) return 95; // Opponent overcommitted Round 1/2 -> strategic pass!
+			if (dif <= -25 && oppCards - myCards >= 1) return 60; // Commanding lead, preserve hand
+			return 0;
+		}
+
+		if (diff === "medium") {
+			if (dif > 28) return 95;
+			if (dif < -26 && oppCards - myCards >= 2) return 85;
+			if (Math.abs(dif) < 16) return 0;
+			return Math.floor(Math.abs(dif) * 0.6);
+		}
+
+		// Easy: more willing to pass casually
+		if (dif > 22)
 			return 100;
+		if (dif < -20 && oppCards - myCards >= 1)
+			return 90;
 		return Math.floor(Math.abs(dif));
 	}
 	
 	// Assigns a weight for how likely the controller is to activate its leader ability
 	weightLeader(card, max, data) {
 		if (!card || !card.abilities || !card.abilities.length) return 0;
-		const ab = ability_dict[card.abilities[0]];
+		const abKey = card.abilities[0];
+		if (!this.canUseScorch() && ["foltest_steelforged", "foltest_son", "francesca_queen"].includes(abKey)) {
+			return 0;
+		}
+		const ab = ability_dict[abKey];
 		if (!ab) return 0;
 		if (ab.weight) {
 			let score = ab.weight(card, this, max, data);
+			if (this.getDifficulty() === "hard" && score > 0) {
+				score *= 1.5;
+			}
 			return Math.max(0, score || 0);
 		}
 		if (!card.activated || card.activated.length === 0) return 0;
@@ -376,6 +788,7 @@ class ControllerAI {
 	
 	// Assigns a weight for how likely the controller will use a scorch-row card
 	weightScorchRow(card, max, row_name) {
+		if (!this.canUseScorch()) return 0;
 		let index = 3 + (row_name==="close" ? 0 : row_name==="ranged" ? 1 : 2);
 		if (board.row[index].total < 10)
 			return 0;
@@ -442,7 +855,9 @@ class ControllerAI {
 	weightMedic(data, score, owner){
 		let units = owner.grave.findCards(c => c.isUnit());
 		let grave = data["grave_" + owner.opponent().tag];
-		return !units.length ? Math.min(1,score) : score + (grave.spy.length ? 50 : grave.medic.length ? 15 : grave.scorch.length  ? 10 : this.player.health === 1 ? 1 : 0);
+		const canSpy = this.canPlayAnotherSpy() && grave.spy.length > 0;
+		const canScorch = this.canUseScorch() && grave.scorch.length > 0;
+		return !units.length ? Math.min(1,score) : score + (canSpy ? 55 : grave.medic.length ? 22 : canScorch ? 16 : this.player.health === 1 ? 8 : 5);
 	}
 	
 	// Calculates the weight for cards with the berserker ability
@@ -470,34 +885,66 @@ class ControllerAI {
 		return this.weightCard({abilities:[weather_id], row:"weather"});
 	}
 	
-	// Assigns a weights for how likely the controller with play a card from its hand
+	// Assigns a weights for how likely the controller will play a card from its hand
 	weightCard(card, max, data){
-		if (card.name === "Decoy")
-			return data.spy.length ? 50 : data.medic.length ? 15 : data.scorch.length  ? 10 : max.me.length ? 1 : 0;
+		const diff = this.getDifficulty();
+
+		// Block all Scorch cards on Easy
+		if (!this.canUseScorch() && this.isScorchLikeCard(card)) {
+			return 0;
+		}
+
+		// Block Spy cards if spy limit reached or deck is empty
+		if (card.abilities && card.abilities.includes("spy") && !this.canPlayAnotherSpy()) {
+			return 0;
+		}
+
+		if (card.name === "Decoy" || (card.abilities && card.abilities.includes("decoy"))) {
+			const spyBonus = (data.spy.length && this.canPlayAnotherSpy()) ? (diff === "hard" ? 85 : 50) : 0;
+			if (spyBonus > 0) return spyBonus;
+			if (data.medic.length && this.player.grave.findCards(c => c.isUnit()).length > 0) return diff === "hard" ? 38 : 18;
+			if (data.scorch.length && this.canUseScorch()) return diff === "hard" ? 28 : 12;
+			return (diff === "easy" && max.me.length) ? 1 : 0;
+		}
+
 		if (card.name === "Commander's Horn") {
 			let rows = [0,1,2].map(i => board.row[i]).filter(r => r.special === null);
 			if (!rows.length)
 				return 0;
 			rows = rows.map(r => this.weightHornRow(card, r) );
-			return Math.max(...rows)/2;
+			const bestGain = Math.max(...rows);
+			if (diff === "hard") return bestGain >= 10 ? bestGain * 1.3 : 0;
+			return bestGain / 2;
 		}
 		
 		if (card.abilities) {
 			if (card.abilities.includes("scorch")) {
 				let power_op = max.op.length ? max.op[0].card.power : 0;
 				let power_me = max.me.length ? max.me[0].card.power : 0;
+				if (power_op <= 0) return 0;
 				let total_op = power_op * max.op.length;
 				let total_me = power_me * max.me.length;
 				let scorchVal = power_me > power_op ? 0 : power_me < power_op ? total_op : Math.max(0, total_op - total_me);
+
+				if (diff === "hard") {
+					// No Difícil: usa Queimar sempre que vantajoso antes de jogar unidades maiores que bloqueiem o próprio Queimar!
+					if (scorchVal >= 6) {
+						scorchVal = scorchVal * 3 + 35;
+					} else if (scorchVal > 0 && this.player.health === 1) {
+						scorchVal = scorchVal * 2 + 15;
+					} else {
+						scorchVal = 0;
+					}
+				} else if (diff === "medium") {
+					scorchVal = scorchVal >= 6 ? Math.round(scorchVal * 1.5) : 0;
+				}
+
 				if (card.name !== "Scorch" && card.isUnit()) {
 					let unitRow = board.getRow(card, card.row === "agile" ? "close" : card.row, this.player);
 					let bodyScore = unitRow ? unitRow.calcCardScore(card) : card.basePower;
-					return power_me > power_op ? 0 : scorchVal + bodyScore;
+					return power_me > power_op ? 0 : (scorchVal > 0 ? scorchVal + bodyScore : (this.player.hand.cards.length <= 2 ? bodyScore : 0));
 				}
 				return scorchVal;
-			}
-			if (card.abilities.includes("decoy")) {
-				return data.spy.length ? 50 : data.medic.length ? 15 : data.scorch.length  ? 10 : max.me.length ? 1 : 0;
 			}
 			if (card.abilities.includes("mardroeme")) {
 				let rows = [1,2].map(i => board.row[i]);
@@ -506,7 +953,8 @@ class ControllerAI {
 		}
 		
 		if (card.row === "weather") {
-			return Math.max(0, this.weightWeather(card));
+			const wVal = Math.max(0, this.weightWeather(card));
+			return diff === "hard" && wVal >= 8 ? wVal * 1.4 : wVal;
 		}
 		
 		let row;
@@ -523,18 +971,44 @@ class ControllerAI {
 				score = this.weightRowChange(card, row); break;
 			case "medic": 
 				score = this.weightMedic(data, score, card.holder);	break;
-			case "spy": score = 15 + score; break;
-			case "muster": score *= 3; break;
-			case "scorch_c":
-				score = Math.max(1, this.weightScorchRow(card, max, "close")); break;
-			case "scorch_r": 
-				score = Math.max(1, this.weightScorchRow(card, max, "ranged")); break;
-			case "scorch_s":
-				score = Math.max(1, this.weightScorchRow(card, max, "siege")); break;
+			case "spy":
+				if (diff === "hard") {
+					// Prioritize card advantage early, preferring lower-strength spies first
+					const roundBonus = (game.roundCount <= 2) ? 65 : 42;
+					score = Math.max(20, roundBonus - Math.min(12, score));
+				} else if (diff === "medium") {
+					score = Math.max(12, 32 - Math.min(10, Math.floor(score / 2)));
+				} else {
+					score = 12;
+				}
+				break;
+			case "muster":
+				score *= (diff === "hard" ? 3.5 : diff === "medium" ? 2.6 : 1.8);
+				break;
+			case "scorch_c": {
+				const burned = this.weightScorchRow(card, max, "close");
+				score = burned > 0 ? (diff === "hard" ? burned * 2.8 + score + 25 : burned + score) : Math.max(1, diff === "hard" && this.player.hand.cards.length > 2 ? 2 : score);
+				break;
+			}
+			case "scorch_r": {
+				const burned = this.weightScorchRow(card, max, "ranged");
+				score = burned > 0 ? (diff === "hard" ? burned * 2.8 + score + 25 : burned + score) : Math.max(1, diff === "hard" && this.player.hand.cards.length > 2 ? 2 : score);
+				break;
+			}
+			case "scorch_s": {
+				const burned = this.weightScorchRow(card, max, "siege");
+				score = burned > 0 ? (diff === "hard" ? burned * 2.8 + score + 25 : burned + score) : Math.max(1, diff === "hard" && this.player.hand.cards.length > 2 ? 2 : score);
+				break;
+			}
 			case "berserker":
 				score = this.weightBerserker(card, row, score); break;
 			case "avenger": case "avenger_kambi":
 				return score + ability_dict[card.abilities[card.abilities.length -1]].weight();
+		}
+
+		// On Easy, slightly soften weight of 10+ strength cards so AI doesn't slam bombs immediately
+		if (diff === "easy" && score >= 10) {
+			score = Math.max(4, Math.round(score * 0.65));
 		}
 		
 		return score;
@@ -599,6 +1073,9 @@ class Player {
 		this.winning = false;
 		this.turnPlayed = false;
 		this.isPlayingCard = false;
+		if (this.controller && typeof this.controller.spiesPlayedInMatch === "number") {
+			this.controller.spiesPlayedInMatch = 0;
+		}
 	
 		this.enableLeader();
 		const passedElem = document.getElementById("passed-" + this.tag);
@@ -2434,6 +2911,9 @@ class Game {
 			VersusMode.exitVersusToMenu();
 			return;
 		}
+		if (typeof BoardManager !== "undefined") {
+			BoardManager.applyQuickMatchBoard();
+		}
 		this.reset();
 		player_me.reset();
 		player_op = new Player('op', (typeof I18N !== "undefined") ? I18N.t("opponent_name") : 'Player 2', dm.constructOpponentDeck(false));
@@ -3888,6 +4368,11 @@ class DeckMaker {
 			opCardBtn.addEventListener("mouseenter", CLICK_EVENT_SFX, false);
 		}
 
+		const boardCardBtn = document.getElementById("board-preview-card");
+		if (boardCardBtn) {
+			boardCardBtn.addEventListener("mouseenter", CLICK_EVENT_SFX, false);
+		}
+
 		document.getElementById('op-preview-clear').addEventListener('click', () => this.clearOpponentDeck());
 		document.getElementById('op-preview-open').addEventListener('click', () => this.viewOponentCards());
 		document.getElementById("add-opponent").addEventListener("change", () => this.uploadOpponentDeck(), false);
@@ -3911,8 +4396,111 @@ class DeckMaker {
 		DeckMaker.openOpponentModal = () => this.openOpponentModal();
 		DeckMaker.closeOpponentModal = () => this.closeOpponentModal();
 		DeckMaker.setOpponentFaction = (f) => this.setOpponentFaction(f);
+		DeckMaker.openBoardModal = () => this.openBoardModal();
+		DeckMaker.closeBoardModal = () => this.closeBoardModal();
+		DeckMaker.setQuickBoard = (b) => this.setQuickBoard(b);
 
+		this.updateQuickBoardUI();
 		this.loadFactionDeck(Settings.lastFaction.get(), true);
+	}
+
+	getActiveMode() {
+		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) return "story";
+		if (typeof VersusMode !== "undefined" && VersusMode.isCustomizingDeck) return "versus";
+		return "quick";
+	}
+
+	getActiveDeckStore(faction) {
+		const mode = this.getActiveMode();
+		if (mode === "story") return null;
+		if (mode === "versus" && typeof Settings.getVersusFactionSettings === "function") {
+			return Settings.getVersusFactionSettings(faction);
+		}
+		return Settings.getFactionSettings(faction);
+	}
+
+	syncStoryDeckState() {
+		if (typeof StoryMode === "undefined" || !StoryMode.save) return;
+		if (!StoryMode.save.factionDecks || typeof StoryMode.save.factionDecks !== "object") {
+			StoryMode.save.factionDecks = {};
+		}
+		const faction = this.faction || StoryMode.save.playerDeck.faction || "realms";
+		const leaderIdx = this.leader ? this.leader.index : StoryMode.save.playerDeck.leader;
+		const cards = (this.deck || []).filter(x => x.count > 0).map(x => [x.index, x.count]);
+		StoryMode.save.playerDeck.faction = faction;
+		StoryMode.save.playerDeck.leader = leaderIdx;
+		StoryMode.save.playerDeck.cards = cards;
+		StoryMode.save.factionDecks[faction] = {
+			faction: faction,
+			leader: leaderIdx,
+			cards: cards.map(c => [c[0], c[1]])
+		};
+	}
+
+	openBoardModal() {
+		const modal = document.getElementById("board-modal");
+		if (modal) {
+			modal.classList.remove("hide");
+			const current = (typeof BoardManager !== "undefined") ? BoardManager.getQuickMatchBoard() : "classic";
+			modal.querySelectorAll(".board-option-card").forEach(card => {
+				if (card.dataset.boardOption === current) {
+					card.classList.add("active");
+				} else {
+					card.classList.remove("active");
+				}
+			});
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_tab_open");
+			}
+		}
+	}
+
+	closeBoardModal() {
+		const modal = document.getElementById("board-modal");
+		if (modal) {
+			modal.classList.add("hide");
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_back");
+			}
+		}
+	}
+
+	setQuickBoard(boardId) {
+		if (typeof BoardManager !== "undefined") {
+			BoardManager.setQuickMatchBoard(boardId);
+		}
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_confirm");
+		}
+		this.updateQuickBoardUI();
+		this.closeBoardModal();
+	}
+
+	updateQuickBoardUI() {
+		const choice = (typeof BoardManager !== "undefined") ? BoardManager.getQuickMatchBoard() : "classic";
+		const thumbEl = document.getElementById("board-preview-thumb");
+		const titleEl = document.getElementById("board-preview-title");
+		const subEl = document.getElementById("board-preview-subtitle");
+
+		if (choice === "random") {
+			if (thumbEl) {
+				thumbEl.style.backgroundImage = "none";
+				thumbEl.textContent = "🎲";
+			}
+			if (titleEl) titleEl.textContent = "Aleatório";
+			if (subEl) subEl.textContent = "Tabuleiro sorteado a cada duelo";
+			return;
+		}
+
+		const info = (typeof BoardManager !== "undefined" && BoardManager.BOARDS[choice])
+			? BoardManager.BOARDS[choice]
+			: { name: "Tabuleiro Clássico", subtitle: "Taverna tradicional do Continente", img: "img/boards/classic_board.png" };
+		if (thumbEl) {
+			thumbEl.textContent = "";
+			thumbEl.style.backgroundImage = `url('${info.img || info.file}')`;
+		}
+		if (titleEl) titleEl.textContent = info.name;
+		if (subEl) subEl.textContent = info.subtitle;
 	}
 
 	initFilterTabs() {
@@ -4032,9 +4620,50 @@ class DeckMaker {
 	{
 		if (!this.isValidFaction(faction))
 			return;
+		const mode = this.getActiveMode();
+		if (mode === "story" && typeof StoryMode !== "undefined" && StoryMode.save) {
+			if (!StoryMode.save.factionDecks || typeof StoryMode.save.factionDecks !== "object") {
+				StoryMode.save.factionDecks = {};
+			}
+			// Se o jogador estiver trocando de facção dentro do Modo Exploração, preserva o baralho da facção anterior
+			if (this.faction && this.faction !== faction && this.deck && this.deck.length > 0) {
+				this.syncStoryDeckState();
+			}
+			if (StoryMode.save.factionDecks[faction] && Array.isArray(StoryMode.save.factionDecks[faction].cards)) {
+				StoryMode.save.playerDeck = {
+					faction: faction,
+					leader: StoryMode.save.factionDecks[faction].leader,
+					cards: StoryMode.save.factionDecks[faction].cards.map(c => Array.isArray(c) ? [c[0], c[1]] : [c.index, c.count])
+				};
+			} else if (StoryMode.save.playerDeck.faction !== faction) {
+				const factionLeaders = card_dict.map((c, i) => ({ index: i, card: c }))
+					.filter(c => c.card.deck === faction && c.card.row === "leader");
+				const ownedLeader = factionLeaders.find(l => (StoryMode.save.collection[l.index] || 0) > 0) || factionLeaders[0];
+				let seedCards = [];
+				if (typeof STARTER_DECKS !== "undefined" && STARTER_DECKS[faction]) {
+					seedCards = STARTER_DECKS[faction].cards
+						.map(([idx, cnt]) => [idx, Math.min(cnt, StoryMode.save.collection[idx] || 0)])
+						.filter(([, cnt]) => cnt > 0);
+				}
+				StoryMode.save.playerDeck = {
+					faction: faction,
+					leader: ownedLeader ? ownedLeader.index : 23,
+					cards: seedCards
+				};
+			}
+			if (!this.setFaction(faction, true))
+				return;
+			this.setLeader(StoryMode.save.playerDeck.leader);
+			this.makeBank(this.faction, StoryMode.save.playerDeck.cards);
+			this.syncStoryDeckState();
+			this.update();
+			return;
+		}
+
 		if (!this.setFaction(faction, true))
 			return;
-		const faction_deck = Settings.getFactionSettings(this.faction).get();
+		const store = this.getActiveDeckStore(this.faction);
+		const faction_deck = store ? store.get() : Settings.getFactionSettings(this.faction).get();
 		this.setLeader(faction_deck.leader);
 		this.makeBank(this.faction, faction_deck.cards);
 		this.update();
@@ -4065,7 +4694,17 @@ class DeckMaker {
 			card_dict.map((c,i) => ({index: i, card:c}) )
 			.filter(c => c.card.deck === faction_name && c.card.row === "leader");
 		this.faction = faction_name;
-		Settings.lastFaction.set(faction_name);
+		const mode = this.getActiveMode();
+		if (mode === "story") {
+			if (typeof StoryMode !== "undefined" && StoryMode.save) {
+				StoryMode.save.playerDeck.faction = faction_name;
+			}
+		} else if (mode === "versus") {
+			if (Settings.versusLastFaction) Settings.versusLastFaction.set(faction_name);
+			if (typeof VersusMode !== "undefined") VersusMode.localFaction = faction_name;
+		} else {
+			Settings.lastFaction.set(faction_name);
+		}
 		const available = this.getAvailableLeaders();
 		if (!this.leader || !available.some(l => l.index === this.leader.index)) {
 			this.leader = available[0] || this.leaders[0];
@@ -4147,11 +4786,16 @@ class DeckMaker {
 		curIdx = (curIdx + delta + available.length) % available.length;
 		this.leader = available[curIdx];
 
-		if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+		if (this.getActiveMode() === "story" && typeof StoryMode !== "undefined" && StoryMode.save) {
 			StoryMode.save.playerDeck.leader = this.leader.index;
+			this.syncStoryDeckState();
 			StoryMode.saveGame();
 		} else {
-			Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+			const store = this.getActiveDeckStore(this.leader.card.deck);
+			if (store) store.setLeader(this.leader);
+			if (this.getActiveMode() === "versus" && typeof VersusMode !== "undefined") {
+				VersusMode.localLeaderIndex = this.leader.index;
+			}
 		}
 
 		this.updateLeaderDisplay();
@@ -4165,10 +4809,14 @@ class DeckMaker {
 		const available = this.getAvailableLeaders();
 		this.leader = available.find(l => l.index == index) || (this.leaders && this.leaders.find(l => l.index == index)) || available[0];
 		if (this.leader) {
-			if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+			if (this.getActiveMode() === "story" && typeof StoryMode !== "undefined" && StoryMode.save) {
 				StoryMode.save.playerDeck.leader = this.leader.index;
 			} else {
-				Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+				const store = this.getActiveDeckStore(this.leader.card.deck);
+				if (store) store.setLeader(this.leader);
+				if (this.getActiveMode() === "versus" && typeof VersusMode !== "undefined") {
+					VersusMode.localLeaderIndex = this.leader.index;
+				}
 			}
 		}
 		this.updateLeaderDisplay();
@@ -4323,11 +4971,16 @@ class DeckMaker {
 		ui.queueCarousel(container, 1, (c,i) => {
 			let data = c.cards[i].data;
 			this.leader = data;
-			if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign && StoryMode.save) {
+			if (this.getActiveMode() === "story" && typeof StoryMode !== "undefined" && StoryMode.save) {
 				StoryMode.save.playerDeck.leader = this.leader.index;
+				this.syncStoryDeckState();
 				StoryMode.saveGame();
 			} else {
-				Settings.getFactionSettings(this.leader.card.deck).setLeader(this.leader);
+				const store = this.getActiveDeckStore(this.leader.card.deck);
+				if (store) store.setLeader(this.leader);
+				if (this.getActiveMode() === "versus" && typeof VersusMode !== "undefined") {
+					VersusMode.localLeaderIndex = this.leader.index;
+				}
 			}
 			this.updateLeaderDisplay();
 			AudioManager.playSFX('ui_card_bank');
@@ -4370,7 +5023,12 @@ class DeckMaker {
 			this.remove(index, this.deck);
 			AudioManager.playSFX('discard');
 		}
-		Settings.getFactionSettings(this.faction).setCards(this.deck.filter(x => x.count > 0));
+		if (this.getActiveMode() === "story" && typeof StoryMode !== "undefined" && StoryMode.save) {
+			this.syncStoryDeckState();
+		} else {
+			const store = this.getActiveDeckStore(this.faction);
+			if (store) store.setCards(this.deck.filter(x => x.count > 0));
+		}
 		this.update();
 	}
 	
@@ -4403,6 +5061,10 @@ class DeckMaker {
 			console.warn("Iniciar partida comum bloqueado no Modo Exploração.");
 			return;
 		}
+		if (typeof VersusMode !== "undefined" && VersusMode.isCustomizingDeck) {
+			VersusMode.closeDeckBuilderForVersus();
+			return;
+		}
 		let warning = "";
 		if (this.stats.units < 15)
 			warning += ((typeof I18N !== "undefined") ? I18N.t("warn_min_units") : "Your deck must have at least 15 unit cards.") + "\n";
@@ -4421,6 +5083,9 @@ class DeckMaker {
 		
 		if (typeof game !== "undefined" && typeof game.reset === "function") {
 			game.reset();
+		}
+		if (typeof BoardManager !== "undefined") {
+			BoardManager.applyQuickMatchBoard();
 		}
 
 		const me_deck = { 
@@ -4467,7 +5132,9 @@ class DeckMaker {
 				op_deck.cards = op_deck.cards.map(c => ({index: c[0], count: c[1]}));
 				const leaders = card_dict.filter(c => c.row === "leader" && c.deck === op_deck.faction);
 				op_deck.leader = leaders[randomInt(leaders.length)];
-				return op_deck;
+				return (typeof AIDifficultyScaler !== "undefined")
+					? AIDifficultyScaler.scaleOpponentDeck(op_deck)
+					: op_deck;
 			}
 		}
 
@@ -4476,7 +5143,9 @@ class DeckMaker {
 		op_deck.cards = op_deck.cards.map(c => ({index:c[0], count:c[1]}) );
 		const leaders = card_dict.filter(c => c.row === "leader" && c.deck === op_deck.faction);
 		op_deck.leader = leaders[randomInt(leaders.length)];
-		return op_deck;
+		return (typeof AIDifficultyScaler !== "undefined")
+			? AIDifficultyScaler.scaleOpponentDeck(op_deck)
+			: op_deck;
 	}
 	
 	// Converts the current deck to a JSON string
@@ -4599,6 +5268,8 @@ class DeckMaker {
 
 	loadPlayerDeck(deck, silent = true)
 	{
+		if (this.getActiveMode() === "story")
+			return;
 		const loadedDeck = this.loadDeck(deck, silent);
 		if (!loadedDeck)
 			return;
@@ -4610,6 +5281,15 @@ class DeckMaker {
 			this.updateLeaderDisplay();
 		}
 		this.makeBank(deck.faction, loadedDeck.cards);
+		const store = this.getActiveDeckStore(loadedDeck.faction);
+		if (store) {
+			if (this.leader) store.setLeader(this.leader);
+			store.setCards(this.deck.filter(x => x.count > 0));
+		}
+		if (this.getActiveMode() === "versus" && typeof VersusMode !== "undefined") {
+			VersusMode.localFaction = loadedDeck.faction;
+			if (this.leader) VersusMode.localLeaderIndex = this.leader.index;
+		}
 		this.update();
 	}
 
@@ -4853,6 +5533,7 @@ class SavedObject
 		{
 			newObj = {};
 		}
+		this.obj = newObj;
 		localStorage?.setItem(this.key, JSON.stringify(newObj));
 		if (this.action)
 			this.action(this.obj);
@@ -4932,13 +5613,23 @@ class Settings
 	static displayMode = new SavedString("gc-display-mode", "window");
 	static resolution = new SavedString("gc-resolution", "1366x768");
 	static jukeboxTrack = new SavedString("gc-jukebox-track", "all");
-	static lastFaction = new SavedString("gc-last-faction", "realms"); 
-	static realmsDeck = new SavedDeck("gc-deck-realms", premade_deck[0]);
-	static nilfgaardDeck = new SavedDeck("gc-deck-nilfgaard", premade_deck[2]);
-	static monstersDeck = new SavedDeck("gc-deck-monsters", premade_deck[4]);
-	static scoiataelDeck = new SavedDeck("gc-deck-scoiatael", premade_deck[6]);
-	static skelligesDeck = new SavedDeck("gc-deck-skellige", premade_deck[8]);
+
+	// Armazenamento exclusivo: Partida Rápida de Gwent
+	static lastFaction = new SavedString("gc-qm-last-faction", "realms"); 
+	static realmsDeck = new SavedDeck("gc-qm-deck-realms", premade_deck[0]);
+	static nilfgaardDeck = new SavedDeck("gc-qm-deck-nilfgaard", premade_deck[2]);
+	static monstersDeck = new SavedDeck("gc-qm-deck-monsters", premade_deck[4]);
+	static scoiataelDeck = new SavedDeck("gc-qm-deck-scoiatael", premade_deck[6]);
+	static skelligesDeck = new SavedDeck("gc-qm-deck-skellige", premade_deck[8]);
 	static opponentDeckCustom = new SavedDeck("gc-deck-opponent-custom");
+
+	// Armazenamento exclusivo: Modo Versus (PvP)
+	static versusLastFaction = new SavedString("gc-vs-last-faction", "realms");
+	static vsRealmsDeck = new SavedDeck("gc-vs-deck-realms", premade_deck[0]);
+	static vsNilfgaardDeck = new SavedDeck("gc-vs-deck-nilfgaard", premade_deck[2]);
+	static vsMonstersDeck = new SavedDeck("gc-vs-deck-monsters", premade_deck[4]);
+	static vsScoiataelDeck = new SavedDeck("gc-vs-deck-scoiatael", premade_deck[6]);
+	static vsSkelligesDeck = new SavedDeck("gc-vs-deck-skellige", premade_deck[8]);
 	
 	static getFactionSettings(factionName)
 	{
@@ -4953,6 +5644,23 @@ class Settings
 				return Settings.scoiataelDeck;
 			case "skellige":
 				return Settings.skelligesDeck;
+		}
+		return null;
+	}
+
+	static getVersusFactionSettings(factionName)
+	{
+		switch(factionName) {
+			case "realms":
+				return Settings.vsRealmsDeck;
+			case "nilfgaard":
+				return Settings.vsNilfgaardDeck;
+			case "monsters":
+				return Settings.vsMonstersDeck;
+			case "scoiatael":
+				return Settings.vsScoiataelDeck;
+			case "skellige":
+				return Settings.vsSkelligesDeck;
 		}
 		return null;
 	}

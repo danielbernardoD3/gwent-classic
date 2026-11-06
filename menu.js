@@ -280,6 +280,10 @@ class MenuController {
 			StoryMode.isCustomizingCampaign = false;
 			StoryMode.activeMatch = null;
 		}
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.isCustomizingDeck = false;
+			VersusMode.isActive = false;
+		}
 
 		// Hide Story map if it was open and restore full sandbox collection in DeckMaker
 		const storyMap = document.getElementById("story-map-screen");
@@ -297,6 +301,9 @@ class MenuController {
 				: "realms";
 			window.dm.loadFactionDeck(lastFac || "realms", true);
 			window.dm.updateFilter("all");
+			if (typeof window.dm.updateQuickBoardUI === "function") {
+				window.dm.updateQuickBoardUI();
+			}
 			window.dm.makeVisible();
 		}
 
@@ -316,6 +323,12 @@ class MenuController {
 		if (opPreview) {
 			opPreview.classList.remove("hide");
 			opPreview.style.display = "";
+		}
+
+		const boardPreview = document.getElementById("board-preview");
+		if (boardPreview) {
+			boardPreview.classList.remove("hide");
+			boardPreview.style.display = "";
 		}
 
 		const standardBack = document.getElementById("btn-back-to-menu");

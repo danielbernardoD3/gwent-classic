@@ -672,14 +672,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.8",
-	CURRENT_VERSION_CODE: 11,
+	CURRENT_VERSION: "1.3.0",
+	CURRENT_VERSION_CODE: 12,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
 
 	syncVersionUI(v) {
-		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.8";
+		const ver = v || InGameUpdater.CURRENT_VERSION || "1.3.0";
 		const formatted = "v" + String(ver).replace(/^v/, "");
 		const badges = document.querySelectorAll(".menu-version-badge, #menu-version-badge");
 		badges.forEach(b => {
@@ -945,4 +945,122 @@ window.onUpdaterError = function(errorMsg) {
 
 document.addEventListener("DOMContentLoaded", () => {
 	InGameUpdater.init();
+	BoardManager.init();
 });
+
+// ===========================================================================
+// GERENCIADOR DE TABULEIROS DE BATALHA (CLASSIC, WOOD, STONE, ROYAL)
+// ===========================================================================
+const BoardManager = {
+	BOARDS: {
+		classic: {
+			id: "classic",
+			name: "Tabuleiro Clássico",
+			shortName: "Clássico",
+			subtitle: "Taverna tradicional do Continente",
+			img: "img/boards/classic_board.png",
+			file: "img/boards/classic_board.png"
+		},
+		wood: {
+			id: "wood",
+			name: "Tabuleiro de Madeira",
+			shortName: "Madeira",
+			subtitle: "Madeira rústica de estalagem",
+			img: "img/boards/wood_board.png",
+			file: "img/boards/wood_board.png"
+		},
+		stone: {
+			id: "stone",
+			name: "Tabuleiro de Pedra",
+			shortName: "Pedra",
+			subtitle: "Mesa esculpida para torneios",
+			img: "img/boards/stone_board.png",
+			file: "img/boards/stone_board.png"
+		},
+		royal: {
+			id: "royal",
+			name: "Tabuleiro Real",
+			shortName: "Real",
+			subtitle: "Salão nobre dos Torneios Regionais",
+			img: "img/boards/royal_board.png",
+			file: "img/boards/royal_board.png"
+		}
+	},
+	ORDER: ["classic", "wood", "stone", "royal"],
+	currentBoard: "classic",
+
+	init() {
+		const saved = this.getQuickMatchBoard();
+		if (saved && this.BOARDS[saved]) {
+			this.applyBoard(saved);
+		} else {
+			this.applyBoard("classic");
+		}
+	},
+
+	isValidBoard(boardId) {
+		return Boolean(boardId && this.BOARDS[boardId]);
+	},
+
+	getRandomBoard(pool = null) {
+		const list = Array.isArray(pool) && pool.length > 0 ? pool : this.ORDER;
+		return list[Math.floor(Math.random() * list.length)] || "classic";
+	},
+
+	applyBoard(boardId) {
+		const resolved = this.isValidBoard(boardId) ? boardId : "classic";
+		this.currentBoard = resolved;
+		const mainEl = document.querySelector("main");
+		if (mainEl) {
+			mainEl.setAttribute("data-board", resolved);
+			mainEl.style.backgroundImage = `url('${this.BOARDS[resolved].img}')`;
+		}
+		return resolved;
+	},
+
+	getQuickMatchBoard() {
+		const saved = (typeof localStorage !== "undefined") ? localStorage.getItem("gc-quick-board") : null;
+		if (saved === "random" || this.isValidBoard(saved)) {
+			return saved;
+		}
+		return "classic";
+	},
+
+	setQuickMatchBoard(boardId) {
+		const val = (boardId === "random" || this.isValidBoard(boardId)) ? boardId : "classic";
+		if (typeof localStorage !== "undefined") {
+			localStorage.setItem("gc-quick-board", val);
+		}
+		return val;
+	},
+
+	applyQuickMatchBoard() {
+		const choice = this.getQuickMatchBoard();
+		const target = (choice === "random") ? this.getRandomBoard() : choice;
+		return this.applyBoard(target);
+	},
+
+	resolveExplorationBoard(node, existingBoardId = null) {
+		if (!node) return "classic";
+		if (node.type === "tournament") {
+			const roundCount = Array.isArray(node.rounds) ? node.rounds.length : 0;
+			if (node.isRegional || roundCount >= 7) {
+				return "royal";
+			}
+			if (roundCount === 3 || roundCount === 5) {
+				return "stone";
+			}
+			if (roundCount === 2) {
+				return "wood";
+			}
+			return "stone";
+		}
+		// Duelos normais: Classic ou Wood (mantém o mesmo em caso de revanche)
+		if (existingBoardId && (existingBoardId === "classic" || existingBoardId === "wood")) {
+			return existingBoardId;
+		}
+		return Math.random() < 0.5 ? "classic" : "wood";
+	}
+};
+
+window.BoardManager = BoardManager;

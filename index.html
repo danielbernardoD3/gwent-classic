@@ -26,7 +26,7 @@
 		<img src="img/hud-icons/GCLogo.png" class="menu-brand-logo" alt="Gwent Classic" />
 	</div>
 
-	<div class="menu-version-badge" id="menu-version-badge" title="Gwent Classic v1.2.7 — Clique para verificar atualizações" onclick="InGameUpdater.checkForUpdates(true)">v1.2.8</div>
+	<div class="menu-version-badge" id="menu-version-badge" title="Gwent Classic v1.2.7 — Clique para verificar atualizações" onclick="InGameUpdater.checkForUpdates(true)">v1.3.0</div>
 
 	<!-- Bottom-Right 50% Panel with 30% black opacity -->
 	<div class="menu-panel-bottom-right">
@@ -657,6 +657,21 @@
 				</label>
 			</div>
 
+			<!-- Quick Match Board Selector Component -->
+			<div id="board-preview" class="witcher-op-selector witcher-board-selector">
+				<div class="op-selector-header">
+					<p>Tabuleiro da Partida</p>
+				</div>
+				<div id="board-preview-card" class="op-preview-card-btn" onclick="DeckMaker.openBoardModal()" title="Clique para escolher o tabuleiro da batalha">
+					<div id="board-preview-thumb" class="board-selector-mini-thumb" style="background-image: url('img/boards/classic_board.png');"></div>
+					<div class="op-info">
+						<div id="board-preview-title" class="op-title">Tabuleiro Clássico</div>
+						<small id="board-preview-subtitle" class="op-subtitle">Taverna tradicional do Continente</small>
+					</div>
+					<span class="op-change-icon">⚙</span>
+				</div>
+			</div>
+
 			<!-- Start Game CTA Button (Oculto no Modo Exploração) -->
 			<button id="start-game" class="witcher-btn-start" data-i18n="btn_start_game">
 				<span class="btn-sword">⚔</span>
@@ -792,6 +807,71 @@
 				<span data-i18n="btn_import_json">📁 Importar JSON</span>
 			</label>
 			<button class="witcher-btn-header primary" onclick="DeckMaker.closeOpponentModal()" data-i18n="btn_confirm">
+				Confirmar
+			</button>
+		</div>
+	</div>
+</div>
+
+<!-- Modal de Seleção de Tabuleiro (Partida Rápida de Gwent) -->
+<div id="board-modal" class="witcher-modal hide">
+	<div class="witcher-modal-backdrop" onclick="DeckMaker.closeBoardModal()"></div>
+	<div class="witcher-modal-content board-modal-content">
+		<div class="witcher-modal-header">
+			<h2 class="witcher-modal-title">ESCOLHER TABULEIRO DE BATALHA</h2>
+			<button class="witcher-modal-close" onclick="DeckMaker.closeBoardModal()">✕</button>
+		</div>
+		<p class="witcher-modal-desc">Escolha em qual tabuleiro você deseja duelar contra a IA:</p>
+
+		<div class="board-options-grid">
+			<div class="board-option-card active" data-board-option="classic" onclick="DeckMaker.setQuickBoard('classic')">
+				<div class="board-option-thumb" style="background-image: url('img/boards/classic_board.png');"></div>
+				<div class="op-card-text">
+					<h3>Tabuleiro Clássico</h3>
+					<p>Taverna tradicional do Continente</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<div class="board-option-card" data-board-option="wood" onclick="DeckMaker.setQuickBoard('wood')">
+				<div class="board-option-thumb" style="background-image: url('img/boards/wood_board.png');"></div>
+				<div class="op-card-text">
+					<h3>Tabuleiro de Madeira</h3>
+					<p>Madeira rústica de estalagem</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<div class="board-option-card" data-board-option="stone" onclick="DeckMaker.setQuickBoard('stone')">
+				<div class="board-option-thumb" style="background-image: url('img/boards/stone_board.png');"></div>
+				<div class="op-card-text">
+					<h3>Tabuleiro de Pedra</h3>
+					<p>Mesa esculpida para torneios</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<div class="board-option-card" data-board-option="royal" onclick="DeckMaker.setQuickBoard('royal')">
+				<div class="board-option-thumb" style="background-image: url('img/boards/royal_board.png');"></div>
+				<div class="op-card-text">
+					<h3>Tabuleiro Real</h3>
+					<p>Salão nobre dos Torneios Regionais</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+
+			<div class="board-option-card board-option-random" data-board-option="random" onclick="DeckMaker.setQuickBoard('random')">
+				<div class="board-option-thumb board-option-dice">🎲</div>
+				<div class="op-card-text">
+					<h3>Aleatório</h3>
+					<p>Sorteia um dos 4 tabuleiros a cada partida</p>
+				</div>
+				<span class="op-card-check">✔</span>
+			</div>
+		</div>
+
+		<div class="opponent-modal-footer" style="justify-content: flex-end;">
+			<button class="witcher-btn-header primary" onclick="DeckMaker.closeBoardModal()" data-i18n="btn_confirm">
 				Confirmar
 			</button>
 		</div>
@@ -1575,6 +1655,33 @@
 							<span>Copiar Código</span>
 						</button>
 					</div>
+
+					<!-- Seletor de Tabuleiro do Host (antes da conexão) -->
+					<div class="versus-board-picker-section">
+						<div class="versus-board-picker-header">
+							<span>🎲 Tabuleiro do Duelo (Escolha do Host):</span>
+							<strong id="versus-host-board-label">Tabuleiro Clássico</strong>
+						</div>
+						<div class="versus-board-thumbs-row">
+							<button type="button" class="versus-board-card active" data-vs-board="classic" onclick="VersusMode.selectLobbyBoard('classic')">
+								<div class="versus-board-thumb" style="background-image: url('img/boards/classic_board.png');"></div>
+								<span>Clássico</span>
+							</button>
+							<button type="button" class="versus-board-card" data-vs-board="wood" onclick="VersusMode.selectLobbyBoard('wood')">
+								<div class="versus-board-thumb" style="background-image: url('img/boards/wood_board.png');"></div>
+								<span>Madeira</span>
+							</button>
+							<button type="button" class="versus-board-card" data-vs-board="stone" onclick="VersusMode.selectLobbyBoard('stone')">
+								<div class="versus-board-thumb" style="background-image: url('img/boards/stone_board.png');"></div>
+								<span>Pedra</span>
+							</button>
+							<button type="button" class="versus-board-card" data-vs-board="royal" onclick="VersusMode.selectLobbyBoard('royal')">
+								<div class="versus-board-thumb" style="background-image: url('img/boards/royal_board.png');"></div>
+								<span>Real</span>
+							</button>
+						</div>
+					</div>
+
 					<div class="versus-status-pulse">
 						<img src="img/hud-icons/Medallion.png" class="versus-pulse-icon" alt="Medalhão" />
 						<span id="versus-host-status">Aguardando oponente conectar...</span>
@@ -1615,6 +1722,32 @@
 					<div id="versus-p2-crest" class="versus-player-crest"></div>
 					<div id="versus-p2-faction" class="versus-player-faction">Nilfgaard</div>
 					<div id="versus-p2-status" class="versus-player-status">Conectando...</div>
+				</div>
+			</div>
+
+			<!-- Seletor / Visualizador de Tabuleiro na Sala Pré-Jogo -->
+			<div id="versus-prematch-board-box" class="versus-board-picker-section prematch-board-section">
+				<div class="versus-board-picker-header">
+					<span id="versus-prematch-board-role-text">🎲 Tabuleiro Escolhido pelo Host:</span>
+					<strong id="versus-prematch-board-label">Tabuleiro Clássico</strong>
+				</div>
+				<div id="versus-prematch-board-row" class="versus-board-thumbs-row">
+					<button type="button" class="versus-board-card active" data-vs-board="classic" onclick="VersusMode.selectLobbyBoard('classic')">
+						<div class="versus-board-thumb" style="background-image: url('img/boards/classic_board.png');"></div>
+						<span>Clássico</span>
+					</button>
+					<button type="button" class="versus-board-card" data-vs-board="wood" onclick="VersusMode.selectLobbyBoard('wood')">
+						<div class="versus-board-thumb" style="background-image: url('img/boards/wood_board.png');"></div>
+						<span>Madeira</span>
+					</button>
+					<button type="button" class="versus-board-card" data-vs-board="stone" onclick="VersusMode.selectLobbyBoard('stone')">
+						<div class="versus-board-thumb" style="background-image: url('img/boards/stone_board.png');"></div>
+						<span>Pedra</span>
+					</button>
+					<button type="button" class="versus-board-card" data-vs-board="royal" onclick="VersusMode.selectLobbyBoard('royal')">
+						<div class="versus-board-thumb" style="background-image: url('img/boards/royal_board.png');"></div>
+						<span>Real</span>
+					</button>
 				</div>
 			</div>
 

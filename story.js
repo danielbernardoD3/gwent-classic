@@ -175,6 +175,7 @@ class StoryMode {
 		if (typeof card_dict !== "undefined" && card_dict[idx]) {
 			const c = card_dict[idx];
 			if (c.row === "leader") return 1;
+			if (c.ability && String(c.ability).split(/\s+/).includes("hero")) return 1;
 			const max = Number(c.count);
 			return max > 0 ? max : 1;
 		}
@@ -182,6 +183,21 @@ class StoryMode {
 			return STORY_DATA.COMPENDIUM_HINTS[idx].maxCount || 1;
 		}
 		return 1;
+	}
+
+	/**
+	 * Returns the Crown compensation value when a first-time card drop exceeds max allowed copies.
+	 */
+	static getCardCompensationCrowns(cardIndex) {
+		const idx = Number(cardIndex);
+		if (typeof card_dict !== "undefined" && card_dict[idx]) {
+			const c = card_dict[idx];
+			if (c.row === "leader") return 500;
+			if (c.ability && String(c.ability).split(/\s+/).includes("hero")) return 500;
+			if (c.deck === "special" || c.deck === "weather") return 250;
+			if ((c.ability && c.ability.trim() !== "") || Number(c.strength) >= 7) return 250;
+		}
+		return 150;
 	}
 
 	/**
@@ -207,15 +223,42 @@ class StoryMode {
 			}
 		});
 
-		// Also ensure playerDeck does not exceed owned/max copies
+		// Ensure playerDeck does not exceed owned/max copies
 		if (StoryMode.save.playerDeck && Array.isArray(StoryMode.save.playerDeck.cards)) {
 			StoryMode.save.playerDeck.cards = StoryMode.save.playerDeck.cards
-				.map(([idx, cnt]) => {
+				.map(entry => {
+					const idx = Array.isArray(entry) ? entry[0] : entry.index;
+					const cnt = Array.isArray(entry) ? entry[1] : entry.count;
 					const maxAllowed = Math.min(StoryMode.getCardMaxCopies(idx), col[idx] || 0);
 					return [idx, Math.min(cnt, maxAllowed)];
 				})
 				.filter(([, cnt]) => cnt > 0);
 		}
+
+		// Initialize and clamp per-faction Exploration decks (strictly isolated from Quick Match & Versus)
+		if (!StoryMode.save.factionDecks || typeof StoryMode.save.factionDecks !== "object") {
+			StoryMode.save.factionDecks = {};
+		}
+		if (StoryMode.save.playerDeck && StoryMode.save.playerDeck.faction && !StoryMode.save.factionDecks[StoryMode.save.playerDeck.faction]) {
+			StoryMode.save.factionDecks[StoryMode.save.playerDeck.faction] = {
+				faction: StoryMode.save.playerDeck.faction,
+				leader: StoryMode.save.playerDeck.leader,
+				cards: (StoryMode.save.playerDeck.cards || []).map(([idx, cnt]) => [idx, cnt])
+			};
+		}
+		Object.keys(StoryMode.save.factionDecks).forEach(fKey => {
+			const fd = StoryMode.save.factionDecks[fKey];
+			if (fd && Array.isArray(fd.cards)) {
+				fd.cards = fd.cards
+					.map(entry => {
+						const idx = Array.isArray(entry) ? entry[0] : entry.index;
+						const cnt = Array.isArray(entry) ? entry[1] : entry.count;
+						const maxAllowed = Math.min(StoryMode.getCardMaxCopies(idx), col[idx] || 0);
+						return [idx, Math.min(cnt, maxAllowed)];
+					})
+					.filter(([, cnt]) => cnt > 0);
+			}
+		});
 	}
 
 	/**
@@ -231,6 +274,32 @@ class StoryMode {
 		StoryMode.save.collection[idx] = newTotal;
 		StoryMode.syncCollectionAndTokens();
 		return added;
+	}
+
+	/**
+	 * Awards copies of a card up to its exact collection cap, and converts any overflow copies
+	 * into bonus Crowns (only called on legitimate 1st-time battle/tournament victories).
+	 */
+	static awardCardOrCompensate(cardIndex, count = 1) {
+		const idx = Number(cardIndex);
+		const requested = Math.max(1, Number(count) || 1);
+		const addedCount = StoryMode.awardCardToCollection(idx, requested);
+		const compensatedCount = Math.max(0, requested - addedCount);
+		const unitValue = StoryMode.getCardCompensationCrowns(idx);
+		const bonusCrowns = compensatedCount * unitValue;
+		if (bonusCrowns > 0 && StoryMode.save) {
+			StoryMode.save.crowns += bonusCrowns;
+			if (StoryMode.save.stats) {
+				StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + bonusCrowns;
+			}
+		}
+		return {
+			index: idx,
+			count: requested,
+			addedCount: addedCount,
+			compensatedCount: compensatedCount,
+			bonusCrowns: bonusCrowns
+		};
 	}
 
 	/**
@@ -487,6 +556,13 @@ class StoryMode {
 			trophies: [],
 			collection: collection,
 			playerDeck: playerDeck,
+			factionDecks: {
+				[faction]: {
+					faction: playerDeck.faction,
+					leader: playerDeck.leader,
+					cards: playerDeck.cards.map(c => [c[0], c[1]])
+				}
+			},
 			purchasedShopItems: {},
 			tournamentStates: {},
 			tournamentStageCleared: {},
@@ -1410,11 +1486,20 @@ class StoryMode {
 			if (node.cardDrop && typeof card_dict !== "undefined") {
 				const cardData = card_dict[node.cardDrop.index];
 				if (cardData) {
+					const maxAllowed = StoryMode.getCardMaxCopies(node.cardDrop.index);
+					const ownedNow = (StoryMode.save && StoryMode.save.collection && StoryMode.save.collection[node.cardDrop.index]) || 0;
+					const willCompensate = !isCompleted && ownedNow >= maxAllowed;
+					const compCrowns = StoryMode.getCardCompensationCrowns(node.cardDrop.index) * (node.cardDrop.count || 1);
+					const dropLabel = isCompleted
+						? '✓ Carta Já Conquistada'
+						: (willCompensate
+							? `⚖ Já no Limite (${ownedNow}/${maxAllowed}) · Bônus +${compCrowns} Coroas na 1ª Vitória`
+							: '★ Carta em Disputa (1ª Vitória)');
 					cardDropBox.innerHTML = `
 						<div class="story-drop-preview ${isCompleted ? 'already-won' : 'new-card'}">
 							<div class="story-drop-thumb" style="background-image: url(img/sm/${cardData.deck}_${cardData.filename}.jpg)"></div>
 							<div class="story-drop-info">
-								<span class="story-drop-label">${isCompleted ? '✓ Carta Já Conquistada' : '★ Carta em Disputa (1ª Vitória)'}</span>
+								<span class="story-drop-label">${dropLabel}</span>
 								<strong class="story-drop-name">${cardData.name}</strong>
 								<span class="story-drop-stats">${cardData.strength ? '⚔ ' + cardData.strength : '★ Especial'} · ${cardData.ability || 'Tropa Padrão'}</span>
 							</div>
@@ -1482,12 +1567,20 @@ class StoryMode {
 					const c = card_dict[pc.index];
 					if (!c) return "";
 					const isLeader = c.row === "leader";
+					const maxAllowed = StoryMode.getCardMaxCopies(pc.index);
+					const ownedNow = (StoryMode.save && StoryMode.save.collection && StoryMode.save.collection[pc.index]) || 0;
+					const willCompensate = !isCompleted && ownedNow >= maxAllowed;
+					const compCrowns = StoryMode.getCardCompensationCrowns(pc.index) * (pc.count || 1);
+					const compTag = willCompensate
+						? `<small style="color:#f1c40f; font-size:0.73rem;">⚖ Já no limite (${ownedNow}/${maxAllowed}) → Convertida em +${compCrowns} Coroas</small>`
+						: "";
 					return `
 						<div style="display:flex; gap:10px; align-items:center; background:rgba(20,15,10,0.75); border:1px solid ${isLeader ? '#ffd700' : 'rgba(197,160,89,0.4)'}; padding:6px 10px; border-radius:4px;">
 							<div class="story-tourney-card-thumb" style="width:42px; height:58px; flex-shrink:0; background-image: url(img/sm/${c.deck}_${c.filename}.jpg)"></div>
 							<div style="display:flex; flex-direction:column;">
 								<strong style="color:#fff; font-size:0.88rem;">${c.name}</strong>
 								<small style="color:#c5a059; font-size:0.76rem;">${isLeader ? '👑 Carta de Líder' : (c.strength ? '⚔ Força ' + c.strength : '★ Especial')} · ${c.deck}</small>
+								${compTag}
 							</div>
 						</div>
 					`;
@@ -2281,6 +2374,9 @@ class StoryMode {
 
 	static openCampaignDeckBuilder() {
 		StoryMode.isCustomizingCampaign = true;
+		if (typeof VersusMode !== "undefined") {
+			VersusMode.isCustomizingDeck = false;
+		}
 		StoryMode.syncCollectionAndTokens();
 		StoryMode.suspendMapRendering();
 		if (typeof ScreenManager !== "undefined") {
@@ -2295,6 +2391,7 @@ class StoryMode {
 		const deckCustom = document.getElementById("deck-customization");
 		if (deckCustom) {
 			deckCustom.classList.remove("hide");
+			deckCustom.classList.remove("versus-deck-mode");
 			deckCustom.classList.add("story-deck-mode");
 		}
 
@@ -2316,8 +2413,17 @@ class StoryMode {
 			opPreview.style.display = "none";
 		}
 
+		const boardPreview = document.getElementById("board-preview");
+		if (boardPreview) {
+			boardPreview.classList.add("hide");
+			boardPreview.style.display = "none";
+		}
+
 		const standardBack = document.getElementById("btn-back-to-menu");
-		if (standardBack) standardBack.classList.add("hide");
+		if (standardBack) {
+			standardBack.classList.add("hide");
+			standardBack.style.display = "none";
+		}
 
 		const storyBackToMap = document.getElementById("btn-story-back-to-map");
 		if (storyBackToMap) {
@@ -2333,12 +2439,7 @@ class StoryMode {
 
 		if (window.dm && StoryMode.save) {
 			window.dm.elem.classList.remove("hide");
-			window.dm.setFaction(StoryMode.save.playerDeck.faction, true);
-			if (StoryMode.save.playerDeck.leader !== undefined) {
-				window.dm.setLeader(StoryMode.save.playerDeck.leader);
-			}
-			StoryMode.buildCampaignBank(window.dm);
-			window.dm.update();
+			window.dm.loadFactionDeck(StoryMode.save.playerDeck.faction, true);
 		}
 
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -2367,7 +2468,9 @@ class StoryMode {
 
 		const deckMap = {};
 		if (StoryMode.save.playerDeck.faction === faction && StoryMode.save.playerDeck.cards) {
-			StoryMode.save.playerDeck.cards.forEach(([idx, count]) => {
+			StoryMode.save.playerDeck.cards.forEach(entry => {
+				const idx = Array.isArray(entry) ? entry[0] : entry.index;
+				const count = Array.isArray(entry) ? entry[1] : entry.count;
 				deckMap[idx] = count;
 			});
 		}
@@ -2385,26 +2488,74 @@ class StoryMode {
 	}
 
 	static saveCampaignDeckFromCustomization() {
-		if (!window.dm || !StoryMode.save) return;
-		const newCards = window.dm.deck.filter(x => x.count > 0).map(x => [x.index, Math.min(StoryMode.getCardMaxCopies(x.index), x.count)]);
-		const unitCount = newCards.reduce((sum, [idx, cnt]) => {
+		if (!window.dm || !StoryMode.save) return false;
+		const newCards = window.dm.deck
+			.filter(x => x.count > 0)
+			.map(x => [x.index, Math.min(StoryMode.getCardMaxCopies(x.index), StoryMode.save.collection[x.index] || 0, x.count)])
+			.filter(([, cnt]) => cnt > 0);
+		let unitCount = 0;
+		let specialCount = 0;
+		newCards.forEach(([idx, cnt]) => {
 			const c = card_dict[idx];
-			return (c && c.deck !== "special" && c.deck !== "weather") ? sum + cnt : sum;
-		}, 0);
+			if (!c) return;
+			if (c.deck === "special" || c.deck === "weather") {
+				specialCount += cnt;
+			} else {
+				unitCount += cnt;
+			}
+		});
 
-		if (unitCount >= 22) {
-			StoryMode.save.playerDeck = {
-				faction: window.dm.faction,
-				leader: window.dm.leader ? window.dm.leader.index : StoryMode.save.playerDeck.leader,
-				cards: newCards
-			};
-			StoryMode.saveGame();
+		if (unitCount < 15 || specialCount > 10) {
+			return false;
 		}
+
+		const leaderIdx = window.dm.leader ? window.dm.leader.index : StoryMode.save.playerDeck.leader;
+		StoryMode.save.playerDeck = {
+			faction: window.dm.faction,
+			leader: leaderIdx,
+			cards: newCards
+		};
+		if (!StoryMode.save.factionDecks || typeof StoryMode.save.factionDecks !== "object") {
+			StoryMode.save.factionDecks = {};
+		}
+		StoryMode.save.factionDecks[window.dm.faction] = {
+			faction: window.dm.faction,
+			leader: leaderIdx,
+			cards: newCards.map(c => [c[0], c[1]])
+		};
+		StoryMode.saveGame();
+		return true;
 	}
 
 	static closeCampaignDeckBuilder() {
+		if (window.dm && window.dm.stats) {
+			let warning = "";
+			if (window.dm.stats.units < 15) {
+				warning += "Seu baralho do Modo Exploração deve ter pelo menos 15 cartas de unidade.\n";
+			}
+			if (window.dm.stats.special > 10) {
+				warning += "Seu baralho do Modo Exploração não pode ter mais de 10 cartas especiais.\n";
+			}
+			if (warning) {
+				if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+					AudioManager.playSFX("warning");
+				}
+				StoryMode.showAlert(warning.trim(), "BARALHO INCOMPLETO", "⚠️");
+				return;
+			}
+		}
+
 		StoryMode.saveCampaignDeckFromCustomization();
 		StoryMode.isCustomizingCampaign = false;
+
+		// Restaura o DeckMaker em segundo plano para o slot exclusivo da Partida Rápida
+		try {
+			if (window.dm && typeof Settings !== "undefined" && Settings.lastFaction) {
+				window.dm.loadFactionDeck(Settings.lastFaction.get(), true);
+			}
+		} catch (e) {
+			console.warn("Aviso ao restaurar DeckMaker da Partida Rápida:", e);
+		}
 
 		const deckCustom = document.getElementById("deck-customization");
 		if (deckCustom) {
@@ -2430,14 +2581,29 @@ class StoryMode {
 			opPreview.style.display = "";
 		}
 
+		const boardPreview = document.getElementById("board-preview");
+		if (boardPreview) {
+			boardPreview.classList.remove("hide");
+			boardPreview.style.display = "";
+		}
+
 		const standardBack = document.getElementById("btn-back-to-menu");
-		if (standardBack) standardBack.classList.remove("hide");
+		if (standardBack) {
+			standardBack.classList.remove("hide");
+			standardBack.style.display = "";
+		}
 
 		const storyBackToMap = document.getElementById("btn-story-back-to-map");
-		if (storyBackToMap) storyBackToMap.classList.add("hide");
+		if (storyBackToMap) {
+			storyBackToMap.classList.add("hide");
+			storyBackToMap.style.display = "none";
+		}
 
 		const storyDeckConfirm = document.getElementById("btn-story-deck-confirm");
-		if (storyDeckConfirm) storyDeckConfirm.classList.add("hide");
+		if (storyDeckConfirm) {
+			storyDeckConfirm.classList.add("hide");
+			storyDeckConfirm.style.display = "none";
+		}
 
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 			AudioManager.playSFX("witcher_click");
@@ -2470,6 +2636,16 @@ class StoryMode {
 			StoryMode.saveGame();
 		}
 
+		const prevTourneyBoard = (roundIndex > 0 && StoryMode.activeMatch && StoryMode.activeMatch.nodeId === nodeId)
+			? StoryMode.activeMatch.boardId
+			: null;
+		const matchBoardId = (typeof BoardManager !== "undefined")
+			? BoardManager.resolveExplorationBoard(node, prevTourneyBoard)
+			: "classic";
+		if (typeof BoardManager !== "undefined") {
+			BoardManager.applyBoard(matchBoardId);
+		}
+
 		StoryMode.activeMatch = {
 			nodeId: nodeId,
 			node: node,
@@ -2478,7 +2654,8 @@ class StoryMode {
 			opponentName: opponentName,
 			opponentFaction: opDeckData.faction,
 			firstWin: !StoryMode.save.completedNodes.includes(nodeId),
-			wager: wager
+			wager: wager,
+			boardId: matchBoardId
 		};
 
 		const meDeckData = {
@@ -2487,11 +2664,14 @@ class StoryMode {
 			cards: StoryMode.save.playerDeck.cards.map(([idx, count]) => ({ index: idx, count: count }))
 		};
 
-		const opDeck = {
+		let opDeck = {
 			faction: opDeckData.faction,
 			leader: card_dict[opDeckData.leader],
 			cards: opDeckData.cards.map(c => ({ index: c.index, count: c.count }))
 		};
+		if (typeof AIDifficultyScaler !== "undefined") {
+			opDeck = AIDifficultyScaler.scaleOpponentDeck(opDeck, StoryMode.save.difficulty);
+		}
 
 		// Hide modals & end-screen before starting
 		const outcomeModal = document.getElementById("story-outcome-modal");
@@ -2602,19 +2782,29 @@ class StoryMode {
 				if (isFinalRound) {
 					const isFirstChampion = !StoryMode.save.completedNodes.includes(match.nodeId);
 					const grandCrowns = isFirstChampion ? (node.grandPrizeCrowns || 1000) : Math.round((node.grandPrizeCrowns || 1000) * 0.1);
-					const totalCrownsWon = stageCrowns + grandCrowns;
+					const baseCrownsWon = stageCrowns + grandCrowns;
 
-					StoryMode.save.crowns += totalCrownsWon;
-					StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + totalCrownsWon;
+					StoryMode.save.crowns += baseCrownsWon;
+					StoryMode.save.stats.crownsEarned = (StoryMode.save.stats.crownsEarned || 0) + baseCrownsWon;
 
 					const prizeCards = node.grandPrizeCards || (node.grandPrizeCard ? [node.grandPrizeCard] : []);
 					const awardedCards = [];
+					const compensatedCards = [];
+					let compensationCrowns = 0;
 					if (isFirstChampion) {
 						prizeCards.forEach(pc => {
-							StoryMode.awardCardToCollection(pc.index, pc.count || 1);
-							awardedCards.push(pc);
+							const res = StoryMode.awardCardOrCompensate(pc.index, pc.count || 1);
+							if (res.addedCount > 0) {
+								awardedCards.push({ index: pc.index, count: res.addedCount });
+							}
+							if (res.compensatedCount > 0) {
+								compensatedCards.push(res);
+								compensationCrowns += res.bonusCrowns;
+							}
 						});
 					}
+
+					const totalCrownsWon = baseCrownsWon + compensationCrowns;
 
 					if (node.trophyId && !StoryMode.save.trophies.includes(node.trophyId)) {
 						StoryMode.save.trophies.push(node.trophyId);
@@ -2631,6 +2821,8 @@ class StoryMode {
 					StoryMode.showVictoryOverlay({
 						crownsWon: totalCrownsWon,
 						cardsDropped: awardedCards,
+						compensatedCards: compensatedCards,
+						compensationCrowns: compensationCrowns,
 						trophyId: isFirstChampion ? node.trophyId : null,
 						isTourneyChampion: true,
 						nextRoundIndex: null,
@@ -2673,9 +2865,18 @@ class StoryMode {
 				StoryMode.save.winsCount[match.nodeId] = (StoryMode.save.winsCount[match.nodeId] || 0) + 1;
 
 				const awardedCards = [];
+				const compensatedCards = [];
+				let compensationCrowns = 0;
 				if (isFirstWin && node.cardDrop) {
-					StoryMode.awardCardToCollection(node.cardDrop.index, node.cardDrop.count || 1);
-					awardedCards.push(node.cardDrop);
+					const res = StoryMode.awardCardOrCompensate(node.cardDrop.index, node.cardDrop.count || 1);
+					if (res.addedCount > 0) {
+						awardedCards.push({ index: node.cardDrop.index, count: res.addedCount });
+					}
+					if (res.compensatedCount > 0) {
+						compensatedCards.push(res);
+						compensationCrowns += res.bonusCrowns;
+						crownsWon += res.bonusCrowns;
+					}
 				}
 
 				if (!StoryMode.save.completedNodes.includes(match.nodeId)) {
@@ -2689,6 +2890,8 @@ class StoryMode {
 					crownsWon: crownsWon,
 					wagerWon: wagerWon,
 					cardsDropped: awardedCards,
+					compensatedCards: compensatedCards,
+					compensationCrowns: compensationCrowns,
 					trophyId: null,
 					isTourneyChampion: false,
 					nextRoundIndex: null,
@@ -2724,6 +2927,8 @@ class StoryMode {
 		const {
 			crownsWon,
 			cardsDropped = [],
+			compensatedCards = [],
+			compensationCrowns = 0,
 			trophyId = null,
 			isTourneyChampion = false,
 			nextRoundIndex = null,
@@ -2746,37 +2951,62 @@ class StoryMode {
 		const crownsEl = document.getElementById("story-outcome-crowns");
 		if (crownsEl) {
 			const coinImg = '<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="Coroas" />';
+			const subLines = [];
 			if (opts.wagerWon && opts.wagerWon > 0) {
-				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas <span style="display:block; font-size:0.85rem; color:#2ecc71;">(Inclui prêmio de aposta de +${Number(opts.wagerWon).toLocaleString("pt-BR")} Coroas!)</span>`;
-			} else if (nextRoundIndex !== null) {
-				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas ${isFirstStageClear ? '(Bônus de 1ª Tentativa!)' : '(Fase Repetida)'}`;
+				subLines.push(`<span style="display:block; font-size:0.85rem; color:#2ecc71;">(Inclui prêmio de aposta de +${Number(opts.wagerWon).toLocaleString("pt-BR")} Coroas!)</span>`);
+			}
+			if (compensationCrowns > 0) {
+				subLines.push(`<span style="display:block; font-size:0.85rem; color:#f1c40f;">(Inclui +${Number(compensationCrowns).toLocaleString("pt-BR")} Coroas de compensação por carta já no limite da coleção!)</span>`);
+			}
+			if (nextRoundIndex !== null) {
+				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas ${isFirstStageClear ? '(Bônus de 1ª Tentativa!)' : '(Fase Repetida)'}${subLines.join("")}`;
 			} else {
-				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas`;
+				crownsEl.innerHTML = `${coinImg} +${Number(crownsWon).toLocaleString("pt-BR")} Coroas${subLines.join("")}`;
 			}
 		}
 
 		const cardContainer = document.getElementById("story-outcome-card-box");
 		if (cardContainer) {
-			if (cardsDropped.length > 0 && typeof card_dict !== "undefined") {
+			if ((cardsDropped.length > 0 || compensatedCards.length > 0) && typeof card_dict !== "undefined") {
 				cardContainer.classList.remove("hide");
-				const headerText = cardsDropped.length === 1
-					? "★ Nova Carta Conquistada!"
-					: `★ ${cardsDropped.length} Novas Cartas Conquistadas!`;
-				const cardsHtml = cardsDropped.map(drop => {
-					const c = card_dict[drop.index];
-					if (!c) return "";
-					return `
-						<div style="display:flex; flex-direction:column; align-items:center; width:135px;">
-							<div class="story-outcome-card-thumb" style="width:120px; height:164px; margin:8px auto; background-image: url(img/lg/${c.deck}_${c.filename}.jpg)"></div>
-							<strong style="color:#fff; font-size:0.88rem;">${c.name}</strong>
-							<small style="color:#c5a059; font-size:0.74rem;">${c.row === 'leader' ? '👑 Líder' : (c.strength ? 'Força ' + c.strength : 'Especial')}</small>
+				let htmlParts = "";
+
+				if (cardsDropped.length > 0) {
+					const headerText = cardsDropped.length === 1
+						? "★ Nova Carta Conquistada!"
+						: `★ ${cardsDropped.length} Novas Cartas Conquistadas!`;
+					const cardsHtml = cardsDropped.map(drop => {
+						const c = card_dict[drop.index];
+						if (!c) return "";
+						return `
+							<div style="display:flex; flex-direction:column; align-items:center; width:135px;">
+								<div class="story-outcome-card-thumb" style="width:120px; height:164px; margin:8px auto; background-image: url(img/lg/${c.deck}_${c.filename}.jpg)"></div>
+								<strong style="color:#fff; font-size:0.88rem;">${c.name}</strong>
+								<small style="color:#c5a059; font-size:0.74rem;">${c.row === 'leader' ? '👑 Líder' : (c.strength ? 'Força ' + c.strength : 'Especial')}</small>
+							</div>
+						`;
+					}).join("");
+					htmlParts += `
+						<div style="color:#ffd700; font-weight:bold; margin-bottom:6px;">${headerText}</div>
+						<div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap;">${cardsHtml}</div>
+					`;
+				}
+
+				if (compensatedCards.length > 0) {
+					const compItemsHtml = compensatedCards.map(item => {
+						const c = card_dict[item.index];
+						const cName = c ? c.name : `Carta #${item.index}`;
+						return `<div style="font-size:0.86rem; color:#f8e6b8; margin-top:3px;">🃏 <strong>${cName}</strong> (coleção máxima atingida) → <strong style="color:#ffd700;">+${Number(item.bonusCrowns).toLocaleString("pt-BR")} Coroas</strong></div>`;
+					}).join("");
+					htmlParts += `
+						<div style="background:rgba(30,22,10,0.88); border:1px solid rgba(241,196,15,0.65); padding:10px 14px; border-radius:6px; margin-top:${cardsDropped.length > 0 ? '10px' : '4px'};">
+							<div style="color:#f1c40f; font-weight:bold; font-size:0.88rem;">⚖ Compensação de Coleção Completa</div>
+							${compItemsHtml}
 						</div>
 					`;
-				}).join("");
-				cardContainer.innerHTML = `
-					<div style="color:#ffd700; font-weight:bold; margin-bottom:6px;">${headerText}</div>
-					<div style="display:flex; justify-content:center; gap:14px; flex-wrap:wrap;">${cardsHtml}</div>
-				`;
+				}
+
+				cardContainer.innerHTML = htmlParts;
 			} else if (nextRoundIndex !== null && nextOpponent) {
 				cardContainer.classList.remove("hide");
 				cardContainer.innerHTML = `

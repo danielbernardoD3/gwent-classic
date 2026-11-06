@@ -36,9 +36,25 @@ main {
 	top: 50%;
 	transform: translate(-50%, -50%);
 	transform-origin: center center;
-	background-image: url('img/board.jpg');
+	background-image: url('img/boards/classic_board.png');
 	background-size: 100% auto;
 	background-repeat: no-repeat;
+}
+
+main[data-board="classic"] {
+	background-image: url('img/boards/classic_board.png');
+}
+
+main[data-board="wood"] {
+	background-image: url('img/boards/wood_board.png');
+}
+
+main[data-board="stone"] {
+	background-image: url('img/boards/stone_board.png');
+}
+
+main[data-board="royal"] {
+	background-image: url('img/boards/royal_board.png');
 }
 
 /* makes text seleciton and highlighting invisible */
