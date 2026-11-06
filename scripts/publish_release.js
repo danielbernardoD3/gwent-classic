@@ -21,40 +21,39 @@ function createPcZip(rootDir) {
     fs.unlinkSync(zipPath);
   }
   const items = [
-    "'GwentClassic.exe'",
-    "'Microsoft.Web.WebView2.Core.dll'",
-    "'Microsoft.Web.WebView2.WinForms.dll'",
-    "'WebView2Loader.dll'",
-    "'app.ico'",
-    "'index.html'",
-    "'style.css'",
-    "'menu.css'",
-    "'story.css'",
-    "'versus.css'",
-    "'common.js'",
-    "'cards.js'",
-    "'decks.js'",
-    "'abilities.js'",
-    "'factions.js'",
-    "'story_data.js'",
-    "'story.js'",
-    "'i18n.js'",
-    "'achievements.js'",
-    "'gwent.js'",
-    "'peerjs.min.js'",
-    "'versus.js'",
-    "'menu.js'",
-    "'gamepad.js'",
-    "'version.json'",
-    "'img'",
-    "'music'",
-    "'fonts'",
-    "'sfx'",
-    "'svg'"
-  ].join(',');
+    'GwentClassic.exe',
+    'Microsoft.Web.WebView2.Core.dll',
+    'Microsoft.Web.WebView2.WinForms.dll',
+    'WebView2Loader.dll',
+    'app.ico',
+    'index.html',
+    'style.css',
+    'menu.css',
+    'story.css',
+    'versus.css',
+    'common.js',
+    'cards.js',
+    'decks.js',
+    'abilities.js',
+    'factions.js',
+    'story_data.js',
+    'story.js',
+    'i18n.js',
+    'achievements.js',
+    'gwent.js',
+    'peerjs.min.js',
+    'versus.js',
+    'menu.js',
+    'gamepad.js',
+    'version.json',
+    'img',
+    'music',
+    'fonts',
+    'sfx',
+    'svg'
+  ].map(f => `"${f}"`).join(' ');
 
-  const psCmd = `Compress-Archive -Path ${items} -DestinationPath 'GwentClassic-PC.zip' -Force`;
-  execSync(`powershell -NoProfile -Command "${psCmd}"`, { cwd: rootDir });
+  execSync(`tar.exe -a -c -f "GwentClassic-PC.zip" ${items}`, { cwd: rootDir });
   console.log('GwentClassic-PC.zip generated successfully.');
   return zipPath;
 }
