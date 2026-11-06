@@ -547,15 +547,42 @@ class ControllerAI {
 		let musters = card.holder.hand.cards.filter(c => c.abilities.includes("muster"));
 		while (musters.length > 0) {
 			let curr = musters.pop();
-			let i = curr.name.indexOf('-');
-			let name = i === -1 ? curr.name : curr.name.substring(0, i).trim();
+			let name;
+			const currName = curr.name.trim().toLowerCase();
+			if (currName.includes("darkness")) {
+				name = "Gaunter O'Dimm - Darkness";
+			} else if (currName.startsWith("gaunter")) {
+				name = "Gaunter O'Dimm";
+			} else if (currName.includes("behemoth") || (currName.startsWith("aracha") && curr.row === "siege")) {
+				name = "Arachas- Behemoth";
+			} else if (currName.startsWith("aracha")) {
+				name = "Arachas";
+			} else {
+				let i = curr.name.indexOf('-');
+				name = i === -1 ? curr.name : curr.name.substring(0, i).trim();
+			}
 			if (!groups[name])
 				groups[name] = [];
 			let group = groups[name];
 			group.push(curr);
-			for (let j=musters.length-1; j>=0; j--)
-				if (musters[j].name.startsWith(name))
+			for (let j=musters.length-1; j>=0; j--) {
+				const candidateName = musters[j].name.trim().toLowerCase();
+				let matches = false;
+				if (name === "Gaunter O'Dimm - Darkness") {
+					matches = candidateName.includes("darkness") && musters[j].row !== "siege";
+				} else if (name === "Gaunter O'Dimm") {
+					matches = candidateName.startsWith("gaunter") && !candidateName.includes("darkness") && musters[j].row === "siege";
+				} else if (name === "Arachas- Behemoth") {
+					matches = candidateName.includes("behemoth") || (candidateName.startsWith("aracha") && musters[j].row === "siege");
+				} else if (name === "Arachas") {
+					matches = candidateName.startsWith("aracha") && !candidateName.includes("behemoth") && musters[j].row !== "siege";
+				} else {
+					matches = musters[j].name.startsWith(name);
+				}
+				if (matches) {
 					group.push( musters.splice(j,1)[0] );
+				}
+			}
 		}
 		
 		for (let group of Object.values(groups)) {

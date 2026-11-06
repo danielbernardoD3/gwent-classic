@@ -672,8 +672,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.3.0",
-	CURRENT_VERSION_CODE: 12,
+	CURRENT_VERSION: "1.3.1",
+	CURRENT_VERSION_CODE: 13,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,

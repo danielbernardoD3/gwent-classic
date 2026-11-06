@@ -1,13 +1,12 @@
 {
-  "version": "1.3.0",
-  "versionCode": 12,
+  "version": "1.3.1",
+  "versionCode": 13,
   "releaseDate": "2026-11-06",
   "title": "Gwent Classic",
   "changelog": [
-    "4 Tabuleiros de Batalha em alta definição (Clássico, Madeira, Pedra e Real): progressão temática automática no Modo Exploração, seleção pelo Host no Modo Versus e escolha livre na Partida Rápida de Gwent",
-    "Reformulação completa da Inteligência Artificial (Fácil, Médio e Difícil): IA Fácil casual sem Queimar, no máximo 1 Espião por partida e tropas Reunir parciais; IA Média equilibrada; IA Difícil implacável com Heróis lendários, espiões completos, enxames máximos e Queimar estratégico",
-    "Separação estrita e independente de baralhos entre Modo Exploração, Partida Rápida de Gwent e Modo Versus (PvP)",
-    "Balanceamento de recompensas no Modo Exploração: eliminação de duplicatas entre baralhos iniciais e prêmios de batalha, travamento exato do limite máximo de cópias na coleção e Compensação em Coroas ao vencer carta já no limite"
+    "Invocação assimétrica das tropas de Reunir: Gaunter O'Dimm (Cerco) convoca Gaunter O'Dimm - Escuridão e Arachas: Gigante (Cerco) convoca as Arachas de combate corpo a corpo",
+    "Proteção de Cerco: ao jogar Gaunter O'Dimm - Escuridão ou Arachas de combate corpo a corpo, as tropas de Cerco não são mais puxadas indevidamente para o campo de batalha",
+    "Otimização do algoritmo de mulligan e descarte da Inteligência Artificial para tropas de Cerco com habilidade Reunir"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "150 MB",

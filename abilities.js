@@ -174,16 +174,38 @@ var ability_dict = {
 		name:"muster", 
 		description: "Find any cards with the same name in your deck and play them instantly. ",
 		placed: async (card) => {
-			let i = card.name.indexOf('-');
-			let cardName = (i === -1 ?  card.name : card.name.substring(0, i)).trim();
-			if (card['muster'])
-			{
-				cardName = card['muster'].trim();
+			const trimmedCardName = card.name.trim();
+			const lowerCardName = trimmedCardName.toLowerCase();
+			let pred;
+
+			// Invocação assimétrica:
+			// - Gaunter O'Dimm (Cerco) puxa Gaunter O'Dimm - Darkness (e outro Gaunter se houver)
+			// - Gaunter O'Dimm - Darkness (Longa Distância) só puxa outros Darkness (NUNCA a carta de Cerco)
+			if (lowerCardName.includes("darkness")) {
+				pred = c => c.name.toLowerCase().includes("darkness") && c.row !== "siege";
+			} else if (lowerCardName.startsWith("gaunter")) {
+				pred = c => c.name.toLowerCase().startsWith("gaunter");
 			}
-			if (card.holder === player_me && cardName === "Roach" && typeof Achievements !== "undefined") {
-				Achievements.recordRoach();
+			// - Arachas- Behemoth (Cerco) puxa Arachas (Corpo a Corpo) (e outro Behemoth se houver)
+			// - Arachas (Corpo a Corpo) só puxa outros Arachas (NUNCA Arachas- Behemoth de Cerco)
+			else if (lowerCardName.includes("behemoth") || (lowerCardName.startsWith("aracha") && card.row === "siege")) {
+				pred = c => c.name.toLowerCase().startsWith("aracha");
+			} else if (lowerCardName.startsWith("aracha")) {
+				pred = c => c.name.toLowerCase().startsWith("aracha") && !c.name.toLowerCase().includes("behemoth") && c.row !== "siege";
 			}
-			let pred = c => c.name.trim().startsWith(cardName);
+			// Demais tropas de Reunir padrão (ex: Moiras, Vampiros, Nekkers, Ghouls, etc.)
+			else {
+				let i = card.name.indexOf('-');
+				let cardName = (i === -1 ?  card.name : card.name.substring(0, i)).trim();
+				if (card['muster'])
+				{
+					cardName = card['muster'].trim();
+				}
+				if (card.holder === player_me && cardName === "Roach" && typeof Achievements !== "undefined") {
+					Achievements.recordRoach();
+				}
+				pred = c => c.name.trim().startsWith(cardName);
+			}
 			let units = card.holder.hand.getCards(pred).map(x => [card.holder.hand, x])
 			.concat(card.holder.deck.getCards(pred).map( x => [card.holder.deck, x] ) );
 			if (units.length === 0)
