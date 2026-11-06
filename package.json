@@ -1,6 +1,6 @@
 {
   "name": "gwent-classic",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "The Witcher 3 Gwent Classic - Web & Mobile Edition",
   "main": "gwent.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "cap:sync": "npm run build && npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:copy": "npm run build && npx cap copy android",
-    "build:apk": "npm run cap:copy && cd android && gradlew.bat assembleDebug"
+    "build:apk": "npm run cap:copy && cd android && gradlew.bat assembleRelease"
   },
   "repository": {
     "type": "git",

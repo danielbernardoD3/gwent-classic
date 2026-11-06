@@ -672,14 +672,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // IN-GAME AUTO-UPDATER (ATUALIZADOR AUTOMÁTICO IN-GAME)
 // ===========================================================================
 const InGameUpdater = {
-	CURRENT_VERSION: "1.2.7",
-	CURRENT_VERSION_CODE: 10,
+	CURRENT_VERSION: "1.2.8",
+	CURRENT_VERSION_CODE: 11,
 	REMOTE_URL: "https://raw.githubusercontent.com/danielbernardoD3/gwent-classic/main/version.json",
 	remoteData: null,
 	isDownloading: false,
 
 	syncVersionUI(v) {
-		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.7";
+		const ver = v || InGameUpdater.CURRENT_VERSION || "1.2.8";
 		const formatted = "v" + String(ver).replace(/^v/, "");
 		const badges = document.querySelectorAll(".menu-version-badge, #menu-version-badge");
 		badges.forEach(b => {
@@ -868,8 +868,14 @@ const InGameUpdater = {
 		const progressBar = document.getElementById("updater-progress-fill");
 		const progressText = document.getElementById("updater-progress-text");
 
-		// Android Nativo
-		if (window.AndroidAppUpdater && typeof window.AndroidAppUpdater.downloadAndInstall === "function") {
+		// Android Nativo (via JavascriptInterface ou Capacitor Plugin)
+		const capUpdater = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AppUpdater)
+			? window.Capacitor.Plugins.AppUpdater
+			: null;
+		const hasNativeBridge = (window.AndroidAppUpdater && typeof window.AndroidAppUpdater.downloadAndInstall === "function")
+			|| (capUpdater && typeof capUpdater.downloadAndInstall === "function");
+
+		if (hasNativeBridge) {
 			InGameUpdater.isDownloading = true;
 			if (actionBtn) {
 				actionBtn.disabled = true;
@@ -877,10 +883,14 @@ const InGameUpdater = {
 			}
 			if (progressBox) progressBox.classList.remove("hide");
 			if (progressBar) progressBar.style.width = "0%";
-			if (progressText) progressText.innerText = "Iniciando download...";
+			if (progressText) progressText.innerText = "Conectando ao servidor e iniciando download...";
 
 			try {
-				window.AndroidAppUpdater.downloadAndInstall(data.apkUrl);
+				if (window.AndroidAppUpdater && typeof window.AndroidAppUpdater.downloadAndInstall === "function") {
+					window.AndroidAppUpdater.downloadAndInstall(data.apkUrl);
+				} else if (capUpdater) {
+					capUpdater.downloadAndInstall({ apkUrl: data.apkUrl });
+				}
 			} catch (err) {
 				console.error("[InGameUpdater] Erro ao disparar download nativo:", err);
 				InGameUpdater.isDownloading = false;

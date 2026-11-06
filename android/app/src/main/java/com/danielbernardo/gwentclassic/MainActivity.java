@@ -1,6 +1,13 @@
 package com.danielbernardo.gwentclassic;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.content.pm.PackageInstaller;
 import android.os.Bundle;
 import android.os.Build;
 import android.view.View;
@@ -10,9 +17,16 @@ import android.view.WindowManager;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    public static MainActivity currentInstance = null;
+    private File downloadedApkFile = null;
+    private String pendingDownloadUrl = null;
+    private volatile boolean isDownloadingApk = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AppUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
+        currentInstance = this;
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         hideSystemUI();
         setupBackHandling();
@@ -21,14 +35,46 @@ public class MainActivity extends BridgeActivity {
 
     private void setupUpdaterBridge() {
         if (bridge != null && bridge.getWebView() != null) {
-            bridge.getWebView().addJavascriptInterface(new AndroidAppUpdater(this), "AndroidAppUpdater");
+            try {
+                bridge.getWebView().addJavascriptInterface(new AndroidAppUpdater(this), "AndroidAppUpdater");
+            } catch (Exception ignored) {}
         }
     }
 
-    private File downloadedApkFile = null;
-
     public void startApkDownload(final String apkUrl) {
+        if (apkUrl == null || apkUrl.isEmpty()) return;
+
+        // Check install permission BEFORE downloading 140 MB so the flow is uninterrupted
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!getPackageManager().canRequestPackageInstalls()) {
+                pendingDownloadUrl = apkUrl;
+                runOnUiThread(() -> {
+                    if (bridge != null && bridge.getWebView() != null) {
+                        bridge.getWebView().evaluateJavascript(
+                            "if(document.getElementById('updater-progress-text')) document.getElementById('updater-progress-text').innerText = 'Autorize a permissão \"Instalar apps desconhecidos\" para iniciar a atualização automática...';",
+                            null
+                        );
+                    }
+                    try {
+                        Intent permIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                        permIntent.setData(android.net.Uri.parse("package:" + getPackageName()));
+                        startActivity(permIntent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+                return;
+            }
+        }
+
+        if (isDownloadingApk) return;
+        isDownloadingApk = true;
+        pendingDownloadUrl = null;
+
         new Thread(() -> {
+            java.net.HttpURLConnection conn = null;
+            InputStream input = null;
+            OutputStream output = null;
             try {
                 File cacheDir = getExternalCacheDir() != null ? getExternalCacheDir() : getCacheDir();
                 File apkFile = new File(cacheDir, "GwentClassic_update.apk");
@@ -37,34 +83,45 @@ public class MainActivity extends BridgeActivity {
                 }
 
                 java.net.URL url = new java.net.URL(apkUrl);
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestProperty("User-Agent", "GwentClassic-Android");
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(30000);
-                conn.setInstanceFollowRedirects(true);
-                conn.connect();
-
-                int responseCode = conn.getResponseCode();
                 int redirects = 0;
-                while ((responseCode == java.net.HttpURLConnection.HTTP_MOVED_TEMP || responseCode == java.net.HttpURLConnection.HTTP_MOVED_PERM || responseCode == 307 || responseCode == 308) && redirects < 6) {
-                    String newUrl = conn.getHeaderField("Location");
-                    conn.disconnect();
-                    url = new java.net.URL(newUrl);
+                while (redirects < 10) {
                     conn = (java.net.HttpURLConnection) url.openConnection();
-                    conn.setRequestProperty("User-Agent", "GwentClassic-Android");
+                    conn.setRequestProperty("User-Agent", "GwentClassic-Android-Updater");
+                    conn.setRequestProperty("Accept", "application/octet-stream, */*");
                     conn.setConnectTimeout(15000);
                     conn.setReadTimeout(30000);
-                    conn.setInstanceFollowRedirects(true);
+                    conn.setInstanceFollowRedirects(false);
                     conn.connect();
-                    responseCode = conn.getResponseCode();
-                    redirects++;
+
+                    int responseCode = conn.getResponseCode();
+                    if (responseCode == java.net.HttpURLConnection.HTTP_MOVED_TEMP
+                        || responseCode == java.net.HttpURLConnection.HTTP_MOVED_PERM
+                        || responseCode == java.net.HttpURLConnection.HTTP_SEE_OTHER
+                        || responseCode == 307
+                        || responseCode == 308) {
+                        String location = conn.getHeaderField("Location");
+                        conn.disconnect();
+                        if (location == null || location.isEmpty()) {
+                            throw new Exception("Redirecionamento sem destino (HTTP " + responseCode + ")");
+                        }
+                        url = new java.net.URL(url, location);
+                        redirects++;
+                        continue;
+                    }
+                    if (responseCode < 200 || responseCode >= 300) {
+                        throw new Exception("Servidor respondeu com HTTP " + responseCode);
+                    }
+                    break;
                 }
 
-                int fileLength = conn.getContentLength();
-                java.io.InputStream input = new java.io.BufferedInputStream(conn.getInputStream(), 8192);
-                java.io.OutputStream output = new java.io.FileOutputStream(apkFile);
+                long fileLength = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                    ? conn.getContentLengthLong()
+                    : conn.getContentLength();
 
-                byte[] data = new byte[8192];
+                input = new java.io.BufferedInputStream(conn.getInputStream(), 65536);
+                output = new FileOutputStream(apkFile);
+
+                byte[] data = new byte[65536];
                 long total = 0;
                 int count;
                 long lastProgressTime = 0;
@@ -74,9 +131,9 @@ public class MainActivity extends BridgeActivity {
                     output.write(data, 0, count);
 
                     long now = System.currentTimeMillis();
-                    if (now - lastProgressTime > 120) {
+                    if (now - lastProgressTime > 100) {
                         lastProgressTime = now;
-                        final int progress = (fileLength > 0) ? (int) ((total * 100) / fileLength) : -1;
+                        final int progress = (fileLength > 0) ? (int) ((total * 100L) / fileLength) : -1;
                         final long cur = total;
                         final long len = fileLength;
                         runOnUiThread(() -> {
@@ -92,10 +149,18 @@ public class MainActivity extends BridgeActivity {
 
                 output.flush();
                 output.close();
+                output = null;
                 input.close();
+                input = null;
                 conn.disconnect();
+                conn = null;
+
+                if (apkFile.length() < 5 * 1024 * 1024) {
+                    throw new Exception("Arquivo APK baixado está incompleto (" + apkFile.length() + " bytes).");
+                }
 
                 downloadedApkFile = apkFile;
+                isDownloadingApk = false;
                 final long finalTotal = total;
                 runOnUiThread(() -> {
                     if (bridge != null && bridge.getWebView() != null) {
@@ -104,11 +169,12 @@ public class MainActivity extends BridgeActivity {
                             null
                         );
                     }
-                    promptInstallApk(downloadedApkFile);
+                    installDownloadedApk(downloadedApkFile);
                 });
 
             } catch (Exception e) {
-                final String errorMsg = e.getMessage() != null ? e.getMessage().replace("'", "\\'") : "Erro no download";
+                isDownloadingApk = false;
+                final String errorMsg = e.getMessage() != null ? e.getMessage().replace("'", "\\'").replace("\n", " ") : "Erro no download";
                 runOnUiThread(() -> {
                     if (bridge != null && bridge.getWebView() != null) {
                         bridge.getWebView().evaluateJavascript(
@@ -117,8 +183,92 @@ public class MainActivity extends BridgeActivity {
                         );
                     }
                 });
+            } finally {
+                try { if (output != null) output.close(); } catch (Exception ignored) {}
+                try { if (input != null) input.close(); } catch (Exception ignored) {}
+                try { if (conn != null) conn.disconnect(); } catch (Exception ignored) {}
             }
         }).start();
+    }
+
+    public void installDownloadedApk(File apkFile) {
+        if (apkFile == null || !apkFile.exists()) return;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
+            try {
+                Intent permIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                permIntent.setData(android.net.Uri.parse("package:" + getPackageName()));
+                startActivity(permIntent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+
+        // Try modern PackageInstaller Session first (supports auto-relaunch & seamless update)
+        if (!installViaPackageInstallerSession(apkFile)) {
+            promptInstallApk(apkFile);
+        }
+    }
+
+    private boolean installViaPackageInstallerSession(File apkFile) {
+        PackageInstaller.Session session = null;
+        try {
+            PackageInstaller packageInstaller = getPackageManager().getPackageInstaller();
+            PackageInstaller.SessionParams params = new PackageInstaller.SessionParams(
+                PackageInstaller.SessionParams.MODE_FULL_INSTALL
+            );
+            params.setAppPackageName(getPackageName());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED);
+            }
+
+            int sessionId = packageInstaller.createSession(params);
+            session = packageInstaller.openSession(sessionId);
+
+            try (OutputStream out = session.openWrite("GwentClassic_update", 0, apkFile.length());
+                 InputStream in = new FileInputStream(apkFile)) {
+                byte[] buffer = new byte[65536];
+                int c;
+                while ((c = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, c);
+                }
+                session.fsync(out);
+            }
+
+            Intent callbackIntent = new Intent(this, UpdateInstallReceiver.class);
+            callbackIntent.setPackage(getPackageName());
+
+            int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                flags |= PendingIntent.FLAG_MUTABLE;
+            }
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                sessionId,
+                callbackIntent,
+                flags
+            );
+
+            session.commit(pendingIntent.getIntentSender());
+            session.close();
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (session != null) {
+                try { session.abandon(); } catch (Exception ignored) {}
+            }
+            return false;
+        }
+    }
+
+    public void fallbackViewInstall() {
+        runOnUiThread(() -> {
+            if (downloadedApkFile != null && downloadedApkFile.exists()) {
+                promptInstallApk(downloadedApkFile);
+            }
+        });
     }
 
     public void promptInstallApk(File apkFile) {
@@ -126,7 +276,7 @@ public class MainActivity extends BridgeActivity {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!getPackageManager().canRequestPackageInstalls()) {
-                    android.content.Intent permIntent = new android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    Intent permIntent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
                     permIntent.setData(android.net.Uri.parse("package:" + getPackageName()));
                     startActivity(permIntent);
                     return;
@@ -139,10 +289,12 @@ public class MainActivity extends BridgeActivity {
                 apkFile
             );
 
-            android.content.Intent installIntent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+            Intent installIntent = new Intent(Intent.ACTION_VIEW);
             installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
-            installIntent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            installIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            installIntent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+            installIntent.putExtra(Intent.EXTRA_RETURN_RESULT, true);
+            installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(installIntent);
         } catch (Exception e) {
             e.printStackTrace();
@@ -152,12 +304,24 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        currentInstance = this;
         setupUpdaterBridge();
-        if (downloadedApkFile != null && downloadedApkFile.exists()) {
+
+        // If user just returned from granting "Install unknown apps" permission:
+        if (pendingDownloadUrl != null && !pendingDownloadUrl.isEmpty()) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
+                String urlToStart = pendingDownloadUrl;
+                pendingDownloadUrl = null;
+                startApkDownload(urlToStart);
+                return;
+            }
+        }
+
+        if (downloadedApkFile != null && downloadedApkFile.exists() && !isDownloadingApk) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || getPackageManager().canRequestPackageInstalls()) {
                 File toInstall = downloadedApkFile;
                 downloadedApkFile = null;
-                promptInstallApk(toInstall);
+                installDownloadedApk(toInstall);
             }
         }
     }
@@ -179,7 +343,7 @@ public class MainActivity extends BridgeActivity {
             try {
                 return activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionName;
             } catch (Exception e) {
-                return "1.1.0";
+                return "1.2.8";
             }
         }
 
@@ -199,7 +363,7 @@ public class MainActivity extends BridgeActivity {
         @android.webkit.JavascriptInterface
         public void openInstallPermissionSettings() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
                 intent.setData(android.net.Uri.parse("package:" + activity.getPackageName()));
                 activity.startActivity(intent);
             }
