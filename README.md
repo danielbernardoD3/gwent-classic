@@ -1,7 +1,7 @@
 # ⚔️ Gwent Classic
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/26311830/116256903-f1599b00-a7b6-11eb-84a1-16dcb5c9bfc6.jpg" alt="Gwent Classic Cover" width="850">
+  <img src="docs/screenshots/Main-menu.png" alt="Gwent Classic Menu Principal" width="850">
 </p>
 
 <p align="center">
@@ -28,6 +28,32 @@
 
 ---
 
+## 📸 Galeria de Capturas de Tela
+
+| Menu Principal | Duelo no Tabuleiro |
+| :---: | :---: |
+| <img src="docs/screenshots/Main-menu.png" width="460" alt="Menu Principal"> | <img src="docs/screenshots/In-game.png" width="460" alt="Duelo no Tabuleiro"> |
+
+| Modo Exploração (Mapa 4K) | Estatísticas e Compêndio |
+| :---: | :---: |
+| <img src="docs/screenshots/Exploration-mode-map.png" width="460" alt="Mapa do Continente"> | <img src="docs/screenshots/Exploration-mode-estatistics.png" width="460" alt="Estatísticas e Compêndio"> |
+
+| Encontro com Personagens | Montador de Baralhos (Deck Builder) |
+| :---: | :---: |
+| <img src="docs/screenshots/Duel-Exploration-preview.png" width="460" alt="Prévia de Duelo e Diálogo"> | <img src="docs/screenshots/Deck.png" width="460" alt="Montador de Baralhos"> |
+
+| Lobby do Modo Versus (PvP) | Partida Multiplayer Online P2P |
+| :---: | :---: |
+| <img src="docs/screenshots/Modo-versus-lobby-ready.png" width="460" alt="Lobby Versus"> | <img src="docs/screenshots/Modo-versus-ingame.png" width="460" alt="Duelo Online"> |
+
+<p align="center">
+  <img src="docs/screenshots/Victory.png" width="600" alt="Tela de Vitória e Placar Final">
+  <br>
+  <i>Tela de Vitória e Placar Final do Duelo</i>
+</p>
+
+---
+
 ## 🌟 Principais Recursos da Versão 1.0.0 Release
 
 ### 🗺️ 1. Modo Exploração (Campanha do Continente)
@@ -35,6 +61,10 @@
 * **Progressão com Duelos Canônicos:** Enfrente personagens marcantes da saga (Barão Sanguinário, Dijkstra, Soothsayer, Madame Sasha, Ermion e muitos outros).
 * **Economia de Taverna & Compêndio:** Ganhe minérios e ouro, compre e desbloqueie cartas lendárias e consulte seu progresso de coleção por região.
 * **Diálogos e Encontros Temáticos:** Narrativa imersiva antes de cada embate.
+
+<p align="center">
+  <img src="docs/screenshots/Exploration-mode-map.png" width="800" alt="Mapa do Modo Exploração">
+</p>
 
 ---
 
@@ -44,6 +74,10 @@
 * **🔢 Indicador de Diferença no Placar:** Ative nas configurações a exibição em tempo real da margem de pontos (verde para vantagem, vermelho para desvantagem e dourado para empate).
 * **4 Tabuleiros Personalizados:** Alterne entre os estilos *Clássico*, *Madeira*, *Pedra* e *Real*.
 * **Botão Regras:** Consulta rápida na mesa com o resumo das regras de cada uma das 5 facções.
+
+<p align="center">
+  <img src="docs/screenshots/In-game.png" width="800" alt="Partida Rápida vs IA">
+</p>
 
 ---
 
@@ -57,12 +91,20 @@
 * **Árbitro Autoritário (`TURN_SYNC`):** Sincronização garantida entre anfitrião e convidado.
 * **Emotes de Taverna:** Botão de reações rápidas com efeito luminoso e balões de fala temáticos.
 
+<p align="center">
+  <img src="docs/screenshots/Modo-versus-ingame.png" width="800" alt="Modo Versus Multiplayer Online">
+</p>
+
 ---
 
 ### 🃏 4. Montador de Baralhos Completo (Deck Builder)
 * **Todas as 5 Facções:** *Reinos do Norte*, *Nilfgaard*, *Monstros*, *Scoia'tael* e *Skellige*.
 * **Expansões Incluídas:** Cartas de *Hearts of Stone*, *Blood and Wine* e a carta *Carpeado (Roach)*.
 * **Importação e Exportação JSON:** Salve, copie e compartilhe seus baralhos facilmente.
+
+<p align="center">
+  <img src="docs/screenshots/Deck.png" width="800" alt="Montador de Baralhos">
+</p>
 
 ---
 
@@ -97,7 +139,9 @@ Acesse os links diretos na [Página de Releases do GitHub](https://github.com/da
 3. Jogue nativamente com suporte a toques e salvamento local.
 
 ### 🌐 No Navegador / GitHub Pages
-* Você pode jogar diretamente pelo navegador acessando o GitHub Pages oficial do projeto (ou via servidor HTTP local):
+* Jogue diretamente pelo seu navegador sem precisar baixar nada:  
+  👉 **[https://danielbernardoD3.github.io/gwent-classic/](https://danielbernardoD3.github.io/gwent-classic/)**
+* Ou execute localmente via terminal:
   ```bash
   npx serve -l 8080 .
   ```
@@ -128,6 +172,7 @@ gwent-classic/
 ├── achievements.js                # Sistema de conquistas in-game
 ├── common.js                      # Utilitários globais, áudio e atualizador
 ├── i18n.js                        # Traduções (PT-BR, EN, ES, PL)
+├── docs/screenshots/              # Capturas de tela demonstrativas
 ├── img/                           # Imagens, tabuleiros, avatares e cartas
 ├── music/                         # Trilhas sonoras originais locais
 └── sfx/                           # Efeitos sonoros temáticos
