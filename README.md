@@ -14,6 +14,7 @@
   <img src="https://img.shields.io/badge/Release-v1.0.0-gold.svg" alt="Release v1.0.0">
   <img src="https://img.shields.io/badge/Platform-Windows%20PC%20%7C%20Android%20%7C%20Web-blue.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Multiplayer-WebRTC%20P2P-orange.svg" alt="Multiplayer">
+  <a href="https://ko-fi.com/d3studios" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Apoiar%20D3%20Studios-F16061?logo=ko-fi&logoColor=white" alt="Apoiar no Ko-fi"></a>
   <img src="https://img.shields.io/badge/DLCs-Hearts%20of%20Stone%20%2B%20Blood%20%26%20Wine-darkred.svg" alt="DLCs">
   <img src="https://img.shields.io/badge/Faction-5%20Factions%20Included-green.svg" alt="Factions">
   <img src="https://img.shields.io/badge/Gamepad-Full%20Support-purple.svg" alt="Gamepad">
@@ -177,6 +178,28 @@ gwent-classic/
 ├── music/                         # Trilhas sonoras originais locais
 └── sfx/                           # Efeitos sonoros temáticos
 ```
+
+---
+
+## ☕ Apoie o Projeto (Support D3 Studios)
+
+O **Gwent Classic** é um projeto 100% gratuito e de código aberto desenvolvido com paixão para a comunidade. Se você se divertiu jogando nas tavernas do Continente, apreciou o trabalho de desenvolvimento e deseja apoiar a manutenção do jogo, atualizações e futuros projetos da **D3 Studios**, você pode pagar um cafézinho ao taverneiro!
+
+<p align="center">
+  <a href="https://ko-fi.com/d3studios" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="42" alt="Buy Me a Coffee at ko-fi.com" />
+  </a>
+</p>
+
+### 💳 Formas de Apoio:
+* ☕ **Ko-fi (Internacional / Cartão / PayPal):**  
+  👉 **[https://ko-fi.com/d3studios](https://ko-fi.com/d3studios)**
+
+* 🇧🇷 **Pix (Brasil):**  
+  * **Chave Pix (E-mail):** `d3studios.contato@gmail.com`
+  * **Identificação / Beneficiário:** D3 Studios
+
+*Toda contribuição é voluntária e ajuda diretamente nos custos de manutenção e novos projetos de jogos independentes. Muito obrigado pelo apoio!* 🐺⚔️
 
 ---
 

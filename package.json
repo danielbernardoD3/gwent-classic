@@ -27,6 +27,10 @@
   ],
   "author": "Daniel Bernardo",
   "license": "ISC",
+  "funding": {
+    "type": "ko-fi",
+    "url": "https://ko-fi.com/d3studios"
+  },
   "dependencies": {
     "@capacitor/android": "^7.0.1",
     "@capacitor/cli": "^7.0.1",
