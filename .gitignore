@@ -11,13 +11,19 @@ Desktop.ini
 *.userosscache
 *.sln.docstates
 
-# Temporary & Logs
+# Temporary, Logs & Backups
 *.log
 *.tmp
 *.bak
 *~
 node_modules/
 npm-debug.log*
+backups/
+scratch/
+
+# Internal Planning & Roadmaps
+ROADMAP*.md
+ROADMAP_MELHORIAS.md
 
 # Patch or Scratch scripts
 patch_*.js
