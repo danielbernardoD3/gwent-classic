@@ -131,42 +131,123 @@ html {
 	z-index: -100;
 }
 
-.settings-button {
+/* Pilha vertical de botões utilitários do duelo (Emotes e Configurações) perfeitamente empilhados sem espaço */
+#duel-utility-controls {
 	position: absolute;
-	width: 2.5vw;
-	height: 2.5vw;
-}
-.settings-button>img{
-	width: 2.5vw;
-	height: 2.5vw;
-	filter:drop-shadow(0px 0px 2px black);
-}
-
-.settings-button.fade>img {
-	 opacity: 0.2; 
-}
-
-.settings-button.fade:hover>img {
-	opacity: 0.3;
-}
-.settings-button:hover>img {
-	filter:drop-shadow(0px 0px 3px rgba(255, 255, 255, 0.5));
+	top: 77.5%;
+	left: 13.0%;
+	width: 13.2%;
+	height: 12.5%;
+	display: flex;
+	flex-direction: column;
+	justify-content: stretch;
+	align-items: stretch;
+	gap: 0;
+	z-index: 100;
+	pointer-events: auto !important;
+	border-radius: 0.35vw;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
 }
 
-#open-game-settings {
-    top: 48.9vw;
-    left: 15.6vw;
-}
-#open-game-settings.deck-menu { 
-	display: none !important;
+.duel-utility-btn {
+	position: relative !important;
+	top: auto !important;
+	left: auto !important;
+	width: 100% !important;
+	height: 50% !important;
+	background: rgba(20, 15, 11, 0.95);
+	border: 1px solid #c5a059;
+	cursor: pointer !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	transition: all 0.2s ease;
+	pointer-events: auto !important;
+	box-sizing: border-box !important;
 }
 
-#toggle-notifications {
-	top: 48.9vw;
-    left: 19.2vw;
+#btn-versus-emote-trigger.duel-utility-btn {
+	border-radius: 0.35vw 0.35vw 0 0 !important;
+	border-bottom: 1px solid rgba(197, 160, 89, 0.45) !important;
 }
-#toggle-notifications.deck-menu {
-	display: none !important;
+
+#open-game-settings.duel-utility-btn {
+	border-radius: 0 0 0.35vw 0.35vw !important;
+	border-top: none !important;
+}
+
+.duel-utility-btn > img {
+	width: 2.05vw !important;
+	height: 2.05vw !important;
+	object-fit: contain;
+	filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.9));
+	transition: transform 0.25s ease, opacity 0.2s ease, filter 0.2s ease;
+	pointer-events: none;
+}
+
+.duel-utility-btn:hover,
+.duel-utility-btn.gamepad-focus {
+	background: #3e2f20 !important;
+	border-color: #ffd700 !important;
+	z-index: 250 !important;
+	box-shadow: 0 0 0.8vw rgba(255, 215, 0, 0.65);
+}
+
+.duel-utility-btn:hover > img {
+	filter: drop-shadow(0px 0px 4px rgba(255, 215, 0, 0.65));
+}
+
+#open-game-settings.duel-utility-btn:hover > img {
+	transform: rotate(35deg);
+}
+
+.duel-utility-btn.fade {
+	border-color: rgba(197, 160, 89, 0.4);
+	background: rgba(16, 12, 9, 0.78);
+}
+
+.duel-utility-btn.fade > img {
+	opacity: 0.25;
+	filter: grayscale(0.5);
+}
+
+.duel-utility-btn.fade:hover > img {
+	opacity: 0.5;
+}
+
+/* Efeito de brilho pulsante no botão de Emotes e Reações */
+#btn-versus-emote-trigger.duel-utility-btn {
+	border-color: #ffd700 !important;
+	box-shadow: 0 0 0.5vw rgba(255, 215, 0, 0.45), 0 3px 10px rgba(0, 0, 0, 0.7);
+	animation: emoteGlowPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes emoteGlowPulse {
+	0%, 100% {
+		box-shadow: 0 0 0.35vw rgba(255, 215, 0, 0.35), inset 0 0 0.25vw rgba(255, 215, 0, 0.15);
+		border-color: #d4af37;
+	}
+	50% {
+		box-shadow: 0 0 0.75vw rgba(255, 215, 0, 0.75), inset 0 0 0.45vw rgba(255, 215, 0, 0.3);
+		border-color: #ffe066;
+	}
+}
+
+#btn-versus-emote-trigger.duel-utility-btn > img {
+	filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.7)) !important;
+}
+
+#btn-versus-emote-trigger.duel-utility-btn:hover > img,
+#btn-versus-emote-trigger.duel-utility-btn.gamepad-focus > img {
+	filter: drop-shadow(0 0 8px rgba(255, 215, 0, 1)) !important;
+}
+
+.duel-utility-btn[data-title]:hover::after {
+	bottom: auto !important;
+	top: 50% !important;
+	left: calc(100% + 0.45vw) !important;
+	transform: translateY(-50%) !important;
+	z-index: 9999999 !important;
 }
 
 #pass-button[data-title]:hover::after

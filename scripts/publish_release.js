@@ -32,6 +32,7 @@ function createPcZip(rootDir) {
     'story.css',
     'versus.css',
     'debugger.css',
+    'avatars.css',
     'common.js',
     'cards.js',
     'decks.js',

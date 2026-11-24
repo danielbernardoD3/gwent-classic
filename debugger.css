@@ -1,5 +1,5 @@
 /* ===========================================================================
-   GWENT CLASSIC — IN-GAME DEBUGGER & MATCH INSPECTOR STYLES
+   GWENT CLASSIC — IN-GAME DEBUGGER, LOGS & DIAGNOSTIC SUITE STYLES
    Aparência Dark Fantasy / Witcher 3
    =========================================================================== */
 
@@ -54,18 +54,18 @@
 	left: 50%;
 	transform: translateX(-50%);
 	z-index: 100000;
-	background: rgba(45, 10, 10, 0.95);
+	background: rgba(45, 10, 10, 0.96);
 	border: 1px solid #e03131;
 	color: #ffc9c9;
-	padding: 10px 18px;
+	padding: 10px 16px;
 	border-radius: 6px;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.85), 0 0 14px rgba(224, 49, 49, 0.4);
 	display: none;
 	align-items: center;
-	gap: 12px;
+	gap: 10px;
 	font-family: "Segoe UI", Arial, sans-serif;
-	font-size: 13px;
-	max-width: 90vw;
+	font-size: 12.5px;
+	max-width: 92vw;
 	animation: gc-banner-slide-down 0.25s ease-out;
 }
 
@@ -79,7 +79,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	max-width: 600px;
+	max-width: 560px;
 }
 
 #gc-debug-error-banner .banner-btn {
@@ -91,6 +91,8 @@
 	font-size: 11px;
 	cursor: pointer;
 	font-weight: bold;
+	white-space: nowrap;
+	transition: background 0.15s;
 }
 
 #gc-debug-error-banner .banner-btn:hover {
@@ -100,16 +102,16 @@
 /* Modal Principal do Debugger */
 #gc-debugger-modal {
 	position: fixed;
-	top: 50px;
-	right: 20px;
-	width: 540px;
-	max-width: calc(100vw - 40px);
-	height: 640px;
-	max-height: calc(100vh - 80px);
+	top: 36px;
+	right: 16px;
+	width: 680px;
+	max-width: calc(100vw - 32px);
+	height: 720px;
+	max-height: calc(100vh - 64px);
 	background: #12100d;
 	border: 2px solid #5a4524;
 	border-radius: 8px;
-	box-shadow: 0 12px 36px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 215, 130, 0.15);
+	box-shadow: 0 12px 42px rgba(0, 0, 0, 0.92), inset 0 1px 0 rgba(255, 215, 130, 0.15);
 	z-index: 99998;
 	display: none;
 	flex-direction: column;
@@ -152,23 +154,37 @@
 	letter-spacing: 0.5px;
 }
 
+.gc-dbg-fps-pill {
+	font-family: "Consolas", monospace;
+	font-size: 10px;
+	background: #0d0b09;
+	border: 1px solid #3d301f;
+	color: #8ce99a;
+	padding: 2px 6px;
+	border-radius: 4px;
+	font-weight: bold;
+}
+
 .gc-dbg-actions {
 	display: flex;
 	gap: 6px;
+	align-items: center;
 }
 
 .gc-dbg-btn-icon {
 	background: #1c1813;
 	border: 1px solid #5a4524;
 	color: #bfa67a;
-	width: 24px;
+	min-width: 26px;
 	height: 24px;
+	padding: 0 6px;
 	border-radius: 4px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	cursor: pointer;
 	font-size: 11px;
+	transition: all 0.15s;
 }
 
 .gc-dbg-btn-icon:hover {
@@ -180,19 +196,20 @@
 /* Barra de Abas */
 .gc-dbg-tabs {
 	display: flex;
+	flex-wrap: wrap;
 	background: #0d0b09;
 	border-bottom: 1px solid #362815;
 }
 
 .gc-dbg-tab {
-	flex: 1;
-	padding: 8px 6px;
+	flex: 1 1 auto;
+	padding: 7px 6px;
 	background: transparent;
 	border: none;
 	border-bottom: 2px solid transparent;
 	color: #8c8273;
 	font-family: "Gwent", "Cinzel", "Georgia", serif;
-	font-size: 11px;
+	font-size: 10.5px;
 	font-weight: bold;
 	cursor: pointer;
 	text-align: center;
@@ -200,7 +217,8 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
+	gap: 4px;
+	white-space: nowrap;
 }
 
 .gc-dbg-tab:hover {
@@ -211,7 +229,7 @@
 .gc-dbg-tab.active {
 	color: #f0cb78;
 	border-bottom-color: #d1b16a;
-	background: rgba(209, 177, 106, 0.1);
+	background: rgba(209, 177, 106, 0.12);
 }
 
 .gc-dbg-tab .tab-badge {
@@ -227,15 +245,19 @@
 .gc-dbg-content {
 	flex: 1;
 	overflow-y: auto;
-	padding: 12px;
+	padding: 10px 12px;
 	background: #12100d;
 	font-size: 12px;
+	display: flex;
+	flex-direction: column;
 }
 
 .gc-dbg-tab-panel {
 	display: none;
 	flex-direction: column;
-	gap: 12px;
+	gap: 10px;
+	flex: 1;
+	min-height: 0;
 }
 
 .gc-dbg-tab-panel.active {
@@ -247,7 +269,7 @@
 	background: #181511;
 	border: 1px solid #362916;
 	border-radius: 6px;
-	padding: 10px;
+	padding: 9px 10px;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -265,39 +287,76 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
 }
 
 /* Grid de Status do Tabuleiro */
 .gc-dbg-status-grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px;
+}
+
+.gc-dbg-status-grid.cols-3 {
+	grid-template-columns: repeat(3, 1fr);
 }
 
 .gc-dbg-stat-box {
 	background: #0f0d0a;
 	border: 1px solid #2a2012;
 	border-radius: 4px;
-	padding: 8px;
+	padding: 6px 8px;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 2px;
 }
 
 .gc-dbg-stat-label {
-	font-size: 10px;
+	font-size: 9.5px;
 	color: #8c8273;
 	text-transform: uppercase;
 }
 
 .gc-dbg-stat-value {
-	font-size: 14px;
+	font-size: 12.5px;
 	font-weight: bold;
 	color: #f5eedf;
 }
 
 .gc-dbg-stat-value.highlight {
 	color: #d1b16a;
+}
+
+/* Indicadores de Flags / Locks */
+.gc-dbg-locks-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	align-items: center;
+}
+
+.gc-dbg-lock-pill {
+	font-family: "Consolas", monospace;
+	font-size: 10px;
+	padding: 2px 7px;
+	border-radius: 3px;
+	background: #14120e;
+	border: 1px solid #2c2418;
+	color: #7c7265;
+}
+
+.gc-dbg-lock-pill.active-lock {
+	background: #421313;
+	border-color: #ff6b6b;
+	color: #ffc9c9;
+	font-weight: bold;
+}
+
+.gc-dbg-lock-pill.ok-state {
+	background: #112a18;
+	border-color: #2f9e44;
+	color: #8ce99a;
 }
 
 /* Detalhamento de Fileiras */
@@ -328,9 +387,9 @@
 	font-weight: bold;
 }
 
-/* Lista de Cartas da Mão da IA */
+/* Lista de Cartas do Inspetor */
 .gc-dbg-ai-hand-list {
-	max-height: 180px;
+	max-height: 195px;
 	overflow-y: auto;
 	background: #0d0b09;
 	border: 1px solid #2a2012;
@@ -350,6 +409,7 @@
 	border: 1px solid #2a2012;
 	border-radius: 4px;
 	font-size: 11px;
+	gap: 8px;
 }
 
 .gc-dbg-ai-card-item.hero {
@@ -367,29 +427,64 @@
 	font-size: 10px;
 }
 
+.gc-dbg-card-mini-actions {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+.gc-dbg-mini-btn {
+	background: #241d14;
+	border: 1px solid #4a381c;
+	color: #d1b16a;
+	font-size: 9.5px;
+	padding: 2px 6px;
+	border-radius: 3px;
+	cursor: pointer;
+	transition: all 0.12s;
+	white-space: nowrap;
+}
+
+.gc-dbg-mini-btn:hover {
+	background: #3d301f;
+	color: #fff;
+	border-color: #c9a44e;
+}
+
+.gc-dbg-mini-btn.copied {
+	background: #1b4332 !important;
+	border-color: #40c057 !important;
+	color: #b2f2bb !important;
+}
+
 /* Painel de Ações & Card Spawner */
 .gc-dbg-actions-grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 8px;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px;
+}
+
+.gc-dbg-actions-grid.cols-3 {
+	grid-template-columns: repeat(3, 1fr);
 }
 
 .gc-dbg-btn {
 	background: linear-gradient(180deg, #2a2114 0%, #18130b 100%);
 	border: 1px solid #5a4524;
 	color: #dfcd9f;
-	padding: 7px 10px;
+	padding: 6px 9px;
 	border-radius: 4px;
 	font-size: 11px;
 	font-weight: 600;
 	cursor: pointer;
 	text-align: center;
 	transition: all 0.15s ease;
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
+	gap: 5px;
 	user-select: none;
+	white-space: nowrap;
 }
 
 .gc-dbg-btn:hover {
@@ -400,6 +495,24 @@
 
 .gc-dbg-btn:active {
 	transform: translateY(1px);
+}
+
+.gc-dbg-btn.primary {
+	background: linear-gradient(180deg, #3b2d16 0%, #21180a 100%);
+	border-color: #c9a44e;
+	color: #ffe08a;
+}
+
+.gc-dbg-btn.success {
+	background: linear-gradient(180deg, #173b22 0%, #0c2113 100%);
+	border-color: #2f9e44;
+	color: #b2f2bb;
+}
+
+.gc-dbg-btn.success:hover {
+	background: linear-gradient(180deg, #205230 0%, #13331d 100%);
+	border-color: #51cf66;
+	color: #fff;
 }
 
 .gc-dbg-btn.danger {
@@ -418,14 +531,14 @@
 .gc-dbg-spawner-form {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 6px;
 }
 
 .gc-dbg-input, .gc-dbg-select {
 	background: #0f0d0a;
 	border: 1px solid #3d301f;
 	color: #f5eedf;
-	padding: 6px 10px;
+	padding: 5px 9px;
 	border-radius: 4px;
 	font-size: 11px;
 	outline: none;
@@ -436,44 +549,88 @@
 	box-shadow: 0 0 6px rgba(201, 164, 78, 0.3);
 }
 
-/* Console & Logs */
+/* ===========================================================================
+   BARRA DE FERRAMENTAS DE LOGS & SELEÇÃO GRANULAR
+   =========================================================================== */
 .gc-dbg-log-toolbar {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 6px;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 6px;
+}
+
+.gc-dbg-selection-bar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	align-items: center;
+	justify-content: space-between;
+	background: #17130e;
+	border: 1px solid #332615;
+	padding: 5px 8px;
+	border-radius: 4px;
+}
+
+.gc-dbg-selection-left,
+.gc-dbg-selection-right {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	align-items: center;
+}
+
+.gc-dbg-sel-count {
+	font-size: 10.5px;
+	color: #d1b16a;
+	font-weight: bold;
+	padding: 0 4px;
 }
 
 .gc-dbg-log-filters {
 	display: flex;
+	flex-wrap: wrap;
 	gap: 4px;
 }
 
 .gc-dbg-filter-chip {
 	background: #1c1813;
 	border: 1px solid #362916;
-	color: #8c8273;
-	padding: 2px 8px;
+	color: #9c9180;
+	padding: 3px 8px;
 	border-radius: 3px;
 	font-size: 10px;
 	cursor: pointer;
+	user-select: none;
+	transition: all 0.12s;
+}
+
+.gc-dbg-filter-chip:hover {
+	border-color: #7a5f2a;
+	color: #e6dfd3;
 }
 
 .gc-dbg-filter-chip.active {
 	background: #3d301f;
 	border-color: #c9a44e;
 	color: #fff;
+	font-weight: bold;
 }
 
+.gc-dbg-filter-chip .chip-count {
+	opacity: 0.75;
+	font-size: 9px;
+	margin-left: 2px;
+}
+
+/* Console Output */
 .gc-dbg-console-output {
 	flex: 1;
-	min-height: 250px;
-	max-height: 380px;
+	min-height: 240px;
 	background: #080706;
 	border: 1px solid #2a2012;
 	border-radius: 4px;
-	padding: 8px;
+	padding: 6px;
 	overflow-y: auto;
 	font-family: "Consolas", "Courier New", monospace;
 	font-size: 11px;
@@ -484,11 +641,56 @@
 
 .gc-dbg-log-entry {
 	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	line-height: 1.35;
+	word-break: break-word;
+	padding: 4px 6px;
+	border-radius: 3px;
+	border: 1px solid transparent;
+	background: #0d0b09;
+	transition: background 0.12s, border-color 0.12s;
+}
+
+.gc-dbg-log-entry:hover {
+	background: #16130f;
+	border-color: #2f2415;
+}
+
+.gc-dbg-log-entry.selected {
+	background: rgba(209, 177, 106, 0.14) !important;
+	border-color: #b8923a !important;
+}
+
+.gc-dbg-log-row-main {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.gc-dbg-log-left {
+	display: flex;
+	align-items: flex-start;
 	gap: 6px;
-	line-height: 1.4;
-	word-break: break-all;
-	padding: 2px 4px;
-	border-radius: 2px;
+	flex: 1;
+	min-width: 0;
+}
+
+.gc-dbg-log-right {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+.gc-dbg-checkbox {
+	accent-color: #c9a44e;
+	cursor: pointer;
+	margin-top: 2px;
+	width: 13px;
+	height: 13px;
+	flex-shrink: 0;
 }
 
 .gc-dbg-log-entry.info {
@@ -497,19 +699,262 @@
 
 .gc-dbg-log-entry.warn {
 	color: #ffd43b;
-	background: rgba(255, 212, 59, 0.08);
+	background: rgba(255, 212, 59, 0.07);
+	border-left: 3px solid #f59f00;
 }
 
 .gc-dbg-log-entry.error {
 	color: #ff8787;
-	background: rgba(255, 135, 135, 0.12);
-	border-left: 2px solid #e03131;
+	background: rgba(255, 135, 135, 0.11);
+	border-left: 3px solid #e03131;
 }
 
 .gc-dbg-log-entry .time {
 	color: #6b6357;
 	font-size: 10px;
 	flex-shrink: 0;
+}
+
+.gc-dbg-log-lvl-tag {
+	font-size: 9px;
+	font-weight: bold;
+	padding: 0 4px;
+	border-radius: 2px;
+	text-transform: uppercase;
+	flex-shrink: 0;
+}
+
+.gc-dbg-log-lvl-tag.info {
+	background: #1b2838;
+	color: #74c0fc;
+}
+
+.gc-dbg-log-lvl-tag.warn {
+	background: #3b2e08;
+	color: #ffd43b;
+}
+
+.gc-dbg-log-lvl-tag.error {
+	background: #471212;
+	color: #ffa8a8;
+}
+
+.gc-dbg-log-msg {
+	flex: 1;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.gc-dbg-stack-box {
+	display: none;
+	background: #050403;
+	border: 1px solid #362614;
+	border-left: 2px solid #c9a44e;
+	border-radius: 3px;
+	padding: 6px 8px;
+	margin-top: 3px;
+	font-family: "Consolas", monospace;
+	font-size: 10px;
+	color: #d0c3b0;
+	white-space: pre-wrap;
+	word-break: break-all;
+	max-height: 180px;
+	overflow-y: auto;
+}
+
+.gc-dbg-stack-box.open {
+	display: block;
+}
+
+/* Console REPL JS */
+.gc-dbg-repl-bar {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	background: #0b0907;
+	border: 1px solid #3d301f;
+	border-radius: 4px;
+	padding: 4px 8px;
+}
+
+.gc-dbg-repl-prompt {
+	font-family: "Consolas", monospace;
+	color: #d1b16a;
+	font-weight: bold;
+	font-size: 12px;
+}
+
+.gc-dbg-repl-input {
+	flex: 1;
+	background: transparent;
+	border: none;
+	color: #f5eedf;
+	font-family: "Consolas", monospace;
+	font-size: 11px;
+	outline: none;
+}
+
+/* ===========================================================================
+   HISTÓRICO DE COMBATE E RASTREAMENTO DE AÇÕES (MATCH ACTION FEED)
+   =========================================================================== */
+.gc-dbg-feed-container {
+	flex: 1;
+	min-height: 240px;
+	background: #090807;
+	border: 1px solid #2a2012;
+	border-radius: 4px;
+	padding: 6px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+
+.gc-dbg-feed-item {
+	background: #14110d;
+	border: 1px solid #2c2214;
+	border-radius: 4px;
+	padding: 6px 9px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 11px;
+	transition: background 0.15s, border-color 0.15s;
+}
+
+.gc-dbg-feed-item:hover {
+	background: #1c1813;
+	border-color: #4a381c;
+}
+
+.gc-dbg-feed-item.selected {
+	background: rgba(209, 177, 106, 0.14) !important;
+	border-color: #c9a44e !important;
+}
+
+.gc-dbg-feed-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.gc-dbg-feed-left {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex: 1;
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+.gc-dbg-feed-right {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	flex-shrink: 0;
+}
+
+.gc-dbg-feed-icon {
+	font-size: 13px;
+	flex-shrink: 0;
+}
+
+.gc-dbg-actor-badge {
+	font-size: 9px;
+	font-weight: bold;
+	padding: 1px 6px;
+	border-radius: 3px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.gc-dbg-actor-badge.player {
+	background: #172a3a;
+	color: #74c0fc;
+	border: 1px solid #2b4c6f;
+}
+
+.gc-dbg-actor-badge.ai {
+	background: #381b1b;
+	color: #ff8787;
+	border: 1px solid #6b2d2d;
+}
+
+.gc-dbg-actor-badge.system {
+	background: #2a2215;
+	color: #e5c07b;
+	border: 1px solid #5a4524;
+}
+
+.gc-dbg-feed-time {
+	font-family: "Consolas", monospace;
+	font-size: 10px;
+	color: #6b6357;
+}
+
+.gc-dbg-feed-title {
+	font-weight: 600;
+	color: #f0e6d6;
+	line-height: 1.3;
+}
+
+.gc-dbg-feed-details {
+	font-size: 10.5px;
+	color: #a89f91;
+	line-height: 1.35;
+	background: rgba(0, 0, 0, 0.25);
+	padding: 4px 6px;
+	border-radius: 3px;
+	border-left: 2px solid #3d301f;
+	margin-left: 19px;
+}
+
+/* Modificadores por Tipo de Ação */
+.gc-dbg-feed-item.match {
+	border-color: #7a5f2a;
+	background: linear-gradient(90deg, #1f180f 0%, #14110d 100%);
+}
+
+.gc-dbg-feed-item.round {
+	border-color: #997838;
+	background: linear-gradient(90deg, #241c10 0%, #16120d 100%);
+}
+
+.gc-dbg-feed-item.play {
+	border-left: 3px solid #3b82f6;
+}
+
+.gc-dbg-feed-item.ability {
+	border-left: 3px solid #eab308;
+}
+
+.gc-dbg-feed-item.pass {
+	border-left: 3px solid #a855f7;
+}
+
+/* Item de Anomalia */
+.gc-dbg-feed-item.anomaly {
+	border: 1px solid #ff4d4d !important;
+	border-left: 4px solid #ff4d4d !important;
+	background: linear-gradient(90deg, #380e0e 0%, #1a0808 100%) !important;
+	box-shadow: 0 0 10px rgba(255, 77, 77, 0.2);
+}
+
+.gc-dbg-feed-item.anomaly .gc-dbg-feed-title {
+	color: #ff9999 !important;
+	font-weight: bold;
+}
+
+.gc-dbg-anomaly-badge {
+	background: #6b1414;
+	color: #ffcccc;
+	font-size: 9px;
+	font-weight: bold;
+	padding: 1px 6px;
+	border-radius: 3px;
+	border: 1px solid #ff4d4d;
+	animation: gc-debug-pulse 1.5s infinite;
 }
 
 /* Toast de Ação */
@@ -523,7 +968,7 @@
 	padding: 8px 16px;
 	border-radius: 4px;
 	font-size: 12px;
-	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.8);
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.85);
 	z-index: 100001;
 	animation: gc-toast-in 0.2s ease-out;
 }
@@ -532,4 +977,3 @@
 	from { opacity: 0; transform: translateY(10px); }
 	to { opacity: 1; transform: translateY(0); }
 }
-

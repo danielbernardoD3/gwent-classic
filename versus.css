@@ -918,50 +918,202 @@
 	left: -0.45vw;
 }
 
-/* Engrenagem de Configurações e Botão de Notificações no Tabuleiro */
-#open-game-settings {
-	top: 48.9vw;
-	left: 15.6vw;
-	cursor: pointer;
-	z-index: 80;
-	transition: transform 0.25s ease, filter 0.25s ease;
+/* Botão Regras da Partida abaixo do botão Desistir */
+#match-rules-indicator {
+	position: absolute !important;
+	top: 88.0% !important;
+	left: 60.5% !important;
+	width: 25% !important;
+	height: 3.6% !important;
+	font-family: 'WitcherTitle', 'Cinzel', Arial Narrow, sans-serif;
+	font-size: 1.12vw !important;
+	font-weight: bold;
+	letter-spacing: 0.05vw;
+	color: #a3e6b2 !important;
+	border: 0.1vw solid #25703f !important;
+	border-radius: 0.35vw !important;
+	background: linear-gradient(180deg, rgba(14, 38, 20, 0.94) 0%, rgba(8, 22, 12, 0.96) 100%) !important;
+	box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.8), inset 0 0 0.3vw rgba(46, 204, 113, 0.15) !important;
+	transition: all 0.2s ease !important;
+	cursor: pointer !important;
+	z-index: 15 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	pointer-events: auto !important;
 }
 
-#open-game-settings:hover {
-	transform: rotate(35deg) scale(1.1);
+#match-rules-indicator:hover,
+#match-rules-indicator.gamepad-focus {
+	border-color: #2ecc71 !important;
+	color: #ffffff !important;
+	background: linear-gradient(180deg, rgba(22, 68, 34, 0.98) 0%, rgba(12, 38, 18, 0.98) 100%) !important;
+	box-shadow: 0 0 0.8vw rgba(46, 204, 113, 0.6) !important;
+	transform: scale(1.03);
 }
 
-#toggle-notifications {
-	top: 48.9vw;
-	left: 19.2vw;
-	cursor: pointer;
-	z-index: 80;
-	transition: transform 0.2s ease;
+#match-rules-indicator[data-title]:hover::after {
+	bottom: -2.2vw;
+	left: -0.45vw;
 }
 
-#toggle-notifications:hover {
-	transform: scale(1.1);
+/* Pilha vertical de botões utilitários do duelo (Emotes e Configurações) perfeitamente empilhados sem espaço */
+#duel-utility-controls {
+	position: absolute !important;
+	top: 77.5% !important;
+	left: 13.0% !important;
+	width: 13.2% !important;
+	height: 12.5% !important;
+	display: flex !important;
+	flex-direction: column !important;
+	justify-content: stretch !important;
+	align-items: stretch !important;
+	gap: 0 !important;
+	z-index: 100 !important;
+	pointer-events: auto !important;
+	border-radius: 0.35vw !important;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75) !important;
 }
 
-/* Oculta botões flutuantes do tabuleiro quando no Menu Principal, Deck Builder, Mapa ou quando <main> estiver oculto */
-main.hide ~ #open-game-settings,
-main.hide ~ #toggle-notifications,
-#main-menu:not(.hide) ~ #open-game-settings,
-#main-menu:not(.hide) ~ #toggle-notifications,
-#deck-customization:not(.hide) ~ #open-game-settings,
-#deck-customization:not(.hide) ~ #toggle-notifications,
-#story-map-screen:not(.hide) ~ #open-game-settings,
-#story-map-screen:not(.hide) ~ #toggle-notifications,
-#versus-lobby-modal:not(.hide) ~ #open-game-settings,
-#versus-lobby-modal:not(.hide) ~ #toggle-notifications,
-#open-game-settings.deck-menu,
-#toggle-notifications.deck-menu {
-	display: none !important;
+.duel-utility-btn {
+	position: relative !important;
+	top: auto !important;
+	left: auto !important;
+	width: 100% !important;
+	height: 50% !important;
+	background: rgba(20, 15, 11, 0.95) !important;
+	border: 1px solid #c5a059 !important;
+	cursor: pointer !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	transition: all 0.2s ease !important;
+	pointer-events: auto !important;
+	box-sizing: border-box !important;
 }
 
-/* Modal de Configurações sempre acima de qualquer tela do jogo */
-#settings-modal-overlay {
-	z-index: 35000 !important;
+#btn-versus-emote-trigger.duel-utility-btn {
+	border-radius: 0.35vw 0.35vw 0 0 !important;
+	border-bottom: 1px solid rgba(197, 160, 89, 0.45) !important;
+}
+
+#open-game-settings.duel-utility-btn {
+	border-radius: 0 0 0.35vw 0.35vw !important;
+	border-top: none !important;
+}
+
+.duel-utility-btn:hover,
+.duel-utility-btn.gamepad-focus {
+	background: #3e2f20 !important;
+	border-color: #ffd700 !important;
+	z-index: 250 !important;
+	box-shadow: 0 0 0.8vw rgba(255, 215, 0, 0.65) !important;
+}
+
+.duel-utility-btn > img {
+	width: 2.05vw !important;
+	height: 2.05vw !important;
+	object-fit: contain !important;
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9)) !important;
+	transition: transform 0.25s ease, opacity 0.2s ease, filter 0.2s ease !important;
+	pointer-events: none !important;
+}
+
+#open-game-settings.duel-utility-btn:hover > img {
+	transform: rotate(35deg) !important;
+}
+
+.duel-utility-btn.fade {
+	border-color: rgba(197, 160, 89, 0.4) !important;
+	background: rgba(16, 12, 9, 0.78) !important;
+}
+
+.duel-utility-btn.fade > img {
+	opacity: 0.25 !important;
+	filter: grayscale(0.5) !important;
+}
+
+.duel-utility-btn.fade:hover > img {
+	opacity: 0.5 !important;
+}
+
+/* Efeito de brilho pulsante no botão de Emotes e Reações */
+#btn-versus-emote-trigger.duel-utility-btn {
+	border-color: #ffd700 !important;
+	box-shadow: 0 0 0.5vw rgba(255, 215, 0, 0.45), 0 3px 10px rgba(0, 0, 0, 0.7) !important;
+	animation: emoteGlowPulse 2.4s infinite ease-in-out;
+}
+
+@keyframes emoteGlowPulse {
+	0%, 100% {
+		box-shadow: 0 0 0.35vw rgba(255, 215, 0, 0.35), inset 0 0 0.25vw rgba(255, 215, 0, 0.15);
+		border-color: #d4af37 !important;
+	}
+	50% {
+		box-shadow: 0 0 0.75vw rgba(255, 215, 0, 0.75), inset 0 0 0.45vw rgba(255, 215, 0, 0.3);
+		border-color: #ffe066 !important;
+	}
+}
+
+#btn-versus-emote-trigger.duel-utility-btn > img {
+	filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.7)) !important;
+}
+
+#btn-versus-emote-trigger.duel-utility-btn:hover > img,
+#btn-versus-emote-trigger.duel-utility-btn.gamepad-focus > img {
+	filter: drop-shadow(0 0 8px rgba(255, 215, 0, 1)) !important;
+}
+
+/* Indicador Opcional de Diferença de Pontos no Placar */
+.score-diff-badge {
+	position: absolute;
+	top: 73%;
+	left: 92.5%;
+	width: 16%;
+	height: 22%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: "Gwent", "Cinzel", Georgia, serif;
+	font-size: clamp(0.65rem, 0.8vw, 0.95rem);
+	font-weight: bold;
+	border-radius: 3px;
+	padding: 0 2px;
+	box-sizing: border-box;
+	text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 1px 2px #000;
+	pointer-events: none;
+	z-index: 50;
+	transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.score-diff-badge.diff-lead {
+	color: #2ecc71 !important;
+	background: rgba(14, 45, 18, 0.9) !important;
+	border: 1px solid rgba(46, 204, 113, 0.8) !important;
+	box-shadow: 0 0 6px rgba(46, 204, 113, 0.45) !important;
+}
+
+.score-diff-badge.diff-deficit {
+	color: #ff6b6b !important;
+	background: rgba(50, 15, 15, 0.9) !important;
+	border: 1px solid rgba(231, 76, 60, 0.8) !important;
+	box-shadow: 0 0 6px rgba(231, 76, 60, 0.45) !important;
+}
+
+.score-diff-badge.diff-tie {
+	color: #ffd700 !important;
+	background: rgba(45, 38, 12, 0.9) !important;
+	border: 1px solid rgba(241, 196, 15, 0.75) !important;
+	box-shadow: 0 0 6px rgba(241, 196, 15, 0.35) !important;
+}
+
+/* Modais sempre acima de qualquer tela do jogo e do Lobby Versus */
+#rules-modal,
+#board-modal,
+#opponent-modal,
+#settings-modal-overlay,
+.witcher-modal {
+	z-index: 36000 !important;
 }
 
 /* Melhorias visuais dos painéis de estatísticas dos jogadores (#stats-op e #stats-me) */
@@ -1055,39 +1207,7 @@ main.hide ~ #toggle-notifications,
    VERSUS MODE: RADIAL EMOTE MENU & SPEECH BUBBLES
    ========================================================================== */
 
-/* Trigger button in #panel-left (placed right below #forfeit-button) */
-#btn-versus-emote-trigger {
-	position: absolute !important;
-	top: 88.0% !important;
-	left: 60.5% !important;
-	width: 25% !important;
-	height: 3.6% !important;
-	font-family: 'WitcherTitle', 'Cinzel', Arial Narrow, sans-serif;
-	font-size: 1.1vw !important;
-	font-weight: bold;
-	letter-spacing: 0.05vw;
-	color: #f7e7c4;
-	border: 0.1vw solid #c5973b;
-	border-radius: 0.35vw;
-	background: linear-gradient(180deg, rgba(38, 28, 18, 0.95) 0%, rgba(20, 15, 10, 0.98) 100%);
-	box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.8), inset 0 0 0.3vw rgba(212, 163, 75, 0.2);
-	transition: all 0.2s ease;
-	cursor: pointer;
-	z-index: 15;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	pointer-events: auto !important;
-}
-
-#btn-versus-emote-trigger:hover {
-	border-color: #ffd700;
-	color: #ffffff;
-	background: linear-gradient(180deg, rgba(58, 42, 26, 0.98) 0%, rgba(32, 22, 14, 0.99) 100%);
-	box-shadow: 0 0 0.8vw rgba(255, 215, 0, 0.5);
-	transform: scale(1.03);
-}
-
+/* Trigger button in #duel-utility-controls (stacked square button) */
 #btn-versus-emote-trigger.hide {
 	display: none !important;
 }

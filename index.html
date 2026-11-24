@@ -12,22 +12,25 @@
 	<link rel="icon" type="image/png" href="Appico.png" />
 	<link rel="apple-touch-icon" href="Appico.png" />
 	<link rel="shortcut icon" href="app.ico" />
-	<link rel="stylesheet" type="text/css" href="style.css" />
-	<link rel="stylesheet" type="text/css" href="menu.css" />
-	<link rel="stylesheet" type="text/css" href="story.css" />
-	<link rel="stylesheet" type="text/css" href="versus.css" />
-	<link rel="stylesheet" type="text/css" href="debugger.css" />
+	<link rel="stylesheet" type="text/css" href="style.css?v=11" />
+	<link rel="stylesheet" type="text/css" href="menu.css?v=11" />
+	<link rel="stylesheet" type="text/css" href="story.css?v=11" />
+	<link rel="stylesheet" type="text/css" href="versus.css?v=11" />
+	<link rel="stylesheet" type="text/css" href="debugger.css?v=11" />
+	<link rel="stylesheet" type="text/css" href="avatars.css?v=12" />
 </head>
 
 <body data-screen="menu">
 
 <!-- MAIN MENU OVERLAY -->
 <section id="main-menu" class="main-menu-container">
+	<canvas id="main-menu-particles" class="main-menu-particles-canvas" aria-hidden="true"></canvas>
+
 	<div class="menu-brand-header">
 		<img src="img/hud-icons/GCLogo.png" class="menu-brand-logo" alt="Gwent Classic" />
 	</div>
 
-	<div class="menu-version-badge" id="menu-version-badge" title="Gwent Classic v1.3.3 — Clique para verificar atualizações" onclick="InGameUpdater.checkForUpdates(true)">v1.3.3</div>
+	<div class="menu-version-badge" id="menu-version-badge" title="Gwent Classic v1.3.3" onclick="MenuController.handleVersionBadgeClick(event)">v1.0.0</div>
 
 	<!-- Bottom-Right 50% Panel with 30% black opacity -->
 	<div class="menu-panel-bottom-right">
@@ -190,6 +193,21 @@
 					</select>
 				</div>
 
+				<!-- Game Speed (Fast Forward) -->
+				<div class="setting-row">
+					<label data-i18n="settings_game_speed">Velocidade do Jogo (IA / Animações)</label>
+					<div class="volume-slider-box">
+						<input type="range" id="setting-game-speed" class="witcher-slider" min="1.0" max="2.0" step="0.1" value="1.0" />
+						<span id="game-speed-display" class="volume-num">1.0x</span>
+					</div>
+				</div>
+
+				<!-- Score Difference Indicator -->
+				<div class="setting-row">
+					<label data-i18n="settings_score_diff">Exibir Diferença no Placar</label>
+					<input type="checkbox" id="setting-score-diff" class="witcher-checkbox" />
+				</div>
+
 				<!-- Save Management -->
 				<div class="setting-row">
 					<label>Dados do Jogo</label>
@@ -285,10 +303,6 @@
 	<section id="panel-left" class="panel">
 
 		<div id="exit-game" data-i18n-title="title_exit_game" data-title="Sair da partida" role="button" aria-label="Sair da partida" tabindex="0"></div>
-		<div id="match-rules-indicator" class="match-rules-indicator hide" onclick="DeckMaker.openRulesSummaryModal()" title="Clique para ver as Regras Ativas desta partida">
-			<span class="rules-pill-icon">📜</span>
-			<span id="match-rules-indicator-text" class="rules-pill-text">Regras (0)</span>
-		</div>
 	
 		<div id="leader-op" class="leader-box">
 			<div class="leader-container center" data-i18n-title="title_view_leader" data-title="View leader"> 
@@ -334,10 +348,16 @@
 			<div id="deck-name-me" class="deck-name"></div>
 			
 			<div id="score-total-me" class="score-total"><div class="center">0</div></div>
+			<div id="score-diff-badge" class="score-diff-badge hide" data-title="Diferença no placar (Você vs Oponente)">0</div>
 			
 			
 		</section>
 		
+		<div id="duel-utility-controls" class="duel-utility-controls">
+			<div id="btn-versus-emote-trigger" class="center settings-button duel-utility-btn emote-glow-btn" data-title="Menu de Emotes e Reações (E / RS)" role="button" aria-label="Reações de Taverna" tabindex="0"><img src="svg/emote.svg" alt="Reações" /></div>
+			<div id="open-game-settings" class="center settings-button duel-utility-btn" data-i18n-title="menu_settings" data-title="Configurações" role="button" aria-label="Configurações" tabindex="0" onclick="MenuController.openSettingsOverlay('game')"><img src="svg/settings.svg" alt="Configurações" /></div>
+		</div>
+
 		<div id="leader-me" class="leader-box">
 			<div class="leader-container center" data-i18n-title="title_play_leader" data-title="Play leader"></div>
 			<div class="leader-active">
@@ -347,7 +367,7 @@
 		
 		<div id="pass-button" class="center" data-i18n-title="title_pass_round" data-title="Pass round" data-i18n="btn_pass">Pass</div>
 		<div id="forfeit-button" class="center" data-i18n-title="title_forfeit_game" data-title="Desistir da partida" data-i18n="btn_forfeit">Desistir</div>
-		<div id="btn-versus-emote-trigger" class="center hide" data-title="Menu de Emotes (E / RS)" title="Menu de Emotes (E / RS)">💬 Emotes</div>
+		<div id="match-rules-indicator" class="center" onclick="DeckMaker.openRulesSummaryModal()" data-title="Regras da partida" role="button" aria-label="Regras da partida" tabindex="0">Regras</div>
 		
 	
 	<!-- VERSUS SPEECH BUBBLES -->
@@ -559,6 +579,10 @@
 		</div>
 
 		<div class="deck-top-right">
+			<button id="btn-deck-avatar" class="witcher-btn-compact" onclick="AvatarManager.openPicker('deck')" title="Escolher Avatar do Jogador">
+				<span id="deck-avatar-thumb" class="deck-avatar-thumb"></span>
+				<span class="btn-text">Avatar</span>
+			</button>
 			<button id="btn-deck-settings" class="witcher-btn-compact" data-i18n="menu_settings" onclick="MenuController.openSettingsOverlay('deck')">
 				<span class="btn-icon">⚙</span>
 				<span class="btn-text" data-i18n="menu_settings">Configurações</span>
@@ -639,7 +663,7 @@
 			</div>
 
 			<!-- Opponent Selector Component -->
-			<div id="opponent-preview" class="witcher-op-selector">
+			<div id="opponent-preview" class="witcher-op-selector" onclick="DeckMaker.openOpponentModal()">
 				<div class="op-selector-header">
 					<p data-i18n="op_deck">Opponent's Deck</p>
 				</div>
@@ -663,7 +687,7 @@
 			</div>
 
 			<!-- Quick Match Board Selector Component -->
-			<div id="board-preview" class="witcher-op-selector witcher-board-selector">
+			<div id="board-preview" class="witcher-op-selector witcher-board-selector" onclick="DeckMaker.openBoardModal()">
 				<div class="op-selector-header">
 					<p>Tabuleiro da Partida</p>
 				</div>
@@ -678,7 +702,7 @@
 			</div>
 
 			<!-- Quick Match Rules Selector Component -->
-			<div id="rules-preview" class="witcher-op-selector witcher-rules-selector">
+			<div id="rules-preview" class="witcher-op-selector witcher-rules-selector" onclick="DeckMaker.openRulesModal()">
 				<div class="op-selector-header">
 					<p>Regras da Partida</p>
 				</div>
@@ -1113,6 +1137,32 @@
 				</select>
 			</div>
 
+			<!-- Player Avatar Customization -->
+			<div class="setting-row">
+				<label>Avatar do Jogador</label>
+				<div style="display:flex; align-items:center; gap: 12px;">
+					<div id="settings-player-avatar-preview" class="settings-avatar-preview"></div>
+					<button type="button" class="witcher-menu-btn" style="width: auto; padding: 0.6vh 1.2vw; font-size: clamp(0.75rem, 0.9vw, 0.95rem); border-color: #ffd700; margin: 0;" onclick="AvatarManager.openPicker('settings')">
+						<span>🖼️ Trocar Avatar</span>
+					</button>
+				</div>
+			</div>
+
+			<!-- Game Speed (Fast Forward) -->
+			<div class="setting-row">
+				<label data-i18n="settings_game_speed">Velocidade do Jogo (IA / Animações)</label>
+				<div class="volume-slider-box">
+					<input type="range" id="setting-game-speed-overlay" class="witcher-slider" min="1.0" max="2.0" step="0.1" value="1.0" />
+					<span id="game-speed-display-overlay" class="volume-num">1.0x</span>
+				</div>
+			</div>
+
+			<!-- Score Difference Indicator -->
+			<div class="setting-row">
+				<label data-i18n="settings_score_diff">Exibir Diferença no Placar</label>
+				<input type="checkbox" id="setting-score-diff-overlay" class="witcher-checkbox" />
+			</div>
+
 			<!-- Save Management -->
 			<div class="setting-row">
 				<label>Dados do Jogo</label>
@@ -1247,7 +1297,7 @@
 	<header class="story-hud-bar">
 		<div class="story-hud-left">
 			<div class="story-player-badge clickable" onclick="StoryMode.toggleStatsDrawer()" title="Clique para ver Estatísticas do Jogador">
-				<div class="story-wolf-icon" title="Medalhão de Lobo de Geralt"></div>
+				<div id="story-hud-player-avatar" class="story-hud-avatar-circle" title="Avatar do Jogador"></div>
 				<div class="story-player-info">
 					<span id="story-hud-player-name" class="story-hud-player-title">Geralt de Rívia</span>
 					<span id="story-hud-location-name" class="story-hud-location">Pomar Branco · Taverna</span>
@@ -1311,10 +1361,13 @@
 		<div class="story-stats-drawer-inner">
 			<div class="stats-drawer-header">
 				<div class="stats-drawer-title-box">
-					<img src="img/hud-icons/Medallion.png" class="stats-drawer-medallion" alt="Medalhão" />
+					<div id="stats-drawer-player-avatar" class="stats-drawer-avatar-circle" onclick="AvatarManager.openPicker('story')" title="Clique para trocar de avatar"></div>
 					<div>
 						<h3 id="stats-drawer-player-name" class="stats-drawer-name">Geralt de Rívia</h3>
 						<span id="stats-drawer-faction-diff" class="stats-drawer-sub">Reinos do Norte · Dificuldade Média</span>
+						<div>
+							<button type="button" class="story-btn-change-avatar" onclick="AvatarManager.openPicker('story')">🖼️ Trocar Avatar</button>
+						</div>
 					</div>
 				</div>
 				<button class="stats-drawer-close-btn" onclick="StoryMode.toggleStatsDrawer(false)" title="Fechar Gaveta">✕</button>
@@ -1474,9 +1527,19 @@
 
 		<div class="story-battle-details-grid">
 			<div class="story-op-card-box">
-				<div id="story-battle-op-avatar" class="story-battle-op-avatar"></div>
-				<strong id="story-battle-op-name" style="font-size:1.1rem; color:#fff;">Elsa</strong>
-				<span id="story-battle-op-faction" class="story-faction-badge monsters">Monstros</span>
+				<div class="story-battle-avatar-wrapper">
+					<div id="story-battle-op-avatar" class="story-battle-op-avatar"></div>
+				</div>
+				<div class="story-op-nameplate">
+					<div class="story-op-header-title">
+						<span class="story-op-ornament">✦</span>
+						<span class="story-op-badge-label">Desafiante</span>
+						<span class="story-op-ornament">✦</span>
+					</div>
+					<div id="story-battle-op-name" class="story-battle-op-name">Elsa</div>
+					<div class="story-op-nameplate-line"></div>
+					<span id="story-battle-op-faction" class="story-faction-badge monsters">Monstros</span>
+				</div>
 			</div>
 
 			<div>
@@ -1846,6 +1909,11 @@
 				<!-- Jogador Local -->
 				<div id="versus-p1-card" class="versus-player-card">
 					<div class="versus-player-badge">Você</div>
+					<div id="versus-p1-avatar-wrap" class="versus-avatar-box clickable" onclick="AvatarManager.openPicker('versus')" title="Clique para trocar seu avatar">
+						<div id="versus-p1-avatar" class="versus-avatar-circle"></div>
+						<div class="versus-avatar-border"></div>
+						<div class="versus-avatar-edit-hint">Trocar</div>
+					</div>
 					<div id="versus-p1-name" class="versus-player-name">Geralt</div>
 					<div id="versus-p1-crest" class="versus-player-crest"></div>
 					<div id="versus-p1-faction" class="versus-player-faction">Reinos do Norte</div>
@@ -1857,6 +1925,10 @@
 				<!-- Jogador Remoto -->
 				<div id="versus-p2-card" class="versus-player-card">
 					<div class="versus-player-badge">Adversário</div>
+					<div id="versus-p2-avatar-wrap" class="versus-avatar-box">
+						<div id="versus-p2-avatar" class="versus-avatar-circle"></div>
+						<div class="versus-avatar-border"></div>
+					</div>
 					<div id="versus-p2-name" class="versus-player-name">Convidado</div>
 					<div id="versus-p2-crest" class="versus-player-crest"></div>
 					<div id="versus-p2-faction" class="versus-player-faction">Nilfgaard</div>
@@ -1937,11 +2009,6 @@
 		<button class="witcher-menu-btn" style="width: 220px; margin: 0 auto;" onclick="VersusMode.exitVersusToMenu()">Voltar ao Menu</button>
 	</div>
 </div>
-
-<!-- IN-GAME BOARD SETTINGS & NOTIFICATION BUTTONS (Placed after all screens so sibling CSS rules apply) -->
-<div data-i18n-title="menu_settings" data-title="Configurações" id="open-game-settings" class="center settings-button deck-menu" onclick="MenuController.openSettingsOverlay('game')"><img src="svg/settings.svg" alt="Configurações"></img></div>
-
-<div data-i18n-title="title_toggle_notif" data-title="Toggle game messages" id="toggle-notifications" class="center settings-button deck-menu"><img src="svg/notification.svg"></img></div>
 
 <!-- IN-GAME DIALOG MODAL (Replaces all browser alert() and confirm() popups) -->
 <div id="ingame-dialog-modal" class="ingame-dialog-overlay hide">
@@ -2107,21 +2174,108 @@
 	</div>
 </div>
 
-<script type="text/javascript" src="common.js"></script>
-<script type="text/javascript" src="cards.js"></script>
-<script type="text/javascript" src="decks.js"></script>
-<script type="text/javascript" src="abilities.js"></script>
-<script type="text/javascript" src="factions.js"></script>
-<script type="text/javascript" src="story_data.js"></script>
-<script type="text/javascript" src="story.js"></script>
-<script type="text/javascript" src="i18n.js"></script>
-<script type="text/javascript" src="achievements.js"></script>
-<script type="text/javascript" src="gwent.js?v=3"></script>
+<!-- GAMEPAD ON-SCREEN VIRTUAL KEYBOARD (OSK) -->
+<div id="gamepad-osk-modal" class="gamepad-osk-overlay hide">
+	<div class="gamepad-osk-backdrop" onclick="GamepadManager.closeOSK(false)"></div>
+	<div class="gamepad-osk-container">
+		<div class="gamepad-osk-header">
+			<div class="gamepad-osk-title-wrap">
+				<span class="gamepad-osk-icon">⌨️</span>
+				<h3 id="gamepad-osk-title" class="gamepad-osk-title">DIGITAR COM O CONTROLE</h3>
+			</div>
+			<button class="gamepad-osk-close-btn" type="button" onclick="GamepadManager.closeOSK(false)" title="Cancelar (B)">✕</button>
+		</div>
+		<div class="gamepad-osk-input-wrapper">
+			<input type="text" id="gamepad-osk-input" class="gamepad-osk-preview-input" readonly spellcheck="false" autocomplete="off" />
+			<span class="gamepad-osk-cursor">|</span>
+		</div>
+		<div id="gamepad-osk-grid" class="gamepad-osk-grid">
+			<!-- Teclado gerado dinamicamente via GamepadManager.renderOSKGrid() -->
+		</div>
+		<div class="gamepad-osk-hud">
+			<div class="osk-hint"><span class="pad-btn-badge pad-a">A</span> Inserir</div>
+			<div class="osk-hint"><span class="pad-btn-badge pad-x">X</span> Apagar</div>
+			<div class="osk-hint"><span class="pad-btn-badge pad-y">Y</span> Espaço</div>
+			<div class="osk-hint"><span class="pad-btn-badge pad-btn-rect">LB/RB</span> Shift</div>
+			<div class="osk-hint"><span class="pad-btn-badge pad-btn-rect">Start</span> Confirmar</div>
+			<div class="osk-hint"><span class="pad-btn-badge pad-b">B</span> Cancelar</div>
+		</div>
+	</div>
+</div>
+
+<!-- AVATAR PICKER MODAL -->
+<div id="avatar-picker-modal" class="witcher-modal hide">
+	<div class="witcher-modal-backdrop" onclick="AvatarManager.closePicker()"></div>
+	<div class="witcher-modal-content avatar-picker-frame">
+		<div class="witcher-modal-header">
+			<h2 class="witcher-modal-title">ESCOLHER AVATAR DO JOGADOR</h2>
+			<button class="witcher-modal-close" onclick="AvatarManager.closePicker()" title="Fechar (B)">✕</button>
+		</div>
+
+		<!-- Current Avatar Banner -->
+		<div class="avatar-current-bar">
+			<div class="avatar-current-preview-wrap">
+				<div id="avatar-current-preview-circle" class="avatar-current-circle"></div>
+				<div class="avatar-current-border-ring"></div>
+			</div>
+			<div class="avatar-current-details">
+				<div style="display:flex; align-items:center; gap:8px;">
+					<span class="avatar-current-label">Avatar Atual Equipado</span>
+					<span id="avatar-modal-scope-badge" class="avatar-scope-badge">Modo Exploração</span>
+				</div>
+				<strong id="avatar-current-name" class="avatar-current-name">Geralt de Rívia</strong>
+				<div>
+					<span id="avatar-current-faction" class="story-faction-badge neutral">Neutro</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Search & Faction Tabs Filter -->
+		<div class="avatar-filter-controls">
+			<div class="avatar-search-box">
+				<span class="avatar-search-icon">🔍</span>
+				<input type="text" id="avatar-search-input" class="avatar-search-input" placeholder="Buscar personagem por nome..." oninput="AvatarManager.onSearch(this.value)" autocomplete="off" spellcheck="false" />
+			</div>
+			<div class="avatar-faction-tabs">
+				<button type="button" class="avatar-tab active" data-faction="all" onclick="AvatarManager.setFilter('all')">Todos (<span id="avatar-count-all">82</span>)</button>
+				<button type="button" class="avatar-tab" data-faction="realms" onclick="AvatarManager.setFilter('realms')">Reinos do Norte</button>
+				<button type="button" class="avatar-tab" data-faction="nilfgaard" onclick="AvatarManager.setFilter('nilfgaard')">Nilfgaard</button>
+				<button type="button" class="avatar-tab" data-faction="monsters" onclick="AvatarManager.setFilter('monsters')">Monstros</button>
+				<button type="button" class="avatar-tab" data-faction="scoiatael" onclick="AvatarManager.setFilter('scoiatael')">Scoia'tael</button>
+				<button type="button" class="avatar-tab" data-faction="skellige" onclick="AvatarManager.setFilter('skellige')">Skellige</button>
+				<button type="button" class="avatar-tab" data-faction="neutral" onclick="AvatarManager.setFilter('neutral')">Neutros</button>
+			</div>
+		</div>
+
+		<!-- Avatar Grid -->
+		<div id="avatar-picker-grid" class="avatar-picker-grid">
+			<!-- Gerado dinamicamente via AvatarManager.renderGrid() -->
+		</div>
+
+		<!-- Footer -->
+		<div class="avatar-picker-footer">
+			<button type="button" class="witcher-menu-btn" style="width: auto; padding: 0.8vh 2.5vw; margin: 0;" onclick="AvatarManager.closePicker()">
+				<span>Concluir</span>
+			</button>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript" src="common.js?v=12"></script>
+<script type="text/javascript" src="cards.js?v=12"></script>
+<script type="text/javascript" src="decks.js?v=12"></script>
+<script type="text/javascript" src="abilities.js?v=12"></script>
+<script type="text/javascript" src="factions.js?v=12"></script>
+<script type="text/javascript" src="story_data.js?v=12"></script>
+<script type="text/javascript" src="story.js?v=12"></script>
+<script type="text/javascript" src="i18n.js?v=12"></script>
+<script type="text/javascript" src="achievements.js?v=12"></script>
+<script type="text/javascript" src="gwent.js?v=12"></script>
 <script type="text/javascript" src="peerjs.min.js"></script>
-<script type="text/javascript" src="versus.js?v=3"></script>
-<script type="text/javascript" src="menu.js?v=3"></script>
-<script type="text/javascript" src="gamepad.js?v=3"></script>
-<script type="text/javascript" src="debugger.js"></script>
+<script type="text/javascript" src="versus.js?v=12"></script>
+<script type="text/javascript" src="menu.js?v=12"></script>
+<script type="text/javascript" src="gamepad.js?v=12"></script>
+<script type="text/javascript" src="debugger.js?v=12"></script>
 </body>
 
 </html>

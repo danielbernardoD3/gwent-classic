@@ -99,30 +99,39 @@ body[data-screen="board"] #story-card-inspect-modal {
 
 .story-player-badge.clickable {
 	cursor: pointer;
-	height: 52px;
-	min-width: 220px;
-	max-width: 260px;
+	height: 54px;
+	min-width: 200px;
+	max-width: 380px;
 	box-sizing: border-box;
 	flex-shrink: 0;
-	padding: 4px 14px;
-	border-radius: 6px;
-	background: rgba(0, 0, 0, 0.45);
-	border: 1px solid rgba(142, 115, 76, 0.45);
+	padding: 4px 12px 4px 8px;
+	border-radius: 8px;
+	background: linear-gradient(135deg, rgba(28, 22, 16, 0.88) 0%, rgba(14, 11, 8, 0.82) 100%);
+	border: 1px solid rgba(195, 150, 75, 0.45);
+	box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.7), 0 3px 10px rgba(0, 0, 0, 0.45);
 	transition: all 0.25s ease;
 	user-select: none;
+	display: flex;
+	align-items: center;
+	gap: 10px;
 }
 
-.story-player-badge.clickable:hover {
-	background: rgba(255, 215, 0, 0.12);
+.story-player-badge.clickable:hover,
+.story-player-badge.clickable:focus,
+.story-player-badge.clickable.active {
+	background: linear-gradient(135deg, rgba(46, 35, 22, 0.95) 0%, rgba(22, 16, 11, 0.9) 100%);
 	border-color: #ffd700;
-	box-shadow: 0 0 14px rgba(255, 215, 0, 0.35);
+	box-shadow: inset 0 0 18px rgba(255, 215, 0, 0.18), 0 0 14px rgba(255, 215, 0, 0.35);
+	transform: translateY(-1px);
 }
 
 .story-stats-chevron {
-	font-size: 0.75rem;
+	font-size: 0.72rem;
 	color: #ffd700;
-	margin-left: 4px;
-	transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	margin-left: auto;
+	padding-left: 6px;
+	flex-shrink: 0;
+	transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s ease;
 	opacity: 0.85;
 }
 
@@ -149,19 +158,35 @@ body[data-screen="board"] #story-card-inspect-modal {
 .story-player-info {
 	display: flex;
 	flex-direction: column;
+	justify-content: center;
+	min-width: 0;
+	flex: 1 1 auto;
+	gap: 2px;
+	overflow: hidden;
 }
 
 .story-hud-player-title {
-	font-size: 1.15rem;
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	font-size: 1.05rem;
 	font-weight: bold;
-	color: #f4e8c1;
-	letter-spacing: 1px;
-	text-shadow: 0 2px 4px #000;
+	color: #ffd700;
+	letter-spacing: 0.5px;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	line-height: 1.25;
 }
 
 .story-hud-location {
-	font-size: 0.85rem;
+	font-size: 0.78rem;
 	color: #c5a059;
+	letter-spacing: 0.3px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	line-height: 1.2;
+	opacity: 0.92;
 }
 
 /* Trophies / Regional Insignias in HUD */
@@ -1154,43 +1179,139 @@ body[data-screen="board"] #story-card-inspect-modal {
 }
 
 /* Battle Modal Content */
+#story-battle-modal .story-parchment-frame {
+	max-width: 860px;
+	width: 92%;
+}
+
 .story-battle-details-grid {
 	display: grid;
-	grid-template-columns: 240px 1fr;
-	gap: 24px;
+	grid-template-columns: 260px 1fr;
+	gap: 26px;
 	align-items: start;
 	margin-bottom: 24px;
 }
 
 .story-op-card-box {
-	background: rgba(15, 12, 9, 0.85);
-	border: 1px solid #7a5e38;
-	padding: 16px;
-	border-radius: 4px;
+	background: radial-gradient(circle at 50% 15%, rgba(32, 24, 17, 0.96) 0%, rgba(14, 11, 8, 0.98) 100%);
+	border: 2px solid #8e734c;
+	padding: 14px 14px 16px 14px;
+	border-radius: 6px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
+	box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.85), 0 8px 24px rgba(0, 0, 0, 0.7);
+	position: relative;
+	box-sizing: border-box;
+}
+
+.story-battle-avatar-wrapper {
+	position: relative;
+	width: 220px;
+	height: 286px;
+	border-radius: 6px;
+	border: 2px solid #c5a059;
+	box-shadow: 0 0 0 1px #3d2c18, 0 8px 20px rgba(0, 0, 0, 0.85);
+	overflow: hidden;
+	margin-bottom: 12px;
+	background-color: #0b0907;
+}
+
+.story-battle-avatar-wrapper::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+	pointer-events: none;
+	border-radius: 4px;
 }
 
 .story-battle-op-avatar {
-	width: 120px;
-	height: 160px;
+	width: 100%;
+	height: 100%;
 	background-size: cover;
-	background-position: center;
-	border: 2px solid #c5a059;
+	background-position: center top;
+	background-repeat: no-repeat;
+	transition: transform 0.35s ease;
+}
+
+.story-battle-avatar-wrapper:hover .story-battle-op-avatar {
+	transform: scale(1.04);
+}
+
+.story-op-nameplate {
+	width: 100%;
+	background: linear-gradient(180deg, rgba(38, 28, 18, 0.95) 0%, rgba(16, 12, 8, 0.98) 100%);
+	border: 1px solid #9c7b4c;
 	border-radius: 4px;
-	margin-bottom: 12px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+	padding: 10px 10px 12px 10px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8), 0 4px 10px rgba(0, 0, 0, 0.6);
+	position: relative;
+}
+
+.story-op-header-title {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	margin-bottom: 4px;
+}
+
+.story-op-ornament {
+	color: #c5a059;
+	font-size: 0.65rem;
+	opacity: 0.85;
+}
+
+.story-op-badge-label {
+	font-family: 'Cinzel', serif;
+	font-size: 0.68rem;
+	letter-spacing: 2px;
+	color: #baa37e;
+	text-transform: uppercase;
+	font-weight: 600;
+}
+
+.story-battle-op-name {
+	font-family: 'WitcherTitle', 'Cinzel', serif;
+	font-size: 1.25rem;
+	line-height: 1.3;
+	color: #ffd700;
+	font-weight: bold;
+	text-align: center;
+	letter-spacing: 0.6px;
+	text-shadow: 0 2px 5px rgba(0, 0, 0, 0.95), 0 0 14px rgba(255, 215, 0, 0.35);
+	margin: 2px 0 6px 0;
+	word-break: break-word;
+	padding: 0 4px;
+}
+
+.story-op-nameplate-line {
+	width: 80%;
+	height: 1px;
+	background: linear-gradient(90deg, transparent 0%, rgba(197, 160, 89, 0.7) 50%, transparent 100%);
+	margin: 4px 0 8px 0;
 }
 
 .story-faction-badge {
-	font-size: 0.8rem;
-	padding: 3px 10px;
+	font-family: 'Cinzel', serif;
+	font-size: 0.78rem;
+	padding: 4px 12px;
 	border-radius: 3px;
-	margin-top: 6px;
 	text-transform: uppercase;
 	font-weight: bold;
+	letter-spacing: 1px;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	display: inline-block;
 }
 
 .story-faction-badge.monsters {
@@ -1216,6 +1337,22 @@ body[data-screen="board"] #story-card-inspect-modal {
 .story-faction-badge.skellige {
 	background: #3b284c;
 	color: #d1b3e6;
+}
+
+@media (max-width: 768px) {
+	#story-battle-modal .story-parchment-frame {
+		width: 96%;
+		padding: 20px 16px;
+	}
+	.story-battle-details-grid {
+		grid-template-columns: 1fr;
+		gap: 16px;
+	}
+	.story-op-card-box {
+		width: 100%;
+		max-width: 280px;
+		margin: 0 auto;
+	}
 }
 
 /* Lore & Rewards */
@@ -1942,12 +2079,17 @@ body[data-screen="board"] #story-card-inspect-modal {
 	display: none !important;
 }
 
+.story-player-badge.gamepad-hover,
 .story-hud-btn.gamepad-hover,
+.story-dropdown-item.gamepad-hover,
+.story-btn-change-avatar.gamepad-hover,
+.stats-drawer-close-btn.gamepad-hover,
+.stats-drawer-avatar-circle.gamepad-hover,
 .story-filter-btn.gamepad-hover,
 .story-map-control-btn.gamepad-hover {
 	border-color: #2ecc71 !important;
 	box-shadow: 0 0 16px rgba(46, 204, 113, 0.85) !important;
-	transform: scale(1.06);
+	transform: scale(1.04);
 }
 
 @keyframes padCursorRotate {

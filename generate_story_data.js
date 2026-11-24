@@ -221,7 +221,8 @@ const rawNodes = [
         y: 1185,
         opponent: {
             name: "Estudioso Aldert Geert",
-            avatar: "img/sm/realms_poor_infantry.jpg",
+            avatar: "img/characters/Aldert-Geert.jpg",
+            circleAvatar: "img/avatars/Aldert-Geert.png",
             faction: "realms",
             leader: 22,
             deck: AI_DECKS.realms_easy
@@ -249,8 +250,8 @@ const rawNodes = [
             { index: 28, count: 1, name: "Blue Stripes Commando" }
         ],
         rounds: [
-            { opponentName: "Ferreiro Willis", faction: "realms", leader: 22, deck: AI_DECKS.realms_easy },
-            { opponentName: "Capitão Peter Saar Gwynleve", faction: "nilfgaard", leader: 57, deck: AI_DECKS.nilfgaard_easy }
+            { opponentName: "Ferreiro Willis", faction: "realms", leader: 22, circleAvatar: "img/avatars/Aldert-Geert.png", deck: AI_DECKS.realms_easy },
+            { opponentName: "Capitão Peter Saar Gwynleve", faction: "nilfgaard", leader: 57, circleAvatar: "img/avatars/Aryan-La-Valette.png", deck: AI_DECKS.nilfgaard_easy }
         ],
         connections: ["nr_white_orchard"]
     },
@@ -264,7 +265,8 @@ const rawNodes = [
         y: 1205,
         opponent: {
             name: "Chefe Tobias Hoffman",
-            avatar: "img/sm/scoiatael_vrihedd_brigade.jpg",
+            avatar: "img/characters/Tobias-Hoffman.jpg",
+            circleAvatar: "img/avatars/Tobias-Hoffman.png",
             faction: "scoiatael",
             leader: 141,
             deck: AI_DECKS.scoiatael_easy
@@ -279,13 +281,14 @@ const rawNodes = [
         id: "nr_vizima_palace",
         region: "Teméria",
         name: "Palácio Real de Vízima",
-        lore: "Na antiga corte do Rei Foltest, o camareiro imperial e os nobres temerianos duelam com precisão militar.",
+        lore: "Na antiga corte do Rei Foltest, o camareiro imperial Mererid e os nobres da corte duelam com precisão e etiqueta militar.",
         type: "battle",
         x: 1585,
         y: 1125,
         opponent: {
-            name: "Camareiro Emreis de Vízima",
-            avatar: "img/sm/nilfgaard_albrich.jpg",
+            name: "Camareiro Mererid",
+            avatar: "img/characters/Mererid.jpg",
+            circleAvatar: "img/avatars/Mererid.png",
             faction: "nilfgaard",
             leader: 57,
             deck: AI_DECKS.nilfgaard_easy
@@ -324,13 +327,13 @@ const rawNodes = [
         ],
         trophyId: "insignia_temeria",
         rounds: [
-            { opponentName: "Sargento de Maribor", faction: "realms", leader: 22, deck: AI_DECKS.realms_easy },
-            { opponentName: "Adivinho de Benkelham", faction: "monsters", leader: 93, deck: AI_DECKS.monsters_easy },
-            { opponentName: "Mercador de Gors Velen", faction: "scoiatael", leader: 141, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "Barão Sanguinário (Phillip Strenger)", faction: "realms", leader: 24, deck: AI_DECKS.realms_med },
-            { opponentName: "Embaixador var Attre", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Comandante Vernon Roche", faction: "realms", leader: 23, deck: AI_DECKS.realms_hard },
-            { opponentName: "Grão-Coudel John Natalis", faction: "realms", leader: 24, deck: AI_DECKS.realms_hard }
+            { opponentName: "Cavaleiro Siegfried de Denesle", faction: "realms", leader: 22, circleAvatar: "img/avatars/Siegfried-de-denesle.png", deck: AI_DECKS.realms_easy },
+            { opponentName: "Adivinho de Benkelham", faction: "monsters", leader: 93, circleAvatar: "img/avatars/Johnny.png", deck: AI_DECKS.monsters_easy },
+            { opponentName: "Mercador de Gors Velen", faction: "scoiatael", leader: 141, circleAvatar: "img/avatars/Tobias-Hoffman.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Barão Sanguinário (Phillip Strenger)", faction: "realms", leader: 24, circleAvatar: "img/avatars/Phillip-Strenger-Bloody-Baron.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Princesa Adda de Teméria", faction: "realms", leader: 23, circleAvatar: "img/avatars/Princess-Adda.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Comandante Vernon Roche", faction: "realms", leader: 23, circleAvatar: "img/avatars/Vernon-Roche.png", deck: AI_DECKS.realms_hard },
+            { opponentName: "Grão-Coudel John Natalis", faction: "realms", leader: 24, circleAvatar: "img/avatars/King-Henselt.png", deck: AI_DECKS.realms_hard }
         ],
         connections: ["nr_vizima_palace"]
     },
@@ -344,7 +347,8 @@ const rawNodes = [
         y: 1345,
         opponent: {
             name: "Tenente Ves (Listras Azuis)",
-            avatar: "img/sm/realms_ves.jpg",
+            avatar: "img/characters/Ves.jpg",
+            circleAvatar: "img/avatars/Ves.png",
             faction: "realms",
             leader: 22,
             deck: AI_DECKS.realms_med
@@ -365,7 +369,8 @@ const rawNodes = [
         y: 990,
         opponent: {
             name: "Barão Aryan La Valette",
-            avatar: "img/sm/realms_siege_tower.jpg",
+            avatar: "img/characters/Aryan-La-Valette.jpg",
+            circleAvatar: "img/avatars/Aryan-La-Valette.png",
             faction: "realms",
             leader: 24,
             deck: AI_DECKS.realms_med
@@ -386,7 +391,8 @@ const rawNodes = [
         y: 965,
         opponent: {
             name: "Madre Nenneke",
-            avatar: "img/sm/realms_banner_nurse.jpg",
+            avatar: "img/characters/Madre-Nenneke.jpg",
+            circleAvatar: "img/avatars/Madre-nenneke.png",
             faction: "scoiatael",
             leader: 141,
             deck: AI_DECKS.scoiatael_med
@@ -407,7 +413,8 @@ const rawNodes = [
         y: 1125,
         opponent: {
             name: "Barão Sanguinário",
-            avatar: "img/sm/realms_dijkstra.jpg",
+            avatar: "img/characters/Phillip-Strenger-Bloody-Baron.jpg",
+            circleAvatar: "img/avatars/Phillip-Strenger-Bloody-Baron.png",
             faction: "realms",
             leader: 24,
             deck: AI_DECKS.realms_med
@@ -435,8 +442,8 @@ const rawNodes = [
             { index: 30, count: 1, name: "Crinfrid Reavers Dragon Hunter" }
         ],
         rounds: [
-            { opponentName: "Construtor de Barcos de Minério", faction: "monsters", leader: 93, deck: AI_DECKS.monsters_easy },
-            { opponentName: "Velho Sábio de Benkelham", faction: "monsters", leader: 95, deck: AI_DECKS.monsters_med }
+            { opponentName: "Construtor de Barcos de Minério", faction: "monsters", leader: 93, circleAvatar: "img/avatars/Johnny.png", deck: AI_DECKS.monsters_easy },
+            { opponentName: "Velho Sábio de Benkelham", faction: "monsters", leader: 95, circleAvatar: "img/avatars/Torque-o-Silvano.png", deck: AI_DECKS.monsters_med }
         ],
         connections: ["vel_crows_perch"]
     },
@@ -450,7 +457,8 @@ const rawNodes = [
         y: 1245,
         opponent: {
             name: "Feiticeira Keira Metz",
-            avatar: "img/sm/realms_keira.jpg",
+            avatar: "img/characters/Keira-Metz.jpg",
+            circleAvatar: "img/avatars/Keira-Metz.png",
             faction: "realms",
             leader: 22,
             deck: AI_DECKS.realms_med
@@ -465,13 +473,14 @@ const rawNodes = [
         id: "vel_cidaris",
         region: "Cidaris",
         name: "Porto Real de Cidaris",
-        lore: "Principal porto marítimo que liga os Reinos do Norte às Ilhas de Skellige. Marinheiros e corsários duelam no cais.",
+        lore: "Principal porto marítimo que liga os Reinos do Norte às Ilhas de Skellige. O temido corsário Jarl Holger Mão-Negra ancora seus navios no cais.",
         type: "battle",
         x: 985,
         y: 1295,
         opponent: {
-            name: "Almirante de Cidaris",
-            avatar: "img/sm/realms_vernon.jpg",
+            name: "Jarl Holger Mão-Negra",
+            avatar: "img/characters/Holger-Blackhand.png",
+            circleAvatar: "img/avatars/Holger-Blackhand.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_med
@@ -496,7 +505,8 @@ const rawNodes = [
         y: 1065,
         opponent: {
             name: "Médica Shani",
-            avatar: "img/sm/realms_thaler.jpg",
+            avatar: "img/characters/Shani.jpg",
+            circleAvatar: "img/avatars/Shani.png",
             faction: "realms",
             leader: 24,
             deck: AI_DECKS.realms_med
@@ -517,7 +527,8 @@ const rawNodes = [
         y: 1055,
         opponent: {
             name: "Bardo Dandelion",
-            avatar: "img/sm/neutral_dandelion.jpg",
+            avatar: "img/characters/Dandelion.jpg",
+            circleAvatar: "img/avatars/Dandelion.png",
             faction: "scoiatael",
             leader: 141,
             deck: AI_DECKS.scoiatael_med
@@ -548,7 +559,8 @@ const rawNodes = [
         y: 965,
         opponent: {
             name: "Madame Sasha (Cantarella)",
-            avatar: "img/sm/realms_esterad.jpg",
+            avatar: "img/characters/Sasha-Cantarella.jpg",
+            circleAvatar: "img/avatars/Sasha-Cantarella.png",
             faction: "nilfgaard",
             leader: 59,
             deck: AI_DECKS.nilfgaard_med
@@ -577,13 +589,13 @@ const rawNodes = [
         ],
         trophyId: "insignia_redania",
         rounds: [
-            { opponentName: "Mercador Halfling Bernard Tulle", faction: "scoiatael", leader: 141, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "escriba Marcus T.K. Hodgson", faction: "realms", leader: 22, deck: AI_DECKS.realms_med },
-            { opponentName: "Alquimista Gremist Visitante", faction: "skellige", leader: 211, deck: AI_DECKS.skellige_med },
-            { opponentName: "Agente Imperial Cantarella", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Conde Tybalt de Novigrad", faction: "monsters", leader: 95, deck: AI_DECKS.monsters_hard },
-            { opponentName: "Mestre Espião Sigismund Dijkstra", faction: "realms", leader: 24, deck: AI_DECKS.realms_hard },
-            { opponentName: "Rei Radovid V o Severo", faction: "realms", leader: 23, deck: AI_DECKS.realms_hard }
+            { opponentName: "Mercador Halfling Bernard Tulle", faction: "scoiatael", leader: 141, circleAvatar: "img/avatars/Dandelion.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Médica Shani", faction: "realms", leader: 22, circleAvatar: "img/avatars/Shani.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Alquimista Gremist Visitante", faction: "skellige", leader: 211, circleAvatar: "img/avatars/Arquidruida-Ermion.png", deck: AI_DECKS.skellige_med },
+            { opponentName: "Agente Imperial Cantarella", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Sasha-Cantarella.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Conde Tybalt de Novigrad", faction: "monsters", leader: 95, circleAvatar: "img/avatars/Orianna-de-Beauclair.png", deck: AI_DECKS.monsters_hard },
+            { opponentName: "Mestre Espião Sigismund Dijkstra", faction: "realms", leader: 24, circleAvatar: "img/avatars/Djikstra.png", deck: AI_DECKS.realms_hard },
+            { opponentName: "Rei Radovid V o Severo", faction: "realms", leader: 23, circleAvatar: "img/avatars/Radovid.png", deck: AI_DECKS.realms_hard }
         ],
         connections: ["red_novigrad_docks", "red_rosemarie"]
     },
@@ -597,7 +609,8 @@ const rawNodes = [
         y: 855,
         opponent: {
             name: "Feiticeira Philippa Eilhart",
-            avatar: "img/sm/realms_philippa.jpg",
+            avatar: "img/characters/Philippa-Eilhart.jpg",
+            circleAvatar: "img/avatars/Philippa-Eilhart.png",
             faction: "realms",
             leader: 23,
             deck: AI_DECKS.realms_hard
@@ -618,7 +631,8 @@ const rawNodes = [
         y: 580,
         opponent: {
             name: "Mestre Mago Stregobor",
-            avatar: "img/sm/realms_sheldon.jpg",
+            avatar: "img/characters/Mage-Stregobor.jpg",
+            circleAvatar: "img/avatars/Mage-Stregobor.png",
             faction: "realms",
             leader: 24,
             deck: AI_DECKS.realms_med
@@ -639,7 +653,8 @@ const rawNodes = [
         y: 745,
         opponent: {
             name: "Síle de Tansarville",
-            avatar: "img/sm/realms_sile.jpg",
+            avatar: "img/characters/Sile-de-Tansarville.jpg",
+            circleAvatar: "img/avatars/Sile-de-tansarville.png",
             faction: "realms",
             leader: 24,
             deck: AI_DECKS.realms_med
@@ -660,7 +675,8 @@ const rawNodes = [
         y: 445,
         opponent: {
             name: "Rei Henselt de Kaedwen",
-            avatar: "img/sm/realms_kaedwen_siege.jpg",
+            avatar: "img/characters/King-Henselt.jpg",
+            circleAvatar: "img/avatars/King-Henselt.png",
             faction: "realms",
             leader: 24,
             deck: AI_DECKS.realms_hard
@@ -681,7 +697,8 @@ const rawNodes = [
         y: 670,
         opponent: {
             name: "Mago Dethmold",
-            avatar: "img/sm/realms_dethmold.jpg",
+            avatar: "img/characters/Dethmold.jpg",
+            circleAvatar: "img/avatars/Dethmold.png",
             faction: "realms",
             leader: 23,
             deck: AI_DECKS.realms_hard
@@ -703,7 +720,8 @@ const rawNodes = [
         y: 285,
         opponent: {
             name: "Mestre Bruxo Vesemir",
-            avatar: "img/sm/neutral_vesemir.jpg",
+            avatar: "img/characters/Vesemir.jpg",
+            circleAvatar: "img/avatars/Vesemir.png",
             faction: "monsters",
             leader: 94,
             deck: AI_DECKS.monsters_hard
@@ -733,11 +751,11 @@ const rawNodes = [
             { index: 214, count: 1, name: "Roach (Carpeado)" }
         ],
         rounds: [
-            { opponentName: "Bruxo Lambert", faction: "monsters", leader: 93, deck: AI_DECKS.monsters_med },
-            { opponentName: "Bruxo Eskel", faction: "scoiatael", leader: 140, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "Bruxo Coën de Poviss", faction: "realms", leader: 24, deck: AI_DECKS.realms_med },
-            { opponentName: "Feiticeira Triss Merigold", faction: "realms", leader: 23, deck: AI_DECKS.realms_hard },
-            { opponentName: "Mestre Vesemir de Kaer Morhen", faction: "monsters", leader: 94, deck: AI_DECKS.monsters_hard }
+            { opponentName: "Bruxo Lambert", faction: "monsters", leader: 93, circleAvatar: "img/avatars/Letho-de-Gulet.png", deck: AI_DECKS.monsters_med },
+            { opponentName: "Bruxo Eskel", faction: "scoiatael", leader: 140, circleAvatar: "img/avatars/Torque-o-Silvano.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Ciri (Andorinha de Cintra)", faction: "realms", leader: 24, circleAvatar: "img/avatars/Ciri1.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Feiticeira Triss Merigold", faction: "realms", leader: 23, circleAvatar: "img/avatars/Triss-Merigold.png", deck: AI_DECKS.realms_hard },
+            { opponentName: "Mestre Vesemir de Kaer Morhen", faction: "monsters", leader: 94, circleAvatar: "img/avatars/Vesemir.png", deck: AI_DECKS.monsters_hard }
         ],
         connections: ["km_fortress"]
     },
@@ -755,7 +773,8 @@ const rawNodes = [
         y: 985,
         opponent: {
             name: "Rei Élfico Filavandrel",
-            avatar: "img/sm/scoiatael_filavandrel.jpg",
+            avatar: "img/characters/Filavandrel-Elf-King.jpg",
+            circleAvatar: "img/avatars/Filavandrel-Elf-King.png",
             faction: "scoiatael",
             leader: 141,
             deck: AI_DECKS.scoiatael_easy
@@ -794,9 +813,9 @@ const rawNodes = [
             { index: 150, count: 1, name: "Dol Blathanna Scout" }
         ],
         rounds: [
-            { opponentName: "Batedora Toruviel", faction: "scoiatael", leader: 141, deck: AI_DECKS.scoiatael_easy },
-            { opponentName: "Sábia Ida Emean aep Sivney", faction: "scoiatael", leader: 140, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "Rainha Francesca Findabair", faction: "scoiatael", leader: 139, deck: AI_DECKS.scoiatael_med }
+            { opponentName: "Batedora Toruviel", faction: "scoiatael", leader: 141, circleAvatar: "img/avatars/Filavandrel-Elf-King.png", deck: AI_DECKS.scoiatael_easy },
+            { opponentName: "Sábia Ida Emean aep Sivney", faction: "scoiatael", leader: 140, circleAvatar: "img/avatars/Queen-Eithne-of-Brokilon.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Rainha Francesca Findabair", faction: "scoiatael", leader: 139, circleAvatar: "img/avatars/Saskia-The-DragonSlayer.png", deck: AI_DECKS.scoiatael_med }
         ],
         connections: ["aed_dol_blathanna"]
     },
@@ -810,7 +829,8 @@ const rawNodes = [
         y: 910,
         opponent: {
             name: "Torque o Silvano",
-            avatar: "img/sm/scoiatael_dol_archer.jpg",
+            avatar: "img/characters/Torque-o-Silvano.jpg",
+            circleAvatar: "img/avatars/Torque-o-Silvano.png",
             faction: "monsters",
             leader: 93,
             deck: AI_DECKS.monsters_easy
@@ -831,7 +851,8 @@ const rawNodes = [
         y: 1085,
         opponent: {
             name: "Comandante Yaevinn",
-            avatar: "img/sm/scoiatael_yaevinn.jpg",
+            avatar: "img/characters/Yaevinn.jpg",
+            circleAvatar: "img/avatars/Yaevinn.png",
             faction: "scoiatael",
             leader: 140,
             deck: AI_DECKS.scoiatael_easy
@@ -846,13 +867,14 @@ const rawNodes = [
         id: "aed_vengerberg",
         region: "Aedirn",
         name: "Capital Real de Vengerberg",
-        lore: "A imponente capital de Aedirn, terra natal de Yennefer. Mercadores e nobres disputam partidas refinadas.",
+        lore: "A imponente capital de Aedirn, terra natal de Yennefer. O Rei Demavend III governa seu reino e comanda partidas com táticas refinadas.",
         type: "battle",
         x: 2300,
         y: 1185,
         opponent: {
-            name: "Senescal de Vengerberg",
-            avatar: "img/sm/scoiatael_havekar_nurse.jpg",
+            name: "Rei Demavend III",
+            avatar: "img/characters/Demavend.jpg",
+            circleAvatar: "img/avatars/Demavend.png",
             faction: "realms",
             leader: 22,
             deck: AI_DECKS.realms_med
@@ -873,7 +895,8 @@ const rawNodes = [
         y: 880,
         opponent: {
             name: "Saskia (A Caçadora de Dragões)",
-            avatar: "img/sm/scoiatael_saesenthessis.jpg",
+            avatar: "img/characters/Saskia-The-DragonSlayer.jpg",
+            circleAvatar: "img/avatars/Saskia-The-DragonSlayer.png",
             faction: "scoiatael",
             leader: 140,
             deck: AI_DECKS.scoiatael_med
@@ -894,7 +917,8 @@ const rawNodes = [
         y: 895,
         opponent: {
             name: "Comandante Iorveth",
-            avatar: "img/sm/scoiatael_iorveth.jpg",
+            avatar: "img/characters/Iorveth.jpg",
+            circleAvatar: "img/avatars/Iorveth.png",
             faction: "scoiatael",
             leader: 139,
             deck: AI_DECKS.scoiatael_med
@@ -915,7 +939,8 @@ const rawNodes = [
         y: 735,
         opponent: {
             name: "Isengrim Faoiltiarna",
-            avatar: "img/sm/scoiatael_isengrim.jpg",
+            avatar: "img/characters/Isengrim-Faoiltiarna.jpg",
+            circleAvatar: "img/avatars/Isengrim-Faoiltiarna.png",
             faction: "scoiatael",
             leader: 139,
             deck: AI_DECKS.scoiatael_hard
@@ -945,11 +970,11 @@ const rawNodes = [
             { index: 164, count: 1, name: "Havekar Smuggler" }
         ],
         rounds: [
-            { opponentName: "Guardião de Loc Muinne", faction: "scoiatael", leader: 141, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "Mago Cynthia de Nilfgaard", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Capitão Dennis Cranmer", faction: "scoiatael", leader: 140, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "Feiticeira Ida Emean", faction: "scoiatael", leader: 139, deck: AI_DECKS.scoiatael_hard },
-            { opponentName: "O Operador de Loc Muinne", faction: "monsters", leader: 94, deck: AI_DECKS.monsters_hard }
+            { opponentName: "Guardião de Loc Muinne", faction: "scoiatael", leader: 141, circleAvatar: "img/avatars/Isengrim-Faoiltiarna.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Feiticeira Cynthia", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Cynthia.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Capitão Dennis Cranmer", faction: "scoiatael", leader: 140, circleAvatar: "img/avatars/Yarpen-Zigrin.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Feiticeira Ida Emean", faction: "scoiatael", leader: 139, circleAvatar: "img/avatars/Queen-Eithne-of-Brokilon.png", deck: AI_DECKS.scoiatael_hard },
+            { opponentName: "O Operador de Loc Muinne", faction: "monsters", leader: 94, circleAvatar: "img/avatars/Unseen-Elder.png", deck: AI_DECKS.monsters_hard }
         ],
         connections: ["aed_loc_muinne"]
     },
@@ -963,7 +988,8 @@ const rawNodes = [
         y: 1210,
         opponent: {
             name: "Ancião Brouver Hoog",
-            avatar: "img/sm/scoiatael_milva.jpg",
+            avatar: "img/characters/Brouver-hoog.jpg",
+            circleAvatar: "img/avatars/Brouver-hoog.png",
             faction: "scoiatael",
             leader: 140,
             deck: AI_DECKS.scoiatael_med
@@ -992,9 +1018,9 @@ const rawNodes = [
             { index: 170, count: 1, name: "Mahakaman Defender" }
         ],
         rounds: [
-            { opponentName: "Ferreiro de Mahakam", faction: "scoiatael", leader: 141, deck: AI_DECKS.scoiatael_easy },
-            { opponentName: "Veterano Sheldon Skaggs", faction: "realms", leader: 24, deck: AI_DECKS.realms_med },
-            { opponentName: "Capitão Barclay Els", faction: "scoiatael", leader: 140, deck: AI_DECKS.scoiatael_med }
+            { opponentName: "Ferreiro de Mahakam", faction: "scoiatael", leader: 141, circleAvatar: "img/avatars/Brouver-hoog.png", deck: AI_DECKS.scoiatael_easy },
+            { opponentName: "Guerreiro Anão Zoltan Chivay", faction: "realms", leader: 24, circleAvatar: "img/avatars/Zoltan.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Capitão Barclay Els", faction: "scoiatael", leader: 140, circleAvatar: "img/avatars/Tobias-Hoffman.png", deck: AI_DECKS.scoiatael_med }
         ],
         connections: ["aed_mahakam"]
     },
@@ -1002,13 +1028,14 @@ const rawNodes = [
         id: "aed_rivia",
         region: "Lyria & Rívia",
         name: "Castelo Real de Rívia",
-        lore: "Onde Geralt recebeu seu título de cavaleiro da Rainha Meve na Batalha da Ponte do Yaruga.",
+        lore: "Nas imponentes torres de Rívia, a influente feiticeira Sabrina Glevissig desafia viajantes a um duelo de Gwent antes de permitir passagem.",
         type: "battle",
         x: 2220,
         y: 1385,
         opponent: {
-            name: "Rainha Meve de Lyria e Rívia",
-            avatar: "img/sm/realms_sabrina.jpg",
+            name: "Sabrina Glevissig",
+            avatar: "img/characters/Sabrina-Glevissig.jpg",
+            circleAvatar: "img/avatars/Sabrina-Glevissig.png",
             faction: "realms",
             leader: 25,
             deck: AI_DECKS.realms_med
@@ -1029,7 +1056,8 @@ const rawNodes = [
         y: 1560,
         opponent: {
             name: "Rainha Eithné de Brokilon",
-            avatar: "img/sm/scoiatael_eithne.jpg",
+            avatar: "img/characters/Queen-Eithne-of-Brokilon.jpg",
+            circleAvatar: "img/avatars/Queen-Eithne-of-Brokilon.png",
             faction: "scoiatael",
             leader: 139,
             deck: AI_DECKS.scoiatael_hard
@@ -1054,7 +1082,8 @@ const rawNodes = [
         y: 1595,
         opponent: {
             name: "Jarl Crach an Craite",
-            avatar: "img/sm/skellige_crach_an_craite.jpg",
+            avatar: "img/characters/Crach-an-Craite.jpg",
+            circleAvatar: "img/avatars/Crach-an-Craite.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_easy
@@ -1085,7 +1114,8 @@ const rawNodes = [
         y: 1650,
         opponent: {
             name: "Arquidruida Ermion",
-            avatar: "img/sm/skellige_ermion.jpg",
+            avatar: "img/characters/Arquidruida-Ermion.jpg",
+            circleAvatar: "img/avatars/Arquidruida-Ermion.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_easy
@@ -1106,7 +1136,8 @@ const rawNodes = [
         y: 1710,
         opponent: {
             name: "Madman Lugos",
-            avatar: "img/sm/skellige_madmad_lugos.jpg",
+            avatar: "img/characters/Madman-Lugos.jpg",
+            circleAvatar: "img/avatars/Madman-Lugos.png",
             faction: "skellige",
             leader: 212,
             deck: AI_DECKS.skellige_med
@@ -1127,7 +1158,8 @@ const rawNodes = [
         y: 1620,
         opponent: {
             name: "Jarl Donar an Hindar",
-            avatar: "img/sm/skellige_donar.jpg",
+            avatar: "img/characters/Donar-an-Hindar.jpg",
+            circleAvatar: "img/avatars/Donar-an-Hindar.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_easy
@@ -1142,13 +1174,14 @@ const rawNodes = [
         id: "skel_an_skellig",
         region: "Skellige",
         name: "Porto de Urialla (An Skellig)",
-        lore: "Ilha dos construtores navais do Clã Tuirseach. Seus navios de guerra dominam a fileira de cerco.",
+        lore: "Território dos construtores navais do Clã Tuirseach. O jovem guerreiro Príncipe Svanrige Tuirseach comanda seus bravos guerreiros da ilha.",
         type: "battle",
         x: 725,
         y: 1495,
         opponent: {
-            name: "Capitão de Urialla",
-            avatar: "img/sm/skellige_light_longship.jpg",
+            name: "Príncipe Svanrige Tuirseach",
+            avatar: "img/characters/Svanrige-Tuirseach.jpg",
+            circleAvatar: "img/avatars/Svanrige-Tuirseach.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_med
@@ -1169,7 +1202,8 @@ const rawNodes = [
         y: 1510,
         opponent: {
             name: "Cerys an Craite",
-            avatar: "img/sm/skellige_cerys.jpg",
+            avatar: "img/characters/Cerys-an-Craite.jpg",
+            circleAvatar: "img/avatars/Cerys-an-Craite.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_med
@@ -1197,8 +1231,8 @@ const rawNodes = [
             { index: 188, count: 1, name: "Clan Drummond Shieldmaiden" }
         ],
         rounds: [
-            { opponentName: "Escudeira de Svorlag", faction: "skellige", leader: 211, deck: AI_DECKS.skellige_easy },
-            { opponentName: "Mestre Druida Gremist", faction: "skellige", leader: 212, deck: AI_DECKS.skellige_med }
+            { opponentName: "Escudeira de Svorlag", faction: "skellige", leader: 211, circleAvatar: "img/avatars/Blueboy-Lugos.png", deck: AI_DECKS.skellige_easy },
+            { opponentName: "Mestre Druida Gremist", faction: "skellige", leader: 212, circleAvatar: "img/avatars/Donar-an-Hindar.png", deck: AI_DECKS.skellige_med }
         ],
         connections: ["skel_spikeroog"]
     },
@@ -1212,7 +1246,8 @@ const rawNodes = [
         y: 1715,
         opponent: {
             name: "Blueboy Lugos",
-            avatar: "img/sm/skellige_blueboy.jpg",
+            avatar: "img/characters/Blueboy-Lugos.jpg",
+            circleAvatar: "img/avatars/Blueboy-Lugos.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_med
@@ -1233,7 +1268,8 @@ const rawNodes = [
         y: 1765,
         opponent: {
             name: "Hjalmar an Craite",
-            avatar: "img/sm/skellige_hjalmar.jpg",
+            avatar: "img/characters/Hjalmar-an-Craite.jpg",
+            circleAvatar: "img/avatars/Hjalmar-an-Craite.png",
             faction: "skellige",
             leader: 212,
             deck: AI_DECKS.skellige_hard
@@ -1248,13 +1284,14 @@ const rawNodes = [
         id: "skel_bremervoord",
         region: "Costa do Mar do Norte",
         name: "Península de Bremervoord",
-        lore: "Entre o continente e as Ilhas de Skellige, navegadores e bardos contam a lenda do galo dourado Kambi e de Hemdall.",
+        lore: "Entre o continente e as Ilhas de Skellige, o tempestuoso Duque Agloval de Bremervoord desafia navegadores e aventureiros para partidas intensas.",
         type: "battle",
         x: 875,
         y: 1385,
         opponent: {
-            name: "Capitão Mercante de Bremervoord",
-            avatar: "img/sm/skellige_kambi.jpg",
+            name: "Duque Agloval",
+            avatar: "img/characters/Duque-Agloval.jpg",
+            circleAvatar: "img/avatars/Duque-Agloval.png",
             faction: "skellige",
             leader: 211,
             deck: AI_DECKS.skellige_med
@@ -1283,13 +1320,13 @@ const rawNodes = [
         ],
         trophyId: "insignia_skellige",
         rounds: [
-            { opponentName: "Escaldo Draig Bon-Dhu", faction: "skellige", leader: 211, deck: AI_DECKS.skellige_easy },
-            { opponentName: "Jarl Holger Mão-Negra", faction: "skellige", leader: 211, deck: AI_DECKS.skellige_med },
-            { opponentName: "Rainha Viúva Birna Bran", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Guerreiro Hjalmar an Craite", faction: "skellige", leader: 211, deck: AI_DECKS.skellige_med },
-            { opponentName: "Arquidruida Ermion", faction: "skellige", leader: 211, deck: AI_DECKS.skellige_hard },
-            { opponentName: "Rainha Cerys an Craite", faction: "skellige", leader: 212, deck: AI_DECKS.skellige_hard },
-            { opponentName: "Jarl Supremo Crach an Craite", faction: "skellige", leader: 212, deck: AI_DECKS.skellige_hard }
+            { opponentName: "Escaldo Draig Bon-Dhu", faction: "skellige", leader: 211, circleAvatar: "img/avatars/Svanrige-Tuirseach.png", deck: AI_DECKS.skellige_easy },
+            { opponentName: "Jarl Holger Mão-Negra", faction: "skellige", leader: 211, circleAvatar: "img/avatars/Holger-Blackhand.png", deck: AI_DECKS.skellige_med },
+            { opponentName: "Rainha Viúva Birna Bran", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Fringilla-Vigo.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Guerreiro Hjalmar an Craite", faction: "skellige", leader: 211, circleAvatar: "img/avatars/Hjalmar-an-Craite.png", deck: AI_DECKS.skellige_med },
+            { opponentName: "Arquidruida Ermion", faction: "skellige", leader: 211, circleAvatar: "img/avatars/Arquidruida-Ermion.png", deck: AI_DECKS.skellige_hard },
+            { opponentName: "Rainha Cerys an Craite", faction: "skellige", leader: 212, circleAvatar: "img/avatars/Cerys-an-Craite.png", deck: AI_DECKS.skellige_hard },
+            { opponentName: "Jarl Supremo Crach an Craite", faction: "skellige", leader: 212, circleAvatar: "img/avatars/Crach-an-Craite.png", deck: AI_DECKS.skellige_hard }
         ],
         connections: ["skel_kaer_trolde_port"]
     },
@@ -1307,7 +1344,8 @@ const rawNodes = [
         y: 2260,
         opponent: {
             name: "Mordomo Barnabas-Basil",
-            avatar: "img/sm/monsters_katakan.jpg",
+            avatar: "img/characters/Barnabas-Basil.jpg",
+            circleAvatar: "img/avatars/Barnabas-basil.png",
             faction: "monsters",
             leader: 93,
             deck: AI_DECKS.monsters_easy
@@ -1338,7 +1376,8 @@ const rawNodes = [
         y: 2145,
         opponent: {
             name: "Emiel Regis Rohellec Terzieff",
-            avatar: "img/sm/neutral_regis.jpg",
+            avatar: "img/characters/Emiel-Regis-Rohellec-Terzieff.jpg",
+            circleAvatar: "img/avatars/Emiel-Regis-Rohellec-Terzieff.png",
             faction: "monsters",
             leader: 95,
             deck: AI_DECKS.monsters_easy
@@ -1359,7 +1398,8 @@ const rawNodes = [
         y: 2095,
         opponent: {
             name: "Dettlaff van der Eretein",
-            avatar: "img/sm/monsters_ekimmara.jpg",
+            avatar: "img/characters/Dettlaff-van-der-Eretein.jpg",
+            circleAvatar: "img/avatars/Dettlaff-van-der-Eretein.png",
             faction: "monsters",
             leader: 94,
             deck: AI_DECKS.monsters_med
@@ -1380,7 +1420,8 @@ const rawNodes = [
         y: 2175,
         opponent: {
             name: "Senhora Orianna de Beauclair",
-            avatar: "img/sm/monsters_fleder.jpg",
+            avatar: "img/characters/Orianna-de-Beauclair.jpg",
+            circleAvatar: "img/avatars/Orianna-de-Beauclair.png",
             faction: "monsters",
             leader: 95,
             deck: AI_DECKS.monsters_med
@@ -1401,7 +1442,8 @@ const rawNodes = [
         y: 1995,
         opponent: {
             name: "O Ancião Oculto (Unseen Elder)",
-            avatar: "img/sm/monsters_garkain.jpg",
+            avatar: "img/characters/Unseen-Elder.jpg",
+            circleAvatar: "img/avatars/Unseen-Elder.png",
             faction: "monsters",
             leader: 94,
             deck: AI_DECKS.monsters_med
@@ -1416,13 +1458,14 @@ const rawNodes = [
         id: "tous_mount_gorgon",
         region: "Toussaint",
         name: "Encostas do Monte Gorgon",
-        lore: "Sob os picos nevados do Monte Gorgon, espíritos antigos da floresta como o Leshen desafiam qualquer caçador.",
+        lore: "Nas encostas nevadas do Monte Gorgon, o nobre cavaleiro errante Sir Peyrac Peyran patrulha as passagens de Toussaint e desafia duelistas de honra.",
         type: "battle",
         x: 2165,
         y: 1875,
         opponent: {
-            name: "Guardião do Monte Gorgon",
-            avatar: "img/sm/monsters_leshen.jpg",
+            name: "Sir Peyrac Peyran",
+            avatar: "img/characters/Sir-Peyrac-Peyran.jpg",
+            circleAvatar: "img/avatars/Sir-Peyrac-Peyran.png",
             faction: "monsters",
             leader: 95,
             deck: AI_DECKS.monsters_med
@@ -1451,13 +1494,13 @@ const rawNodes = [
         ],
         trophyId: "insignia_toussaint",
         rounds: [
-            { opponentName: "Cavaleiro Guillaume de Launfal", faction: "realms", leader: 25, deck: AI_DECKS.realms_med },
-            { opponentName: "Cavaleiro Palmerin de Launfal", faction: "scoiatael", leader: 140, deck: AI_DECKS.scoiatael_med },
-            { opponentName: "Conde de la Croix", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Capitão Damien de la Tour", faction: "realms", leader: 24, deck: AI_DECKS.realms_hard },
-            { opponentName: "Princesa Sylvia Anna (Syanna)", faction: "nilfgaard", leader: 59, deck: AI_DECKS.nilfgaard_hard },
-            { opponentName: "Vampiro Superior Dettlaff", faction: "monsters", leader: 95, deck: AI_DECKS.monsters_hard },
-            { opponentName: "Grão-Duquesa Anna Henrietta", faction: "nilfgaard", leader: 59, deck: AI_DECKS.nilfgaard_hard }
+            { opponentName: "Cavaleiro Guillaume de Launfal", faction: "realms", leader: 25, circleAvatar: "img/avatars/Barnabas-basil.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Cavaleiro Palmerin de Launfal", faction: "scoiatael", leader: 140, circleAvatar: "img/avatars/Sir-Peyrac-Peyran.png", deck: AI_DECKS.scoiatael_med },
+            { opponentName: "Conde de la Croix", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Joachim-de-Wett.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Capitão Damien de la Tour", faction: "realms", leader: 24, circleAvatar: "img/avatars/Duque-Agloval.png", deck: AI_DECKS.realms_hard },
+            { opponentName: "Feiticeira Yennefer de Vengerberg", faction: "nilfgaard", leader: 59, circleAvatar: "img/avatars/Yennefer1.png", deck: AI_DECKS.nilfgaard_hard },
+            { opponentName: "Vampiro Superior Dettlaff", faction: "monsters", leader: 95, circleAvatar: "img/avatars/Dettlaff-van-der-Eretein.png", deck: AI_DECKS.monsters_hard },
+            { opponentName: "Grão-Duquesa Anna Henrietta", faction: "nilfgaard", leader: 59, circleAvatar: "img/avatars/Orianna-de-Beauclair.png", deck: AI_DECKS.nilfgaard_hard }
         ],
         connections: ["tous_beauclair_palace"]
     },
@@ -1465,13 +1508,14 @@ const rawNodes = [
         id: "ang_caed_dhu",
         region: "Angren",
         name: "Pântanos de Angren & Ysgith",
-        lore: "Nas matas alagadas de Angren, as três Moiras e os monstros insectoides atacam em enxames incessantes.",
+        lore: "Nas matas alagadas de Angren, o travesso puero Johnny conhece todos os segredos dos pântanos e adora jogar cartas com viajantes amigáveis.",
         type: "battle",
         x: 2025,
         y: 1585,
         opponent: {
-            name: "Tecelã dos Pântanos",
-            avatar: "img/sm/monsters_kayran.jpg",
+            name: "Johnny (Puero)",
+            avatar: "img/characters/Johnny.jpg",
+            circleAvatar: "img/avatars/Johnny.png",
             faction: "monsters",
             leader: 95,
             deck: AI_DECKS.monsters_med
@@ -1486,13 +1530,14 @@ const rawNodes = [
         id: "sod_sodden_hill",
         region: "Sodden",
         name: "Obelisco do Monte Sodden",
-        lore: "Local da famosa Batalha do Monte Sodden. Os espectros de guerra e o temível Draug assombram o campo.",
+        lore: "Local histórico da Batalha do Monte Sodden. O veterano anão Yarpen Zigrin relembra os velhos tempos de guerra com baralhos experientes e cerveja forte.",
         type: "battle",
         x: 1740,
         y: 1615,
         opponent: {
-            name: "General Espectral Draug",
-            avatar: "img/sm/monsters_draug.jpg",
+            name: "Yarpen Zigrin",
+            avatar: "img/characters/Yarpen-Zigrin.jpg",
+            circleAvatar: "img/avatars/Yarpen-Zigrin.png",
             faction: "monsters",
             leader: 94,
             deck: AI_DECKS.monsters_hard
@@ -1507,13 +1552,14 @@ const rawNodes = [
         id: "cin_cintra_capital",
         region: "Cintra",
         name: "Cidadela Real de Cintra",
-        lore: "Antigo trono da Rainha Calanthe e de Ciri. Os generais da Caçada Selvagem buscam o Sangue Ancestral nas ruínas.",
+        lore: "Antigo trono lendário de Cintra. A formidável Leoa de Cintra, Rainha Calanthe, comanda suas tropas com coragem indomável na mesa de Gwent.",
         type: "battle",
         x: 1265,
         y: 1795,
         opponent: {
-            name: "General Imlerith (Caçada Selvagem)",
-            avatar: "img/sm/monsters_imlerith.jpg",
+            name: "Rainha Calanthe",
+            avatar: "img/characters/Queen-Calanthe.jpg",
+            circleAvatar: "img/avatars/Queen-Calanthe.png",
             faction: "monsters",
             leader: 94,
             deck: AI_DECKS.monsters_hard
@@ -1542,9 +1588,9 @@ const rawNodes = [
             { index: 105, count: 1, name: "Crone: Brewess (Muster 6)" }
         ],
         rounds: [
-            { opponentName: "Castelão de Cintra", faction: "realms", leader: 22, deck: AI_DECKS.realms_med },
-            { opponentName: "Navegador Caranthir", faction: "monsters", leader: 93, deck: AI_DECKS.monsters_med },
-            { opponentName: "Príncipe Sapo (Ofeir)", faction: "monsters", leader: 95, deck: AI_DECKS.monsters_hard }
+            { opponentName: "Castelão de Cintra", faction: "realms", leader: 22, circleAvatar: "img/avatars/Queen-Calanthe.png", deck: AI_DECKS.realms_med },
+            { opponentName: "Navegador Caranthir", faction: "monsters", leader: 93, circleAvatar: "img/avatars/Avallach.png", deck: AI_DECKS.monsters_med },
+            { opponentName: "Príncipe Sapo (Ofeir)", faction: "monsters", leader: 95, circleAvatar: "img/avatars/Emiel-Regis-Rohellec-Terzieff.png", deck: AI_DECKS.monsters_hard }
         ],
         connections: ["cin_cintra_capital"]
     },
@@ -1562,7 +1608,8 @@ const rawNodes = [
         y: 3740,
         opponent: {
             name: "General Morvran Voorhis",
-            avatar: "img/sm/nilfgaard_impera_brigade.jpg",
+            avatar: "img/characters/Morvran-Voorhis.jpg",
+            circleAvatar: "img/avatars/Morvran-Voorhis.png",
             faction: "nilfgaard",
             leader: 57,
             deck: AI_DECKS.nilfgaard_easy
@@ -1593,7 +1640,8 @@ const rawNodes = [
         y: 3825,
         opponent: {
             name: "Duque Joachim de Wett",
-            avatar: "img/sm/nilfgaard_nausicaa_2.jpg",
+            avatar: "img/characters/Joachim-de-wett.jpg",
+            circleAvatar: "img/avatars/Joachim-de-Wett.png",
             faction: "nilfgaard",
             leader: 57,
             deck: AI_DECKS.nilfgaard_easy
@@ -1614,7 +1662,8 @@ const rawNodes = [
         y: 3785,
         opponent: {
             name: "Embaixador Shilard Fitz-Oesterlen",
-            avatar: "img/sm/nilfgaard_shilard.jpg",
+            avatar: "img/characters/Shilard-Fitz-Oesterlen.jpg",
+            circleAvatar: "img/avatars/Shilard-Fitz-Oesterlen.png",
             faction: "nilfgaard",
             leader: 58,
             deck: AI_DECKS.nilfgaard_easy
@@ -1635,7 +1684,8 @@ const rawNodes = [
         y: 3620,
         opponent: {
             name: "Vattier de Rideaux",
-            avatar: "img/sm/nilfgaard_vattier.jpg",
+            avatar: "img/characters/Vattier-de-Rideaux.jpg",
+            circleAvatar: "img/avatars/Vattier-de-rideaux.png",
             faction: "nilfgaard",
             leader: 58,
             deck: AI_DECKS.nilfgaard_med
@@ -1656,7 +1706,8 @@ const rawNodes = [
         y: 3530,
         opponent: {
             name: "Feiticeira Fringilla Vigo",
-            avatar: "img/sm/nilfgaard_fringilla.jpg",
+            avatar: "img/characters/Fringilla-Vigo.jpg",
+            circleAvatar: "img/avatars/Fringilla-Vigo.png",
             faction: "nilfgaard",
             leader: 58,
             deck: AI_DECKS.nilfgaard_med
@@ -1685,9 +1736,9 @@ const rawNodes = [
             { index: 83, count: 1, name: "Siege Technician (Medic)" }
         ],
         rounds: [
-            { opponentName: "Cirurgião de Vicovaro", faction: "nilfgaard", leader: 57, deck: AI_DECKS.nilfgaard_easy },
-            { opponentName: "Mago Renuald aep Matsen", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Mestra Assire var Anahid", faction: "nilfgaard", leader: 59, deck: AI_DECKS.nilfgaard_med }
+            { opponentName: "Cirurgião de Vicovaro", faction: "nilfgaard", leader: 57, circleAvatar: "img/avatars/Xarthisius.png", deck: AI_DECKS.nilfgaard_easy },
+            { opponentName: "Cavaleiro Roderick de Wett", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Roderick-De-Wett.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Mestra Assire var Anahid", faction: "nilfgaard", leader: 59, circleAvatar: "img/avatars/Fringilla-Vigo.png", deck: AI_DECKS.nilfgaard_med }
         ],
         connections: ["nilf_vicovaro"]
     },
@@ -1701,7 +1752,8 @@ const rawNodes = [
         y: 3360,
         opponent: {
             name: "Marechal Menno Coehoorn",
-            avatar: "img/sm/nilfgaard_menno.jpg",
+            avatar: "img/characters/Menno-Coehoorn.jpg",
+            circleAvatar: "img/avatars/Menno-Coehoorn.png",
             faction: "nilfgaard",
             leader: 59,
             deck: AI_DECKS.nilfgaard_med
@@ -1722,7 +1774,8 @@ const rawNodes = [
         y: 3230,
         opponent: {
             name: "Letho de Gulet",
-            avatar: "img/sm/nilfgaard_letho.jpg",
+            avatar: "img/characters/Letho-de-Gulet.jpg",
+            circleAvatar: "img/avatars/Letho-de-Gulet.png",
             faction: "nilfgaard",
             leader: 60,
             deck: AI_DECKS.nilfgaard_hard
@@ -1743,7 +1796,8 @@ const rawNodes = [
         y: 3110,
         opponent: {
             name: "Stefan Skellen (Coruja)",
-            avatar: "img/sm/nilfgaard_stefan.jpg",
+            avatar: "img/characters/Stefan-Skellen.jpg",
+            circleAvatar: "img/avatars/Stefan-Skellen.png",
             faction: "nilfgaard",
             leader: 59,
             deck: AI_DECKS.nilfgaard_med
@@ -1764,7 +1818,8 @@ const rawNodes = [
         y: 2975,
         opponent: {
             name: "Coronel Tibor Eggebracht",
-            avatar: "img/sm/nilfgaard_tibor.jpg",
+            avatar: "img/characters/Tibor-Eggebracht.jpg",
+            circleAvatar: "img/avatars/Tibor-Eggebracht.png",
             faction: "nilfgaard",
             leader: 58,
             deck: AI_DECKS.nilfgaard_hard
@@ -1785,7 +1840,8 @@ const rawNodes = [
         y: 2790,
         opponent: {
             name: "Caçador Leo Bonhart",
-            avatar: "img/sm/nilfgaard_moorvran.jpg",
+            avatar: "img/characters/Leo-Bonhart.jpg",
+            circleAvatar: "img/avatars/Leo-Bonhart.png",
             faction: "nilfgaard",
             leader: 60,
             deck: AI_DECKS.nilfgaard_hard
@@ -1815,11 +1871,11 @@ const rawNodes = [
             { index: 79, count: 1, name: "Heavy Zerrikanian Fire Scorpion" }
         ],
         rounds: [
-            { opponentName: "Capitão Sweers", faction: "nilfgaard", leader: 57, deck: AI_DECKS.nilfgaard_easy },
-            { opponentName: "Comandante Vreemde", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Cavaleiro Cahir aep Ceallach", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "General Menno Coehoorn", faction: "nilfgaard", leader: 59, deck: AI_DECKS.nilfgaard_hard },
-            { opponentName: "Mago Vilgefortz de Roggeveen", faction: "nilfgaard", leader: 60, deck: AI_DECKS.nilfgaard_hard }
+            { opponentName: "Capitão Sweers", faction: "nilfgaard", leader: 57, circleAvatar: "img/avatars/Tibor-Eggebracht.png", deck: AI_DECKS.nilfgaard_easy },
+            { opponentName: "Comandante Vreemde", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Stefan-Skellen.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Cavaleiro Cahir aep Ceallach", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Leo-Bonhart.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "General Menno Coehoorn", faction: "nilfgaard", leader: 59, circleAvatar: "img/avatars/Menno-Coehoorn.png", deck: AI_DECKS.nilfgaard_hard },
+            { opponentName: "Feiticeira Yennefer (Thanedd)", faction: "nilfgaard", leader: 60, circleAvatar: "img/avatars/Yennefer2.png", deck: AI_DECKS.nilfgaard_hard }
         ],
         connections: ["nilf_maecht", "nilf_claremont", "nilf_metinna"]
     },
@@ -1827,13 +1883,14 @@ const rawNodes = [
         id: "nilf_metinna",
         region: "Metinna",
         name: "Planícies dos Cavalos de Metinna",
-        lore: "Terra dos mais velozes ginetes e arqueiros do império. Os esquadrões de arco longo negro nunca erram o alvo.",
+        lore: "Nas vastas planícies de Metinna, a astuta feiticeira imperial Cynthia joga com ilusões refinadas e cartas táticas de Nilfgaard.",
         type: "battle",
         x: 1725,
         y: 2505,
         opponent: {
-            name: "Mestre Arqueiro de Metinna",
-            avatar: "img/sm/nilfgaard_black_archer.jpg",
+            name: "Feiticeira Cynthia",
+            avatar: "img/characters/Cynthia.jpg",
+            circleAvatar: "img/avatars/Cynthia.png",
             faction: "nilfgaard",
             leader: 58,
             deck: AI_DECKS.nilfgaard_med
@@ -1841,7 +1898,7 @@ const rawNodes = [
         crownsReward: 340,
         crownsReplay: 75,
         crownsLoss: 65,
-        cardDrop: { index: 64, count: 1, name: "Black Infantry Archer" },
+        cardDrop: { index: 66, count: 1, name: "Cynthia" },
         connections: ["nilf_claremont", "tourney_5_maecht", "nilf_tor_zireael"]
     },
     {
@@ -1854,7 +1911,8 @@ const rawNodes = [
         y: 2325,
         opponent: {
             name: "Sábio Aen Elle Avallac'h",
-            avatar: "img/sm/neutral_mysterious_elf.jpg",
+            avatar: "img/characters/Avallach.jpg",
+            circleAvatar: "img/avatars/Avallach.png",
             faction: "scoiatael",
             leader: 139,
             deck: AI_DECKS.scoiatael_hard
@@ -1875,7 +1933,8 @@ const rawNodes = [
         y: 2170,
         opponent: {
             name: "Astrólogo Imperial Xarthisius",
-            avatar: "img/sm/nilfgaard_nauzicaa.jpg",
+            avatar: "img/characters/Xarthisius.jpg",
+            circleAvatar: "img/avatars/Xarthisius.png",
             faction: "nilfgaard",
             leader: 58,
             deck: AI_DECKS.nilfgaard_med
@@ -1904,13 +1963,13 @@ const rawNodes = [
         ],
         trophyId: "insignia_nilfgaard",
         rounds: [
-            { opponentName: "Duque Joachim de Wett", faction: "nilfgaard", leader: 57, deck: AI_DECKS.nilfgaard_easy },
-            { opponentName: "Embaixador Shilard Fitz-Oesterlen", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "Mestre de Espiões Vattier de Rideaux", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_med },
-            { opponentName: "General Morvran Voorhis", faction: "nilfgaard", leader: 58, deck: AI_DECKS.nilfgaard_hard },
-            { opponentName: "Bruxo Letho de Gulet", faction: "nilfgaard", leader: 60, deck: AI_DECKS.nilfgaard_hard },
-            { opponentName: "Marechal Menno Coehoorn", faction: "nilfgaard", leader: 59, deck: AI_DECKS.nilfgaard_hard },
-            { opponentName: "Imperador Emhyr var Emreis", faction: "nilfgaard", leader: 59, deck: AI_DECKS.nilfgaard_hard }
+            { opponentName: "Duque Joachim de Wett", faction: "nilfgaard", leader: 57, circleAvatar: "img/avatars/Joachim-de-Wett.png", deck: AI_DECKS.nilfgaard_easy },
+            { opponentName: "Embaixador Shilard Fitz-Oesterlen", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Shilard-Fitz-Oesterlen.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "Mestre de Espiões Vattier de Rideaux", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Vattier-de-rideaux.png", deck: AI_DECKS.nilfgaard_med },
+            { opponentName: "General Morvran Voorhis", faction: "nilfgaard", leader: 58, circleAvatar: "img/avatars/Morvran-Voorhis.png", deck: AI_DECKS.nilfgaard_hard },
+            { opponentName: "Bruxo Letho de Gulet", faction: "nilfgaard", leader: 60, circleAvatar: "img/avatars/Letho-de-Gulet.png", deck: AI_DECKS.nilfgaard_hard },
+            { opponentName: "Marechal Menno Coehoorn", faction: "nilfgaard", leader: 59, circleAvatar: "img/avatars/Menno-Coehoorn.png", deck: AI_DECKS.nilfgaard_hard },
+            { opponentName: "Imperador Emhyr var Emreis", faction: "nilfgaard", leader: 59, circleAvatar: "img/avatars/Mererid.png", deck: AI_DECKS.nilfgaard_hard }
         ],
         connections: ["nilf_capital_tavern"]
     }

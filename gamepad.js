@@ -22,10 +22,19 @@ const GamepadManager = {
 	navState: {
 		matchHandIndex: 0,
 		matchRowIndex: 0,
-		deckPanel: "bank", // 'bank' or 'deck' or 'top'
+		deckPanel: "bank", // 'bank', 'center', 'deck', 'top', 'bank_filters', 'deck_filters'
 		deckBankIndex: 0,
 		deckDeckIndex: 0,
 		deckTopIndex: 0,
+		deckCenterIndex: 0,
+		deckBankFilterIndex: 0,
+		deckDeckFilterIndex: 0,
+		storySavesRow: 0,
+		storySavesCol: 0,
+		rulesModalIndex: 0,
+		boardModalIndex: 0,
+		opponentModalIndex: 0,
+		versusLobbyIndex: 0,
 		menuNavIndex: 0,
 		menuPlayIndex: 0,
 		menuSettingsRow: 0,
@@ -37,6 +46,15 @@ const GamepadManager = {
 		storySetupBtnIndex: 1
 	},
 
+	// On-Screen Keyboard (OSK) State
+	oskActive: false,
+	oskTargetInput: null,
+	oskRow: 1,
+	oskCol: 0,
+	oskShift: false,
+	oskValue: "",
+
+
 	// Story Map Modern Virtual Cursor State
 	mapCursorX: 0,
 	mapCursorY: 0,
@@ -44,9 +62,14 @@ const GamepadManager = {
 	hoveredMapTarget: null,
 
 	// Currently focused DOM element
+	initialized: false,
+	lastContext: null,
 	currentFocusedElem: null,
 
 	init() {
+		if (this.initialized) return;
+		this.initialized = true;
+
 		window.addEventListener("gamepadconnected", e => this.onConnected(e));
 		window.addEventListener("gamepaddisconnected", e => this.onDisconnected(e));
 
@@ -56,20 +79,50 @@ const GamepadManager = {
 			if (Math.abs(e.clientX - lastMouseX) > 8 || Math.abs(e.clientY - lastMouseY) > 8) {
 				lastMouseX = e.clientX;
 				lastMouseY = e.clientY;
-				if (this.active && Date.now() - this.lastActiveTime > 2000) {
+				if (this.active && Date.now() - this.lastActiveTime > 2500) {
 					this.setGamepadActive(false);
 				}
 			}
 		});
 
+		
+		// Keyboard navigation support for OSK
+		window.addEventListener("keydown", (e) => {
+			if (!this.oskActive) return;
+			if (e.key === "ArrowUp") { e.preventDefault(); this.navOSK("up"); }
+			else if (e.key === "ArrowDown") { e.preventDefault(); this.navOSK("down"); }
+			else if (e.key === "ArrowLeft") { e.preventDefault(); this.navOSK("left"); }
+			else if (e.key === "ArrowRight") { e.preventDefault(); this.navOSK("right"); }
+			else if (e.key === "Enter") { e.preventDefault(); this.closeOSK(true); }
+			else if (e.key === "Escape") { e.preventDefault(); this.closeOSK(false); }
+		});
+
 		// Check initial gamepads
-		const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-		for (let i = 0; i < pads.length; i++) {
-			if (pads[i]) {
-				this.gamepadIndex = pads[i].index;
-				this.showToast((typeof I18N !== "undefined") ? I18N.t("pad_connected") : "Controller Connected");
-				break;
+		let initialFound = false;
+		try {
+			const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+			for (let i = 0; i < pads.length; i++) {
+				if (pads[i]) {
+					this.gamepadIndex = pads[i].index;
+					const name = pads[i].id || "Gamepad";
+					const cleanName = name.includes("Xbox") ? "Xbox Controller" 
+						: name.includes("DualSense") ? "PS5 DualSense"
+						: name.includes("Wireless") ? "PlayStation Controller" : "Controle";
+					this.showToast(((typeof I18N !== "undefined") ? I18N.t("pad_connected", "Controle Conectado") : "Controle Conectado") + ": " + cleanName);
+					if (typeof Debugger !== "undefined" && Debugger.log) {
+						Debugger.log(`🎮 Gamepad detectado: ${cleanName} [Slot ${pads[i].index}] (${name})`, "system");
+					}
+					this.setGamepadActive(true);
+					initialFound = true;
+					break;
+				}
 			}
+		} catch (err) {
+			console.warn("Erro ao ler gamepads iniciais:", err);
+		}
+
+		if (!initialFound && typeof Debugger !== "undefined" && Debugger.log) {
+			Debugger.log("🎮 GamepadManager pronto. Pressione qualquer botão do controle para ativá-lo.", "system");
 		}
 
 		// Start polling loop
@@ -81,16 +134,23 @@ const GamepadManager = {
 		const name = e.gamepad.id || "Gamepad";
 		const cleanName = name.includes("Xbox") ? "Xbox Controller" 
 			: name.includes("DualSense") ? "PS5 DualSense"
-			: name.includes("Wireless") ? "PlayStation Controller" : "Controller";
-		this.showToast(((typeof I18N !== "undefined") ? I18N.t("pad_connected") : "Controller Connected") + ": " + cleanName);
+			: name.includes("Wireless") ? "PlayStation Controller" : "Controle";
+		this.showToast(((typeof I18N !== "undefined") ? I18N.t("pad_connected", "Controle Conectado") : "Controle Conectado") + ": " + cleanName);
+		if (typeof Debugger !== "undefined" && Debugger.log) {
+			Debugger.log(`🎮 Gamepad Conectado: ${cleanName} [Slot ${e.gamepad.index}] (${name})`, "system");
+		}
 		this.setGamepadActive(true);
 	},
 
 	onDisconnected(e) {
 		if (this.gamepadIndex === e.gamepad.index) {
+			const name = e.gamepad.id || "Gamepad";
 			this.gamepadIndex = null;
 			this.setGamepadActive(false);
-			this.showToast((typeof I18N !== "undefined") ? I18N.t("pad_disconnected") : "Controller Disconnected");
+			this.showToast((typeof I18N !== "undefined") ? I18N.t("pad_disconnected", "Controle Desconectado") : "Controle Desconectado");
+			if (typeof Debugger !== "undefined" && Debugger.log) {
+				Debugger.log(`🎮 Gamepad Desconectado: Slot ${e.gamepad.index} (${name})`, "warn");
+			}
 		}
 	},
 
@@ -134,6 +194,7 @@ const GamepadManager = {
 	},
 
 	startPolling() {
+		if (this.rafId) cancelAnimationFrame(this.rafId);
 		const loop = () => {
 			this.poll();
 			this.rafId = requestAnimationFrame(loop);
@@ -143,26 +204,75 @@ const GamepadManager = {
 
 	getGamepad() {
 		if (!navigator.getGamepads) return null;
-		const pads = navigator.getGamepads();
+		let pads;
+		try {
+			pads = navigator.getGamepads();
+		} catch (e) {
+			return null;
+		}
+		if (!pads) return null;
+
+		// 1. Verifica se há algum controle com ação/interação física recente
+		let firstValid = null;
+		for (let i = 0; i < pads.length; i++) {
+			const pad = pads[i];
+			if (!pad) continue;
+			if (!firstValid) firstValid = pad;
+
+			const anyBtn = pad.buttons && pad.buttons.some(b => b && (b.pressed || b.value > 0.35));
+			const anyAxis = pad.axes && pad.axes.some(a => Math.abs(a) > 0.35);
+			if (anyBtn || anyAxis) {
+				if (this.gamepadIndex !== pad.index) {
+					this.gamepadIndex = pad.index;
+					if (typeof Debugger !== "undefined" && Debugger.log) {
+						Debugger.log(`🎮 Gamepad ativo comutado para Slot ${pad.index} (${pad.id})`, "info");
+					}
+				}
+				return pad;
+			}
+		}
+
+		// 2. Se nenhum botão estiver sendo segurado agora, retorna o gamepad ativo
 		if (this.gamepadIndex !== null && pads[this.gamepadIndex]) {
 			return pads[this.gamepadIndex];
 		}
-		for (let i = 0; i < pads.length; i++) {
-			if (pads[i]) {
-				this.gamepadIndex = i;
-				return pads[i];
-			}
+
+		// 3. Fallback para o primeiro controle válido encontrado
+		if (firstValid) {
+			this.gamepadIndex = firstValid.index;
+			return firstValid;
 		}
+
 		return null;
 	},
 
 	// Identifies the active screen context
 	getContext() {
+		// 1. Teclado Virtual (OSK) tem prioridade máxima quando aberto
+		if (this.oskActive) {
+			const osk = document.getElementById("gamepad-osk-modal");
+			if (osk && !osk.classList.contains("hide")) return "OSK";
+		}
+
 		const ingameDialog = document.getElementById("ingame-dialog-modal");
 		if (ingameDialog && !ingameDialog.classList.contains("hide")) return "INGAME_DIALOG";
 
+		const rulesModal = document.getElementById("rules-modal");
+		if (rulesModal && !rulesModal.classList.contains("hide")) return "RULES_MODAL";
+
+		const boardModal = document.getElementById("board-modal");
+		if (boardModal && !boardModal.classList.contains("hide")) return "BOARD_MODAL";
+
+		const opponentModal = document.getElementById("opponent-modal");
+		if (opponentModal && !opponentModal.classList.contains("hide")) return "OPPONENT_MODAL";
+
+		const storySavesModal = document.getElementById("story-saves-modal");
+		if (storySavesModal && !storySavesModal.classList.contains("hide")) return "STORY_SAVES";
 		const versusAlert = document.getElementById("versus-alert-modal");
 		if (versusAlert && !versusAlert.classList.contains("hide")) return "VERSUS_ALERT";
+
+		const versusEmote = document.getElementById("versus-emote-wheel-container");
+		if (versusEmote && !versusEmote.classList.contains("hide")) return "VERSUS_EMOTE";
 
 		const versusLobby = document.getElementById("versus-lobby-modal");
 		if (versusLobby && !versusLobby.classList.contains("hide")) return "VERSUS_LOBBY";
@@ -178,7 +288,7 @@ const GamepadManager = {
 		if (outcomeModal && !outcomeModal.classList.contains("hide")) return "STORY_MODAL";
 
 		// Any open Story Modal (Battle, Tournament, Shop, Compendium)
-		const storyModals = ["story-battle-modal", "story-tournament-modal", "story-shop-modal", "story-compendium-modal"];
+		const storyModals = ["story-battle-modal", "story-tournament-modal", "story-shop-modal", "story-compendium-modal", "avatar-picker-modal"];
 		for (const id of storyModals) {
 			const m = document.getElementById(id);
 			if (m && !m.classList.contains("hide")) return "STORY_MODAL";
@@ -262,11 +372,14 @@ const GamepadManager = {
 		const btnRB = isPressed(5);
 		const btnLT = isPressed(6);
 		const btnRT = isPressed(7);
+		const btnSelect = isPressed(8);
 		const btnStart = isPressed(9);
+		const btnLS = isPressed(10);
+		const btnRS = isPressed(11);
 
 		// Check if any controller input occurred
 		const anyStick = (Math.abs(a[0] || 0) > 0.18 || Math.abs(a[1] || 0) > 0.18 || rStickMoved);
-		const anyAction = dUp || dDown || dLeft || dRight || anyStick || btnA || btnB || btnX || btnY || btnLB || btnRB || btnLT || btnRT || btnStart || btnRS;
+		const anyAction = dUp || dDown || dLeft || dRight || anyStick || btnA || btnB || btnX || btnY || btnLB || btnRB || btnLT || btnRT || btnSelect || btnStart || btnLS || btnRS;
 		if (anyAction) {
 			if (!this.active) {
 				this.setGamepadActive(true);
@@ -277,6 +390,10 @@ const GamepadManager = {
 		if (!this.active) return;
 
 		const context = this.getContext();
+		if (this.lastContext !== context) {
+			this.lastContext = context;
+			this.applyContextFocus(context);
+		}
 		this.updateHUD(context);
 
 		// Continuous analog cursor & map pan/zoom when in STORY_MAP
@@ -284,6 +401,7 @@ const GamepadManager = {
 			this.updateStoryMapCursor(pad);
 		} else {
 			this.hideMapCursor();
+			this.handleRightStickScroll(pad, context);
 		}
 
 		// Handle Directional inputs with repeat curve (260ms initial delay, 110ms repeat)
@@ -323,7 +441,9 @@ const GamepadManager = {
 		checkEdge("Y", btnY, () => this.handleAction("Y", context));
 		checkEdge("LB", btnLB, () => this.handleAction("LB", context));
 		checkEdge("RB", btnRB, () => this.handleAction("RB", context));
+		checkEdge("Select", btnSelect, () => this.handleAction("Select", context));
 		checkEdge("Start", btnStart, () => this.handleAction("Start", context));
+		checkEdge("LS", btnLS, () => this.handleAction("LS", context));
 		checkEdge("RS", btnRS, () => this.handleAction("RS", context));
 	},
 
@@ -362,6 +482,21 @@ const GamepadManager = {
 
 	handleDirection(dir, context) {
 		switch (context) {
+			case "OSK":
+				this.navOSK(dir);
+				break;
+			case "STORY_SAVES":
+				this.navStorySaves(dir);
+				break;
+			case "RULES_MODAL":
+				this.navRulesModal(dir);
+				break;
+			case "BOARD_MODAL":
+				this.navBoardModal(dir);
+				break;
+			case "OPPONENT_MODAL":
+				this.navOpponentModal(dir);
+				break;
 			case "INGAME_DIALOG":
 				this.navInGameDialog(dir);
 				break;
@@ -407,6 +542,9 @@ const GamepadManager = {
 			case "VERSUS_LOBBY":
 				this.navVersusLobby(dir);
 				break;
+			case "VERSUS_EMOTE":
+				this.navVersusEmote(dir);
+				break;
 			case "VERSUS_ALERT":
 				this.navVersusAlert(dir);
 				break;
@@ -414,7 +552,83 @@ const GamepadManager = {
 	},
 
 	handleAction(action, context) {
+		// Se o Teclado Virtual (OSK) estiver ativo, delega as ações para o OSK
+		if (context === "OSK") {
+			this.handleActionOSK(action);
+			return;
+		}
+
+		// Se o usuário apertar A sobre qualquer input ou textarea no jogo, abre o Teclado Virtual
+		if (action === "A" && this.currentFocusedElem) {
+			const tag = (this.currentFocusedElem.tagName || "").toLowerCase();
+			if (tag === "input" || tag === "textarea") {
+				this.openOSK(this.currentFocusedElem, "DIGITAR COM O CONTROLE");
+				return;
+			}
+		}
+
 		switch (context) {
+			case "STORY_SAVES":
+				if (action === "A") {
+					if (this.currentFocusedElem) this.currentFocusedElem.click();
+				} else if (action === "Y") {
+					if (typeof StoryMode !== "undefined") StoryMode.startNewCampaignFromMenu();
+				} else if (action === "B") {
+					if (typeof StoryMode !== "undefined") StoryMode.closeSavesModal();
+				}
+				break;
+
+			case "RULES_MODAL":
+				if (action === "A") {
+					if (this.currentFocusedElem) {
+						if (this.currentFocusedElem.classList && this.currentFocusedElem.classList.contains("rules-checkbox-item")) {
+							const input = this.currentFocusedElem.querySelector("input[type='checkbox']");
+							if (input) {
+								input.checked = !input.checked;
+								input.dispatchEvent(new Event("change", { bubbles: true }));
+							} else {
+								this.currentFocusedElem.click();
+							}
+						} else {
+							this.currentFocusedElem.click();
+						}
+					}
+				} else if (action === "B") {
+					if (typeof DeckMaker !== "undefined" && DeckMaker.closeRulesModal) {
+						DeckMaker.closeRulesModal();
+					} else {
+						const closeBtn = document.querySelector("#rules-modal .witcher-modal-close");
+						if (closeBtn) closeBtn.click();
+					}
+				}
+				break;
+
+			case "BOARD_MODAL":
+				if (action === "A") {
+					if (this.currentFocusedElem) this.currentFocusedElem.click();
+				} else if (action === "B") {
+					if (typeof DeckMaker !== "undefined" && DeckMaker.closeBoardModal) {
+						DeckMaker.closeBoardModal();
+					} else {
+						const closeBtn = document.querySelector("#board-modal .witcher-modal-close");
+						if (closeBtn) closeBtn.click();
+					}
+				}
+				break;
+
+			case "OPPONENT_MODAL":
+				if (action === "A") {
+					if (this.currentFocusedElem) this.currentFocusedElem.click();
+				} else if (action === "B") {
+					if (typeof DeckMaker !== "undefined" && DeckMaker.closeOpponentModal) {
+						DeckMaker.closeOpponentModal();
+					} else {
+						const closeBtn = document.querySelector("#opponent-modal .witcher-modal-close");
+						if (closeBtn) closeBtn.click();
+					}
+				}
+				break;
+
 			case "INGAME_DIALOG": {
 				const confirmBtn = document.getElementById("ingame-dialog-confirm-btn");
 				const cancelBtn = document.getElementById("ingame-dialog-cancel-btn");
@@ -455,7 +669,15 @@ const GamepadManager = {
 				} else if (action === "RB") {
 					if (typeof StoryMode !== "undefined") StoryMode.resetMapToContinent();
 				} else if (action === "B" || action === "Start") {
-					if (typeof StoryMode !== "undefined") StoryMode.closeMapToMenu();
+					const statsDrawer = document.getElementById("story-player-stats-drawer");
+					const headerDropdown = document.getElementById("story-hud-dropdown-menu");
+					if (action === "B" && statsDrawer && !statsDrawer.classList.contains("hide")) {
+						if (typeof StoryMode !== "undefined") StoryMode.toggleStatsDrawer(false);
+					} else if (action === "B" && headerDropdown && !headerDropdown.classList.contains("hide")) {
+						if (typeof StoryMode !== "undefined") StoryMode.closeHeaderDropdown();
+					} else if (typeof StoryMode !== "undefined") {
+						StoryMode.closeMapToMenu();
+					}
 				}
 				break;
 
@@ -471,7 +693,10 @@ const GamepadManager = {
 					}
 					setTimeout(() => this.refreshFocus(), 60);
 				} else if (action === "B") {
-					if (isOutcome) {
+					const avatarModal = document.getElementById("avatar-picker-modal");
+					if (avatarModal && !avatarModal.classList.contains("hide")) {
+						if (typeof AvatarManager !== "undefined") AvatarManager.closePicker();
+					} else if (isOutcome) {
 						const actBtn = document.getElementById("story-outcome-action-btn");
 						if (actBtn) actBtn.click();
 					} else if (typeof StoryMode !== "undefined") {
@@ -511,56 +736,40 @@ const GamepadManager = {
 
 			case "CAROUSEL":
 				if (action === "A") {
-					if (typeof Carousel !== "undefined" && Carousel.curr) {
-						Carousel.curr.select({ stopPropagation: () => {} });
-					}
+					if (typeof Carousel !== "undefined" && Carousel.curr) Carousel.curr.select({ stopPropagation: () => {} });
 				} else if (action === "B") {
-					if (typeof Carousel !== "undefined" && Carousel.curr && Carousel.curr.bExit) {
-						Carousel.curr.cancel();
-					}
+					if (typeof Carousel !== "undefined" && Carousel.curr) Carousel.curr.cancel();
 				}
 				break;
 
 			case "END_SCREEN":
-				if (action === "A" && this.currentFocusedElem) {
-					this.currentFocusedElem.click();
+				if (action === "A") {
+					if (this.currentFocusedElem) this.currentFocusedElem.click();
 				}
 				break;
 
 			case "MENU_NAV":
-				if (action === "A" && this.currentFocusedElem) {
-					this.currentFocusedElem.click();
+				if (action === "A") {
+					if (this.currentFocusedElem) this.currentFocusedElem.click();
 				}
 				break;
 
 			case "MENU_PLAY":
-				if (action === "A" && this.currentFocusedElem) {
-					this.currentFocusedElem.click();
+				if (action === "A") {
+					if (this.currentFocusedElem) this.currentFocusedElem.click();
 				} else if (action === "B") {
 					MenuController.showView("nav");
 				}
 				break;
 
 			case "MENU_SETTINGS":
-				if (action === "A" && this.currentFocusedElem) {
-					if (this.currentFocusedElem.type === "checkbox") {
-						this.currentFocusedElem.checked = !this.currentFocusedElem.checked;
-						this.currentFocusedElem.dispatchEvent(new Event("change"));
-					} else {
-						this.currentFocusedElem.click();
-					}
-				} else if (action === "B") {
-					MenuController.saveSettings();
+				if (action === "B") {
 					MenuController.showView("nav");
 				}
 				break;
 
 			case "MENU_ACHIEVEMENTS":
-				if (action === "LB") {
-					this.cycleAchFilter(-1);
-				} else if (action === "RB") {
-					this.cycleAchFilter(1);
-				} else if (action === "B") {
+				if (action === "B") {
 					MenuController.showView("nav");
 				}
 				break;
@@ -573,7 +782,60 @@ const GamepadManager = {
 
 			case "DECK_CUSTOMIZATION":
 				if (action === "A") {
-					if (this.currentFocusedElem) this.currentFocusedElem.click();
+					if (this.currentFocusedElem) {
+						const elem = this.currentFocusedElem;
+						// Direct handler for Opponent, Board, Rules and Leader cards in Center Column
+						if (elem.id === "op-preview-card" || elem.id === "opponent-preview" || (elem.closest && elem.closest("#opponent-preview"))) {
+							if (typeof DeckMaker !== "undefined" && DeckMaker.openOpponentModal) {
+								DeckMaker.openOpponentModal();
+							} else {
+								const b = document.getElementById("op-preview-card");
+								if (b) b.click();
+							}
+							return;
+						}
+						if (elem.id === "board-preview-card" || elem.id === "board-preview" || (elem.closest && elem.closest("#board-preview"))) {
+							if (typeof DeckMaker !== "undefined" && DeckMaker.openBoardModal) {
+								DeckMaker.openBoardModal();
+							} else {
+								const b = document.getElementById("board-preview-card");
+								if (b) b.click();
+							}
+							return;
+						}
+						if (elem.id === "rules-preview-card" || elem.id === "rules-preview" || (elem.closest && elem.closest("#rules-preview"))) {
+							if (typeof DeckMaker !== "undefined" && DeckMaker.openRulesModal) {
+								DeckMaker.openRulesModal();
+							} else {
+								const b = document.getElementById("rules-preview-card");
+								if (b) b.click();
+							}
+							return;
+						}
+						if (elem.id === "card-leader" || (elem.closest && elem.closest("#card-leader"))) {
+							if (typeof dm !== "undefined" && dm.cycleLeader) {
+								dm.cycleLeader(1);
+							} else {
+								elem.click();
+							}
+							return;
+						}
+
+						elem.click();
+						if (elem.classList.contains("card-lg")) {
+							setTimeout(() => {
+								const panelId = (this.navState.deckPanel === "bank") ? "card-bank" : "card-deck";
+								const cards = Array.from(document.querySelectorAll(`#${panelId} .card-lg:not(.hide):not(.empty)`));
+								if (cards.length > 0) {
+									let idx = (this.navState.deckPanel === "bank") ? this.navState.deckBankIndex : this.navState.deckDeckIndex;
+									idx = Math.max(0, Math.min(cards.length - 1, idx || 0));
+									this.setFocus(cards[idx], false);
+								} else {
+									this.switchDeckPanel("center");
+								}
+							}, 60);
+						}
+					}
 				} else if (action === "B") {
 					if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) {
 						StoryMode.closeCampaignDeckBuilder();
@@ -583,18 +845,23 @@ const GamepadManager = {
 						MenuController.returnToMainMenu();
 					}
 				} else if (action === "LB") {
-					this.switchDeckPanel("bank");
+					this.cycleDeckMajorPanel(-1);
 				} else if (action === "RB") {
-					this.switchDeckPanel("deck");
+					this.cycleDeckMajorPanel(1);
+				} else if (action === "LT") {
+					this.cycleDeckFilterTabs(-1);
+				} else if (action === "RT") {
+					this.cycleDeckFilterTabs(1);
 				} else if (action === "X") {
-					if (typeof dm !== "undefined" && dm.selectLeader) dm.selectLeader();
+					const nextLBtn = document.getElementById("btn-leader-next");
+					if (nextLBtn) nextLBtn.click();
 				} else if (action === "Y") {
 					if (typeof dm !== "undefined" && dm.selectFaction) dm.selectFaction();
 				} else if (action === "Start") {
 					if (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign) {
 						StoryMode.closeCampaignDeckBuilder();
 					} else {
-						const startBtn = document.getElementById("start-game");
+						const startBtn = document.getElementById("start-game") || document.getElementById("btn-versus-deck-confirm");
 						if (startBtn) startBtn.click();
 					}
 				}
@@ -602,9 +869,23 @@ const GamepadManager = {
 
 			case "MATCH_HAND":
 				if (action === "Start") {
-					// Open Exit / Pause menu
 					const exitBtn = document.getElementById("exit-game");
 					if (exitBtn) exitBtn.click();
+					return;
+				}
+				if (action === "RS") {
+					if (typeof VersusMode !== "undefined" && VersusMode.toggleEmoteWheel) {
+						VersusMode.toggleEmoteWheel();
+					}
+					return;
+				}
+
+				if (action === "A" && this.currentFocusedElem && (
+					this.currentFocusedElem.classList.contains("duel-utility-btn") ||
+					this.currentFocusedElem.id === "forfeit-button" ||
+					this.currentFocusedElem.id === "match-rules-indicator"
+				)) {
+					this.currentFocusedElem.click();
 					return;
 				}
 
@@ -613,8 +894,6 @@ const GamepadManager = {
 				if (action === "A") {
 					if (this.currentFocusedElem) {
 						this.currentFocusedElem.click();
-						// Once clicked, give a tiny delay for gwent.js to set up selectable rows,
-						// then auto-focus the first selectable destination!
 						setTimeout(() => {
 							if (this.getContext() === "MATCH_TARGETING") {
 								this.navState.matchRowIndex = 0;
@@ -623,7 +902,6 @@ const GamepadManager = {
 						}, 40);
 					}
 				} else if (action === "B") {
-					// Cancel any card preview or dismiss background
 					if (typeof ui !== "undefined" && ui.cancel) {
 						ui.cancel();
 					}
@@ -631,11 +909,9 @@ const GamepadManager = {
 					if (bg && !bg.classList.contains("noclick")) bg.click();
 					this.applyContextFocus("MATCH_HAND");
 				} else if (action === "Y") {
-					// Pass Round shortcut
 					const passBtn = document.getElementById("pass-button");
 					if (passBtn && !passBtn.classList.contains("noclick")) passBtn.click();
 				} else if (action === "X") {
-					// Play Leader shortcut
 					const leaderMe = document.getElementById("leader-me");
 					if (leaderMe && !leaderMe.classList.contains("noclick")) {
 						const leaderContainer = leaderMe.querySelector(".leader-container");
@@ -659,7 +935,6 @@ const GamepadManager = {
 						this.applyContextFocus(this.getContext());
 					}, 120);
 				} else if (action === "B") {
-					// Cancel targeting and card preview
 					if (typeof ui !== "undefined" && ui.cancel) {
 						ui.cancel();
 					}
@@ -670,6 +945,18 @@ const GamepadManager = {
 					setTimeout(() => {
 						this.applyContextFocus("MATCH_HAND");
 					}, 40);
+				}
+				break;
+
+			case "VERSUS_EMOTE":
+				if (action === "A") {
+					if (typeof VersusMode !== "undefined" && VersusMode.sendSelectedEmote) {
+						VersusMode.sendSelectedEmote();
+					}
+				} else if (action === "B" || action === "RS") {
+					if (typeof VersusMode !== "undefined" && VersusMode.closeEmoteWheel) {
+						VersusMode.closeEmoteWheel();
+					}
 				}
 				break;
 
@@ -736,10 +1023,6 @@ const GamepadManager = {
 			}
 		}
 	},
-
-	// -------------------------------------------------------------
-	// Context Navigation Implementations
-	// -------------------------------------------------------------
 
 	// 0. In-Game Dialog Modal Navigation
 	navInGameDialog(dir) {
@@ -822,6 +1105,8 @@ const GamepadManager = {
 			document.getElementById("setting-sfx-volume"),
 			document.getElementById("setting-jukebox-track"),
 			document.getElementById("setting-language"),
+			document.getElementById("setting-game-speed"),
+			document.getElementById("setting-score-diff"),
 			...Array.from(document.querySelectorAll("#menu-settings .settings-actions button"))
 		].filter(Boolean);
 
@@ -845,9 +1130,16 @@ const GamepadManager = {
 					item.dispatchEvent(new Event("change"));
 				}
 			} else if (item.type === "range") {
-				const delta = (dir === "right") ? 5 : -5;
-				const newVal = Math.max(0, Math.min(100, parseInt(item.value, 10) + delta));
-				item.value = newVal;
+				if (item.id === "setting-game-speed" || item.id === "setting-game-speed-overlay") {
+					const delta = (dir === "right") ? 0.1 : -0.1;
+					const cur = parseFloat(item.value) || 1.0;
+					const newVal = Math.min(2.0, Math.max(1.0, Math.round((cur + delta) * 10) / 10));
+					item.value = newVal.toFixed(1);
+				} else {
+					const delta = (dir === "right") ? 5 : -5;
+					const newVal = Math.max(0, Math.min(100, parseInt(item.value, 10) + delta));
+					item.value = newVal;
+				}
 				if (item.oninput) item.oninput();
 				if (item.onchange) item.onchange();
 			} else if (item.type === "checkbox") {
@@ -886,7 +1178,7 @@ const GamepadManager = {
 		}
 	},
 
-	// 9. Deck Customization View
+	// 9. Deck Customization View (Full Support)
 	switchDeckPanel(targetPanel) {
 		this.navState.deckPanel = targetPanel;
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -895,16 +1187,64 @@ const GamepadManager = {
 		this.applyContextFocus("DECK_CUSTOMIZATION");
 	},
 
+	cycleDeckMajorPanel(delta) {
+		const order = ["bank", "center", "deck"];
+		let cur = order.indexOf(this.navState.deckPanel);
+		if (cur === -1) {
+			if (this.navState.deckPanel === "bank_filters") cur = 0;
+			else if (this.navState.deckPanel === "deck_filters") cur = 2;
+			else cur = 1;
+		}
+		const next = (cur + delta + order.length) % order.length;
+		this.switchDeckPanel(order[next]);
+	},
+
+	cycleDeckFilterTabs(delta) {
+		const isDeck = (this.navState.deckPanel === "deck" || this.navState.deckPanel === "deck_filters");
+		const containerId = isDeck ? "deck-filter-tabs" : "bank-filter-tabs";
+		const tabs = Array.from(document.querySelectorAll(`#${containerId} .deck-filter-btn`)).filter(b => b.offsetParent !== null);
+		if (tabs.length === 0) return;
+
+		let curIdx = tabs.findIndex(b => b.classList.contains("active"));
+		if (curIdx === -1) curIdx = 0;
+		const nextIdx = (curIdx + delta + tabs.length) % tabs.length;
+		tabs[nextIdx].click();
+		if (this.navState.deckPanel === "bank_filters" || this.navState.deckPanel === "deck_filters") {
+			this.setFocus(tabs[nextIdx]);
+		}
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
+		}
+	},
+
 	navDeckCustomization(dir) {
 		const isStoryDeck = (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign);
+		const isVersusDeck = (typeof VersusMode !== "undefined" && VersusMode.isActive);
+
 		const topItems = [
-			isStoryDeck ? document.getElementById("btn-story-back-to-map") : document.getElementById("btn-back-to-menu"),
+			isVersusDeck ? document.getElementById("btn-versus-top-back")
+				: (isStoryDeck ? document.getElementById("btn-story-back-to-map") : document.getElementById("btn-back-to-menu")),
 			isStoryDeck ? null : document.getElementById("upload-deck"),
 			document.getElementById("change-faction"),
 			document.getElementById("download-deck"),
-			isStoryDeck ? document.getElementById("btn-story-deck-confirm") : document.getElementById("start-game")
-		].filter(el => el && !el.classList.contains("hide") && el.offsetParent !== null);
+			document.getElementById("btn-deck-settings"),
+			isVersusDeck ? document.getElementById("btn-versus-deck-confirm")
+				: (isStoryDeck ? document.getElementById("btn-story-deck-confirm") : document.getElementById("start-game"))
+		].filter(el => el && !el.classList.contains("hide") && el.offsetParent !== null && getComputedStyle(el).display !== "none");
 
+		const bankFilterBtns = Array.from(document.querySelectorAll("#bank-filter-tabs .deck-filter-btn")).filter(b => b.offsetParent !== null);
+		const deckFilterBtns = Array.from(document.querySelectorAll("#deck-filter-tabs .deck-filter-btn")).filter(b => b.offsetParent !== null);
+
+		const centerItems = [
+			document.getElementById("card-leader"),
+			document.getElementById("op-preview-card") || document.getElementById("opponent-preview"),
+			document.getElementById("board-preview-card") || document.getElementById("board-preview"),
+			document.getElementById("rules-preview-card") || document.getElementById("rules-preview"),
+			isVersusDeck ? document.getElementById("btn-versus-deck-confirm")
+				: (isStoryDeck ? document.getElementById("btn-story-deck-confirm") : document.getElementById("start-game"))
+		].filter(el => el && !el.classList.contains("hide") && el.offsetParent !== null && getComputedStyle(el).display !== "none");
+
+		// 1. Top Panel
 		if (this.navState.deckPanel === "top") {
 			if (dir === "left") {
 				this.navState.deckTopIndex = Math.max(0, this.navState.deckTopIndex - 1);
@@ -913,51 +1253,136 @@ const GamepadManager = {
 				this.navState.deckTopIndex = Math.min(topItems.length - 1, this.navState.deckTopIndex + 1);
 				this.setFocus(topItems[this.navState.deckTopIndex]);
 			} else if (dir === "down") {
-				this.navState.deckPanel = (this.navState.deckTopIndex < 2) ? "bank" : "deck";
-				this.applyContextFocus("DECK_CUSTOMIZATION");
+				if (this.navState.deckTopIndex === 0) {
+					this.switchDeckPanel("bank_filters");
+				} else if (this.navState.deckTopIndex >= topItems.length - 2) {
+					this.switchDeckPanel("deck_filters");
+				} else {
+					this.switchDeckPanel("center");
+				}
 			}
 			return;
 		}
 
+		// 2. Bank Filter Tabs
+		if (this.navState.deckPanel === "bank_filters") {
+			if (dir === "left") {
+				this.navState.deckBankFilterIndex = Math.max(0, (this.navState.deckBankFilterIndex || 0) - 1);
+				const b = bankFilterBtns[this.navState.deckBankFilterIndex];
+				if (b) { b.click(); this.setFocus(b); }
+			} else if (dir === "right") {
+				if ((this.navState.deckBankFilterIndex || 0) >= bankFilterBtns.length - 1) {
+					this.switchDeckPanel("center");
+					return;
+				}
+				this.navState.deckBankFilterIndex = Math.min(bankFilterBtns.length - 1, (this.navState.deckBankFilterIndex || 0) + 1);
+				const b = bankFilterBtns[this.navState.deckBankFilterIndex];
+				if (b) { b.click(); this.setFocus(b); }
+			} else if (dir === "up") {
+				this.switchDeckPanel("top");
+			} else if (dir === "down") {
+				this.switchDeckPanel("bank");
+			}
+			return;
+		}
+
+		// 3. Deck Filter Tabs
+		if (this.navState.deckPanel === "deck_filters") {
+			if (dir === "left") {
+				if ((this.navState.deckDeckFilterIndex || 0) <= 0) {
+					this.switchDeckPanel("center");
+					return;
+				}
+				this.navState.deckDeckFilterIndex = Math.max(0, (this.navState.deckDeckFilterIndex || 0) - 1);
+				const b = deckFilterBtns[this.navState.deckDeckFilterIndex];
+				if (b) { b.click(); this.setFocus(b); }
+			} else if (dir === "right") {
+				this.navState.deckDeckFilterIndex = Math.min(deckFilterBtns.length - 1, (this.navState.deckDeckFilterIndex || 0) + 1);
+				const b = deckFilterBtns[this.navState.deckDeckFilterIndex];
+				if (b) { b.click(); this.setFocus(b); }
+			} else if (dir === "up") {
+				this.switchDeckPanel("top");
+			} else if (dir === "down") {
+				this.switchDeckPanel("deck");
+			}
+			return;
+		}
+
+		// 4. Center Panel (Leader, Opponent, Board, Rules, Start CTA)
+		if (this.navState.deckPanel === "center") {
+			if (centerItems.length === 0) {
+				this.switchDeckPanel("bank");
+				return;
+			}
+			let cIdx = this.navState.deckCenterIndex || 0;
+			cIdx = Math.max(0, Math.min(centerItems.length - 1, cIdx));
+
+			if (dir === "left") {
+				if (centerItems[cIdx] && centerItems[cIdx].id === "card-leader" && document.getElementById("btn-leader-prev")) {
+					document.getElementById("btn-leader-prev").click();
+					this.setFocus(centerItems[cIdx]);
+					return;
+				}
+				this.switchDeckPanel("bank");
+				return;
+			} else if (dir === "right") {
+				if (centerItems[cIdx] && centerItems[cIdx].id === "card-leader" && document.getElementById("btn-leader-next")) {
+					document.getElementById("btn-leader-next").click();
+					this.setFocus(centerItems[cIdx]);
+					return;
+				}
+				this.switchDeckPanel("deck");
+				return;
+			} else if (dir === "up") {
+				if (cIdx === 0) {
+					this.switchDeckPanel("top");
+					return;
+				}
+				cIdx = Math.max(0, cIdx - 1);
+			} else if (dir === "down") {
+				cIdx = Math.min(centerItems.length - 1, cIdx + 1);
+			}
+
+			this.navState.deckCenterIndex = cIdx;
+			const target = centerItems[cIdx];
+			if (target) this.setFocus(target);
+			return;
+		}
+
+		// 5. Card Bank & Card Deck Grids
 		const panelId = (this.navState.deckPanel === "bank") ? "card-bank" : "card-deck";
 		const cards = Array.from(document.querySelectorAll(`#${panelId} .card-lg:not(.hide):not(.empty)`));
+
 		if (cards.length === 0) {
-			if (dir === "up") {
-				this.navState.deckPanel = "top";
-				if (topItems.length > 0) this.setFocus(topItems[0]);
-			}
+			if (dir === "up") this.switchDeckPanel((panelId === "card-bank") ? "bank_filters" : "deck_filters");
+			else if (dir === "right" && this.navState.deckPanel === "bank") this.switchDeckPanel("center");
+			else if (dir === "left" && this.navState.deckPanel === "deck") this.switchDeckPanel("center");
 			return;
 		}
 
-		let idx = (this.navState.deckPanel === "bank") ? this.navState.deckBankIndex : this.navState.deckDeckIndex;
+		let idx = (this.navState.deckPanel === "bank") ? (this.navState.deckBankIndex || 0) : (this.navState.deckDeckIndex || 0);
 		idx = Math.max(0, Math.min(cards.length - 1, idx));
-
-		const cols = 3; // 3 columns in .card-array
+		const cols = 3;
 
 		if (dir === "left") {
 			if (idx % cols === 0 && this.navState.deckPanel === "deck") {
-				// Jump from deck to bank
-				this.navState.deckPanel = "bank";
-				this.applyContextFocus("DECK_CUSTOMIZATION");
+				this.switchDeckPanel("center");
 				return;
 			}
 			idx = Math.max(0, idx - 1);
 		} else if (dir === "right") {
 			if (idx % cols === cols - 1 && this.navState.deckPanel === "bank") {
-				// Jump from bank to deck
-				this.navState.deckPanel = "deck";
-				this.applyContextFocus("DECK_CUSTOMIZATION");
+				this.switchDeckPanel("center");
+				return;
+			}
+			if (idx === cards.length - 1 && this.navState.deckPanel === "bank") {
+				this.switchDeckPanel("center");
 				return;
 			}
 			idx = Math.min(cards.length - 1, idx + 1);
 		} else if (dir === "up") {
 			if (idx < cols) {
-				// Jump to top controls
-				this.navState.deckPanel = "top";
-				this.navState.deckTopIndex = (panelId === "card-bank") ? 0 : Math.max(0, topItems.length - 1);
-				if (topItems[this.navState.deckTopIndex]) {
-					this.setFocus(topItems[this.navState.deckTopIndex]);
-				}
+				this.switchDeckPanel((panelId === "card-bank") ? "bank_filters" : "deck_filters");
 				return;
 			}
 			idx = Math.max(0, idx - cols);
@@ -970,7 +1395,7 @@ const GamepadManager = {
 
 		this.setFocus(cards[idx]);
 	},
-
+	
 	// Helper: Returns the player's hand card DOM elements sorted strictly left-to-right on screen
 	getOrderedHandCardElems() {
 		const handRow = document.getElementById("hand-row");
@@ -998,18 +1423,74 @@ const GamepadManager = {
 		}
 
 		const passBtn = document.getElementById("pass-button");
+		const forfeitBtn = document.getElementById("forfeit-button");
+		const rulesBtn = document.getElementById("match-rules-indicator");
 		const leaderMe = document.getElementById("leader-me");
+		const utilityBtns = Array.from(document.querySelectorAll("#duel-utility-controls .duel-utility-btn:not(.hide)"));
 
-		// If currently focusing pass button or leader
-		if (this.currentFocusedElem === passBtn || (leaderMe && leaderMe.contains(this.currentFocusedElem))) {
+		// Se o foco estiver em um dos 3 botões utilitários empilhados à esquerda do Líder
+		const utilIdx = utilityBtns.indexOf(this.currentFocusedElem);
+		if (utilIdx !== -1) {
+			if (dir === "up") {
+				const prevIdx = Math.max(0, utilIdx - 1);
+				this.setFocus(utilityBtns[prevIdx]);
+				return;
+			} else if (dir === "down") {
+				if (utilIdx < utilityBtns.length - 1) {
+					this.setFocus(utilityBtns[utilIdx + 1]);
+				} else if (cardElems[idx]) {
+					this.setFocus(cardElems[idx]);
+				}
+				return;
+			} else if (dir === "right") {
+				const lCont = leaderMe ? leaderMe.querySelector(".leader-container") : null;
+				if (leaderMe && !leaderMe.classList.contains("noclick") && lCont) {
+					this.setFocus(lCont);
+					return;
+				} else if (passBtn && !passBtn.classList.contains("noclick")) {
+					this.setFocus(passBtn);
+					return;
+				} else if (cardElems[idx]) {
+					this.setFocus(cardElems[idx]);
+					return;
+				}
+			}
+			return;
+		}
+
+		// If currently focusing pass button, forfeit button, rules button, or leader
+		if (this.currentFocusedElem === passBtn || this.currentFocusedElem === forfeitBtn || this.currentFocusedElem === rulesBtn || (leaderMe && leaderMe.contains(this.currentFocusedElem))) {
 			if (dir === "down") {
+				if (this.currentFocusedElem === passBtn && forfeitBtn && !forfeitBtn.classList.contains("hide")) {
+					this.setFocus(forfeitBtn);
+					return;
+				} else if (this.currentFocusedElem === forfeitBtn && rulesBtn && !rulesBtn.classList.contains("hide")) {
+					this.setFocus(rulesBtn);
+					return;
+				}
 				// Return focus to active hand card
 				this.setFocus(cardElems[idx]);
 				return;
-			} else if (dir === "left" && this.currentFocusedElem === passBtn) {
-				if (leaderMe && !leaderMe.classList.contains("noclick")) {
-					const lCont = leaderMe.querySelector(".leader-container");
-					if (lCont) this.setFocus(lCont);
+			} else if (dir === "up") {
+				if (this.currentFocusedElem === rulesBtn && forfeitBtn && !forfeitBtn.classList.contains("hide")) {
+					this.setFocus(forfeitBtn);
+					return;
+				} else if (this.currentFocusedElem === forfeitBtn && passBtn && !passBtn.classList.contains("noclick")) {
+					this.setFocus(passBtn);
+					return;
+				}
+			} else if (dir === "left" && (this.currentFocusedElem === passBtn || this.currentFocusedElem === forfeitBtn || this.currentFocusedElem === rulesBtn)) {
+				const lCont = leaderMe ? leaderMe.querySelector(".leader-container") : null;
+				if (leaderMe && !leaderMe.classList.contains("noclick") && lCont) {
+					this.setFocus(lCont);
+					return;
+				} else if (utilityBtns.length > 0) {
+					this.setFocus(utilityBtns[0]);
+					return;
+				}
+			} else if (dir === "left" && leaderMe && leaderMe.contains(this.currentFocusedElem)) {
+				if (utilityBtns.length > 0) {
+					this.setFocus(utilityBtns[0]);
 					return;
 				}
 			} else if (dir === "right" && leaderMe && leaderMe.contains(this.currentFocusedElem)) {
@@ -1149,31 +1630,47 @@ const GamepadManager = {
 			}
 		}
 
-		// Magnetic hit detection against map nodes and HUD/filter buttons
+		// Magnetic hit detection against HUD/Drawer/Dropdown/Filter buttons first (since HUD overlays the map), then map pins
 		let bestTarget = null;
-		let bestDist = 42; // 42px magnetic capture radius for pins
 
-		const pins = document.querySelectorAll("#story-map-nodes-layer .story-map-pin");
-		pins.forEach(pin => {
-			if (pin.offsetParent === null) return; // hidden by filter
-			const r = pin.getBoundingClientRect();
-			const cx = r.left + r.width / 2;
-			const cy = r.top + r.height / 2;
-			const dist = Math.hypot(this.mapCursorX - cx, this.mapCursorY - cy);
-			if (dist < bestDist) {
-				bestDist = dist;
-				bestTarget = pin;
+		const uiBtns = document.querySelectorAll(
+			"#story-map-screen .story-player-badge, " +
+			"#story-map-screen .story-hud-btn, " +
+			"#story-map-screen .story-dropdown-item, " +
+			"#story-map-screen .story-btn-change-avatar, " +
+			"#story-map-screen .stats-drawer-close-btn, " +
+			"#story-map-screen #stats-drawer-player-avatar, " +
+			"#story-map-screen .story-filter-btn, " +
+			"#story-map-screen .story-map-control-btn"
+		);
+		uiBtns.forEach(btn => {
+			if (btn.offsetParent === null) return;
+			const r = btn.getBoundingClientRect();
+			if (r.width === 0 || r.height === 0) return;
+			if (this.mapCursorX >= r.left - 6 && this.mapCursorX <= r.right + 6 &&
+				this.mapCursorY >= r.top - 6 && this.mapCursorY <= r.bottom + 6) {
+				bestTarget = btn;
 			}
 		});
 
-		if (!bestTarget) {
-			const uiBtns = document.querySelectorAll("#story-map-screen .story-hud-btn, #story-map-screen .story-filter-btn, #story-map-screen .story-map-control-btn");
-			uiBtns.forEach(btn => {
-				if (btn.offsetParent === null) return;
-				const r = btn.getBoundingClientRect();
-				if (this.mapCursorX >= r.left - 6 && this.mapCursorX <= r.right + 6 &&
-					this.mapCursorY >= r.top - 6 && this.mapCursorY <= r.bottom + 6) {
-					bestTarget = btn;
+		const statsDrawerEl = document.getElementById("story-player-stats-drawer");
+		const isCursorOverOpenDrawer = statsDrawerEl && !statsDrawerEl.classList.contains("hide") && (() => {
+			const dr = statsDrawerEl.getBoundingClientRect();
+			return this.mapCursorX >= dr.left && this.mapCursorX <= dr.right && this.mapCursorY >= dr.top && this.mapCursorY <= dr.bottom;
+		})();
+
+		if (!bestTarget && !isCursorOverOpenDrawer) {
+			let bestDist = 42; // 42px magnetic capture radius for pins
+			const pins = document.querySelectorAll("#story-map-nodes-layer .story-map-pin");
+			pins.forEach(pin => {
+				if (pin.offsetParent === null) return; // hidden by filter
+				const r = pin.getBoundingClientRect();
+				const cx = r.left + r.width / 2;
+				const cy = r.top + r.height / 2;
+				const dist = Math.hypot(this.mapCursorX - cx, this.mapCursorY - cy);
+				if (dist < bestDist) {
+					bestDist = dist;
+					bestTarget = pin;
 				}
 			});
 		}
@@ -1210,13 +1707,13 @@ const GamepadManager = {
 		}
 	},
 
-	// 13. Story Modal Navigation (Battle, Tournament, Shop, Compendium, Outcome)
+	// 13. Story Modal Navigation (Battle, Tournament, Shop, Compendium, Outcome, Avatar Picker)
 	getActiveStoryModalButtons() {
-		const modalIds = ["story-outcome-modal", "story-battle-modal", "story-tournament-modal", "story-shop-modal", "story-compendium-modal"];
+		const modalIds = ["story-outcome-modal", "story-battle-modal", "story-tournament-modal", "story-shop-modal", "story-compendium-modal", "avatar-picker-modal"];
 		for (const id of modalIds) {
 			const m = document.getElementById(id);
 			if (m && !m.classList.contains("hide")) {
-				return Array.from(m.querySelectorAll("button:not([disabled]):not(.hide)")).filter(b => b.offsetParent !== null);
+				return Array.from(m.querySelectorAll("button:not([disabled]):not(.hide), .avatar-picker-card:not([disabled]):not(.hide)")).filter(b => b.offsetParent !== null);
 			}
 		}
 		return [];
@@ -1226,12 +1723,19 @@ const GamepadManager = {
 		const btns = this.getActiveStoryModalButtons();
 		if (btns.length === 0) return;
 
-		// Scroll compendium grid or tournament list if open
+		// Scroll compendium grid or avatar grid if open
 		const compModal = document.getElementById("story-compendium-modal");
 		if (compModal && !compModal.classList.contains("hide")) {
 			const grid = document.getElementById("story-comp-cards-grid");
 			if (grid && (dir === "up" || dir === "down")) {
 				grid.scrollTop += (dir === "down" ? 90 : -90);
+			}
+		}
+		const avatarModal = document.getElementById("avatar-picker-modal");
+		if (avatarModal && !avatarModal.classList.contains("hide")) {
+			const grid = document.getElementById("avatar-picker-grid");
+			if (grid && (dir === "up" || dir === "down")) {
+				grid.scrollTop += (dir === "down" ? 100 : -100);
 			}
 		}
 
@@ -1279,23 +1783,29 @@ const GamepadManager = {
 		const isPrematch = prematch && getComputedStyle(prematch).display !== "none";
 
 		if (isPrematch) {
-			const btns = [
+			const avatarBtn = document.getElementById("versus-p1-avatar-wrap");
+			const boardCards = Array.from(document.querySelectorAll("#versus-prematch-board-row .versus-board-card")).filter(b => b.offsetParent !== null);
+			const rulesBtn = document.getElementById("btn-versus-open-rules");
+			const actionBtns = [
 				document.querySelector(".versus-btn-leave-room"),
 				document.querySelector(".versus-btn-deck"),
 				document.getElementById("btn-versus-ready"),
 				document.getElementById("btn-versus-start-match")
 			].filter(b => b && !b.classList.contains("hide") && getComputedStyle(b).display !== "none");
 
-			if (btns.length === 0) return;
-			let idx = btns.indexOf(this.currentFocusedElem);
-			if (idx === -1) idx = 0;
+			const items = [avatarBtn, ...boardCards, rulesBtn, ...actionBtns].filter(Boolean);
+			if (items.length === 0) return;
+
+			let idx = items.indexOf(this.currentFocusedElem);
+			if (idx === -1) idx = this.navState.versusLobbyIndex || 0;
 
 			if (dir === "left" || dir === "up") {
 				idx = Math.max(0, idx - 1);
 			} else if (dir === "right" || dir === "down") {
-				idx = Math.min(btns.length - 1, idx + 1);
+				idx = Math.min(items.length - 1, idx + 1);
 			}
-			this.setFocus(btns[idx]);
+			this.navState.versusLobbyIndex = idx;
+			if (items[idx]) this.setFocus(items[idx]);
 			return;
 		}
 
@@ -1308,7 +1818,8 @@ const GamepadManager = {
 		let focusables = [];
 		if (isHostActive) {
 			const copyBtn = document.getElementById("btn-versus-copy");
-			focusables = [nickInput, tabHost, tabJoin, copyBtn, closeBtn].filter(Boolean);
+			const boardCards = Array.from(document.querySelectorAll(".versus-host-box .versus-board-card")).filter(b => b.offsetParent !== null);
+			focusables = [nickInput, tabHost, tabJoin, copyBtn, ...boardCards, closeBtn].filter(Boolean);
 		} else {
 			const roomInput = document.getElementById("versus-input-room-code");
 			const joinBtn = document.querySelector(".versus-join-btn");
@@ -1350,6 +1861,40 @@ const GamepadManager = {
 	// Applies focus automatically when entering or refreshing a context
 	applyContextFocus(context) {
 		switch (context) {
+			case "OSK": {
+				this.focusOSKKey();
+				break;
+			}
+			case "STORY_SAVES": {
+				const activeBtn = document.querySelector("#story-saves-slots-list .story-save-slot-card.active-slot .slot-play-btn")
+					|| document.querySelector("#story-saves-slots-list .story-save-slot-card .slot-play-btn")
+					|| document.querySelector("#story-saves-slots-list .story-save-slot-card .slot-create-btn")
+					|| document.querySelector("#story-saves-slots-list button")
+					|| document.querySelector("#story-saves-modal button");
+				if (activeBtn) this.setFocus(activeBtn, false);
+				break;
+			}
+			case "RULES_MODAL": {
+				const firstItem = document.querySelector("#rules-modal .rules-preset-btn")
+					|| document.querySelector("#rules-modal .rules-checkbox-item")
+					|| document.querySelector("#rules-modal button");
+				if (firstItem) this.setFocus(firstItem, false);
+				break;
+			}
+			case "BOARD_MODAL": {
+				const activeBoard = document.querySelector("#board-modal .board-option-card.active")
+					|| document.querySelector("#board-modal .board-option-card")
+					|| document.querySelector("#board-modal button");
+				if (activeBoard) this.setFocus(activeBoard, false);
+				break;
+			}
+			case "OPPONENT_MODAL": {
+				const activeOpp = document.querySelector("#opponent-modal .opponent-option-card.active")
+					|| document.querySelector("#opponent-modal .opponent-option-card")
+					|| document.querySelector("#opponent-modal button");
+				if (activeOpp) this.setFocus(activeOpp, false);
+				break;
+			}
 			case "INGAME_DIALOG": {
 				const confirmBtn = document.getElementById("ingame-dialog-confirm-btn");
 				if (confirmBtn) this.setFocus(confirmBtn, false);
@@ -1399,13 +1944,39 @@ const GamepadManager = {
 			}
 			case "DECK_CUSTOMIZATION": {
 				if (this.navState.deckPanel === "top") {
-					const btn = document.getElementById("btn-back-to-menu");
+					const isStoryDeck = (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign);
+					const isVersusDeck = (typeof VersusMode !== "undefined" && VersusMode.isActive);
+					const btn = isVersusDeck ? document.getElementById("btn-versus-top-back")
+						: (isStoryDeck ? document.getElementById("btn-story-back-to-map") : document.getElementById("btn-back-to-menu"));
 					if (btn) this.setFocus(btn, false);
+				} else if (this.navState.deckPanel === "center") {
+					const isStoryDeck = (typeof StoryMode !== "undefined" && StoryMode.isCustomizingCampaign);
+					const isVersusDeck = (typeof VersusMode !== "undefined" && VersusMode.isActive);
+					const centerItems = [
+						document.getElementById("card-leader"),
+						document.getElementById("op-preview-card") || document.getElementById("opponent-preview"),
+						document.getElementById("board-preview-card") || document.getElementById("board-preview"),
+						document.getElementById("rules-preview-card") || document.getElementById("rules-preview"),
+						isVersusDeck ? document.getElementById("btn-versus-deck-confirm")
+							: (isStoryDeck ? document.getElementById("btn-story-deck-confirm") : document.getElementById("start-game"))
+					].filter(el => el && !el.classList.contains("hide") && el.offsetParent !== null && getComputedStyle(el).display !== "none");
+					const cIdx = Math.max(0, Math.min(centerItems.length - 1, this.navState.deckCenterIndex || 0));
+					if (centerItems[cIdx]) this.setFocus(centerItems[cIdx], false);
+				} else if (this.navState.deckPanel === "bank_filters") {
+					const tab = document.querySelector("#bank-filter-tabs .deck-filter-btn.active") || document.querySelector("#bank-filter-tabs .deck-filter-btn");
+					if (tab) this.setFocus(tab, false);
+				} else if (this.navState.deckPanel === "deck_filters") {
+					const tab = document.querySelector("#deck-filter-tabs .deck-filter-btn.active") || document.querySelector("#deck-filter-tabs .deck-filter-btn");
+					if (tab) this.setFocus(tab, false);
 				} else {
 					const panelId = (this.navState.deckPanel === "bank") ? "card-bank" : "card-deck";
 					const cards = Array.from(document.querySelectorAll(`#${panelId} .card-lg:not(.hide):not(.empty)`));
 					const idx = (this.navState.deckPanel === "bank") ? this.navState.deckBankIndex : this.navState.deckDeckIndex;
 					if (cards.length > 0) this.setFocus(cards[Math.min(cards.length - 1, idx || 0)], false);
+					else {
+						const fallback = document.getElementById("card-leader") || document.getElementById("start-game");
+						if (fallback) this.setFocus(fallback, false);
+					}
 				}
 				break;
 			}
@@ -1418,6 +1989,10 @@ const GamepadManager = {
 				}
 				break;
 			}
+			case "VERSUS_EMOTE":
+				this.clearFocus();
+				break;
+
 			case "VERSUS_ALERT": {
 				const btn = document.querySelector("#versus-alert-modal button");
 				if (btn) this.setFocus(btn, false);
@@ -1459,6 +2034,50 @@ const GamepadManager = {
 
 		let items = [];
 		switch (context) {
+			case "OSK":
+				items = [
+					{ btn: "D-Pad / LS", text: "Navegar Teclas" },
+					{ btn: "A", class: "pad-a", text: "Digitar" },
+					{ btn: "X", class: "pad-x", text: "Apagar" },
+					{ btn: "Y", class: "pad-y", text: "Espaço" },
+					{ btn: "LB / RB", class: "pad-btn-rect", text: "Maiúsc/Minúsc" },
+					{ btn: "Start", class: "pad-btn-rect", text: "Concluir" },
+					{ btn: "B", class: "pad-b", text: "Cancelar" }
+				];
+				break;
+			case "STORY_SAVES":
+				items = [
+					{ btn: "D-Pad / LS", text: "Selecionar Slot / Ação" },
+					{ btn: "RS", text: "Rolar Slots" },
+					{ btn: "A", class: "pad-a", text: "Confirmar / Carregar" },
+					{ btn: "Y", class: "pad-y", text: "Nova Campanha" },
+					{ btn: "B", class: "pad-b", text: "Voltar" }
+				];
+				break;
+			case "RULES_MODAL":
+				items = [
+					{ btn: "D-Pad / LS", text: "Navegar Regras" },
+					{ btn: "RS", text: "Rolar Regras" },
+					{ btn: "A", class: "pad-a", text: "Alternar / Salvar" },
+					{ btn: "B", class: "pad-b", text: "Fechar" }
+				];
+				break;
+			case "BOARD_MODAL":
+				items = [
+					{ btn: "D-Pad / LS", text: "Escolher Tabuleiro" },
+					{ btn: "RS", text: "Rolar" },
+					{ btn: "A", class: "pad-a", text: "Selecionar" },
+					{ btn: "B", class: "pad-b", text: "Fechar" }
+				];
+				break;
+			case "OPPONENT_MODAL":
+				items = [
+					{ btn: "D-Pad / LS", text: "Escolher Oponente" },
+					{ btn: "RS", text: "Rolar" },
+					{ btn: "A", class: "pad-a", text: "Selecionar" },
+					{ btn: "B", class: "pad-b", text: "Fechar" }
+				];
+				break;
 			case "STORY_MAP":
 				items = [
 					{ btn: "LS / D-Pad", text: "Mover Cursor" },
@@ -1523,6 +2142,14 @@ const GamepadManager = {
 					{ btn: "B", class: "pad-b", text: "Voltar / Sair" }
 				];
 				break;
+			case "VERSUS_EMOTE":
+				items = [
+					{ btn: "D-Pad", text: "Escolher Emote" },
+					{ btn: "A", class: "pad-a", text: "Enviar" },
+					{ btn: "B / RS", class: "pad-b", text: "Fechar" }
+				];
+				break;
+
 			case "VERSUS_ALERT":
 				items = [
 					{ btn: "A / B / Start", class: "pad-a", text: "Voltar ao Menu" }
@@ -1569,7 +2196,413 @@ const GamepadManager = {
 				<span>${item.text}</span>
 			</div>
 		`).join("");
-	}
+	},
+
+	// =========================================================================
+	// ANALOG RIGHT STICK SCREEN SCROLLING
+	// =========================================================================
+	handleRightStickScroll(pad, context) {
+		const a = pad.axes || [0, 0, 0, 0];
+		const rX = a[2] || 0;
+		const rY = a[3] || 0;
+		if (Math.abs(rX) < 0.16 && Math.abs(rY) < 0.16) return;
+
+		let scrollTarget = null;
+
+		// 1. Ancestor check from focused element
+		if (this.currentFocusedElem) {
+			let parent = this.currentFocusedElem.parentElement;
+			while (parent && parent !== document.body) {
+				const style = window.getComputedStyle(parent);
+				const overflowY = style.overflowY;
+				const overflowX = style.overflowX;
+				const canScrollY = (overflowY === "auto" || overflowY === "scroll") && parent.scrollHeight > parent.clientHeight + 10;
+				const canScrollX = (overflowX === "auto" || overflowX === "scroll") && parent.scrollWidth > parent.clientWidth + 10;
+				if (canScrollY || canScrollX) {
+					scrollTarget = parent;
+					break;
+				}
+				parent = parent.parentElement;
+			}
+		}
+
+		// 2. Context fallbacks
+		if (!scrollTarget) {
+			switch (context) {
+				case "DECK_CUSTOMIZATION":
+					if (this.navState.deckPanel === "bank" || this.navState.deckPanel === "bank_filters") {
+						scrollTarget = document.getElementById("card-bank") || document.querySelector(".deck-column-bank");
+					} else if (this.navState.deckPanel === "deck" || this.navState.deckPanel === "deck_filters") {
+						scrollTarget = document.getElementById("card-deck") || document.querySelector(".deck-column-deck");
+					} else {
+						scrollTarget = document.querySelector(".deck-column-center");
+					}
+					break;
+				case "STORY_SAVES":
+					scrollTarget = document.getElementById("story-saves-slots-list") || document.querySelector(".saves-modal-frame");
+					break;
+				case "RULES_MODAL":
+					scrollTarget = document.querySelector(".rules-categories-grid") || document.querySelector(".rules-modal-content");
+					break;
+				case "BOARD_MODAL":
+					scrollTarget = document.querySelector(".board-options-grid") || document.querySelector(".board-modal-content");
+					break;
+				case "OPPONENT_MODAL":
+					scrollTarget = document.querySelector(".opponent-options-grid") || document.querySelector(".opponent-modal-content");
+					break;
+				case "VERSUS_LOBBY":
+					scrollTarget = document.getElementById("versus-prematch-panel") || document.querySelector(".versus-frame");
+					break;
+				case "MENU_SETTINGS":
+					scrollTarget = document.getElementById("menu-settings");
+					break;
+				case "MENU_ACHIEVEMENTS":
+					scrollTarget = document.getElementById("menu-achievements") || document.querySelector(".achievements-grid");
+					break;
+				case "STORY_MODAL":
+					scrollTarget = document.getElementById("avatar-picker-grid") || document.querySelector(".compendium-cards-grid") || document.querySelector(".story-parchment-frame");
+					break;
+			}
+		}
+
+		if (scrollTarget) {
+			const scrollSpeedY = 16 * (Math.abs(rY) > 0.65 ? 1.9 : 1.0);
+			const scrollSpeedX = 14 * (Math.abs(rX) > 0.65 ? 1.9 : 1.0);
+			if (Math.abs(rY) >= 0.16) {
+				scrollTarget.scrollTop += rY * scrollSpeedY;
+			}
+			if (Math.abs(rX) >= 0.16) {
+				scrollTarget.scrollLeft += rX * scrollSpeedX;
+			}
+		}
+	},
+
+	// =========================================================================
+	// ON-SCREEN VIRTUAL KEYBOARD (OSK) ENGINE
+	// =========================================================================
+	oskLayoutLower: [
+		["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="],
+		["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+		["a", "s", "d", "f", "g", "h", "j", "k", "l", "ç"],
+		["z", "x", "c", "v", "b", "n", "m", ",", ".", ";"],
+		["SHIFT", "SPACE", "BACKSPACE", "CLEAR", "CONFIRM"]
+	],
+	oskLayoutUpper: [
+		["!", "@", "#", "$", "%", "¨", "&", "*", "(", ")", "_", "+"],
+		["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+		["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ç"],
+		["Z", "X", "C", "V", "B", "N", "M", "<", ">", ":"],
+		["SHIFT", "SPACE", "BACKSPACE", "CLEAR", "CONFIRM"]
+	],
+
+	openOSK(targetInput, title = "DIGITAR COM O CONTROLE") {
+		if (!targetInput) return;
+		this.oskActive = true;
+		this.oskTargetInput = targetInput;
+		this.oskValue = targetInput.value || "";
+		this.oskRow = 1;
+		this.oskCol = 0;
+		this.oskShift = false;
+
+		const modal = document.getElementById("gamepad-osk-modal");
+		const titleEl = document.getElementById("gamepad-osk-title");
+		const inputEl = document.getElementById("gamepad-osk-input");
+
+		if (titleEl) titleEl.textContent = title.toUpperCase();
+		if (inputEl) inputEl.value = this.oskValue;
+		if (modal) modal.classList.remove("hide");
+
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
+		}
+
+		this.renderOSKGrid();
+		this.updateHUD("OSK");
+	},
+
+	closeOSK(apply = true) {
+		this.oskActive = false;
+		const modal = document.getElementById("gamepad-osk-modal");
+		if (modal) modal.classList.add("hide");
+
+		if (apply && this.oskTargetInput) {
+			this.oskTargetInput.value = this.oskValue;
+			this.oskTargetInput.dispatchEvent(new Event("input", { bubbles: true }));
+			this.oskTargetInput.dispatchEvent(new Event("change", { bubbles: true }));
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("witcher_confirm");
+			}
+		} else {
+			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+				AudioManager.playSFX("cancel");
+			}
+		}
+
+		const restoredElem = this.oskTargetInput;
+		this.oskTargetInput = null;
+		const ctx = this.getContext();
+		this.updateHUD(ctx);
+		if (restoredElem) {
+			this.setFocus(restoredElem);
+		} else {
+			this.applyContextFocus(ctx);
+		}
+	},
+
+	renderOSKGrid() {
+		const grid = document.getElementById("gamepad-osk-grid");
+		if (!grid) return;
+		grid.innerHTML = "";
+
+		const layout = this.oskShift ? this.oskLayoutUpper : this.oskLayoutLower;
+
+		layout.forEach((rowKeys, rIdx) => {
+			const rowEl = document.createElement("div");
+			rowEl.className = "gamepad-osk-row";
+			rowKeys.forEach((key, cIdx) => {
+				const btn = document.createElement("button");
+				btn.type = "button";
+				btn.className = "gamepad-osk-key";
+				btn.setAttribute("data-osk-r", rIdx);
+				btn.setAttribute("data-osk-c", cIdx);
+
+				if (key === "SPACE") {
+					btn.classList.add("key-space");
+					btn.textContent = "ESPAÇO";
+				} else if (key === "BACKSPACE") {
+					btn.classList.add("key-wide");
+					btn.textContent = "⌫ APAGAR";
+				} else if (key === "SHIFT") {
+					btn.classList.add("key-wide");
+					btn.textContent = this.oskShift ? "▲ SHIFT (ON)" : "△ SHIFT";
+				} else if (key === "CLEAR") {
+					btn.classList.add("key-wide");
+					btn.textContent = "LIMPAR";
+				} else if (key === "CONFIRM") {
+					btn.classList.add("key-confirm");
+					btn.textContent = "✔ CONFIRMAR";
+				} else {
+					btn.textContent = key;
+				}
+
+				btn.addEventListener("click", () => {
+					this.pressOSKKey(key);
+				});
+
+				rowEl.appendChild(btn);
+			});
+			grid.appendChild(rowEl);
+		});
+
+		this.focusOSKKey();
+	},
+
+	focusOSKKey() {
+		const layout = this.oskShift ? this.oskLayoutUpper : this.oskLayoutLower;
+		this.oskRow = Math.max(0, Math.min(layout.length - 1, this.oskRow));
+		this.oskCol = Math.max(0, Math.min(layout[this.oskRow].length - 1, this.oskCol));
+
+		const btn = document.querySelector(`.gamepad-osk-key[data-osk-r="${this.oskRow}"][data-osk-c="${this.oskCol}"]`);
+		if (btn) {
+			this.setFocus(btn, false);
+		}
+	},
+
+	navOSK(dir) {
+		const layout = this.oskShift ? this.oskLayoutUpper : this.oskLayoutLower;
+		if (dir === "up") {
+			this.oskRow = (this.oskRow - 1 + layout.length) % layout.length;
+			this.oskCol = Math.min(this.oskCol, layout[this.oskRow].length - 1);
+		} else if (dir === "down") {
+			this.oskRow = (this.oskRow + 1) % layout.length;
+			this.oskCol = Math.min(this.oskCol, layout[this.oskRow].length - 1);
+		} else if (dir === "left") {
+			const rowLen = layout[this.oskRow].length;
+			this.oskCol = (this.oskCol - 1 + rowLen) % rowLen;
+		} else if (dir === "right") {
+			const rowLen = layout[this.oskRow].length;
+			this.oskCol = (this.oskCol + 1) % rowLen;
+		}
+
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_hover");
+		}
+		this.focusOSKKey();
+	},
+
+	pressOSKKey(key) {
+		if (key === "SHIFT") {
+			this.oskShift = !this.oskShift;
+			this.renderOSKGrid();
+			return;
+		} else if (key === "SPACE") {
+			this.oskValue += " ";
+		} else if (key === "BACKSPACE") {
+			this.oskValue = this.oskValue.slice(0, -1);
+		} else if (key === "CLEAR") {
+			this.oskValue = "";
+		} else if (key === "CONFIRM") {
+			this.closeOSK(true);
+			return;
+		} else {
+			this.oskValue += key;
+		}
+
+		const inputEl = document.getElementById("gamepad-osk-input");
+		if (inputEl) inputEl.value = this.oskValue;
+
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_click");
+		}
+	},
+
+	handleActionOSK(action) {
+		if (action === "A") {
+			const layout = this.oskShift ? this.oskLayoutUpper : this.oskLayoutLower;
+			const key = layout[this.oskRow] && layout[this.oskRow][this.oskCol];
+			if (key) this.pressOSKKey(key);
+		} else if (action === "X") {
+			this.pressOSKKey("BACKSPACE");
+		} else if (action === "Y") {
+			this.pressOSKKey("SPACE");
+		} else if (action === "LB" || action === "RB") {
+			this.pressOSKKey("SHIFT");
+		} else if (action === "Start") {
+			this.closeOSK(true);
+		} else if (action === "B") {
+			this.closeOSK(false);
+		}
+	},
+
+	// =========================================================================
+	// SALVAMENTOS DA JORNADA NAVIGATION (STORY_SAVES)
+	// =========================================================================
+	navStorySaves(dir) {
+		const modal = document.getElementById("story-saves-modal");
+		if (!modal || modal.classList.contains("hide")) return;
+
+		const slotCards = Array.from(document.querySelectorAll("#story-saves-slots-list .story-save-slot-card"));
+		const rows = [];
+
+		slotCards.forEach(card => {
+			const btns = Array.from(card.querySelectorAll("button")).filter(b => b.offsetParent !== null);
+			if (btns.length > 0) rows.push(btns);
+		});
+
+		const footerBtns = Array.from(document.querySelectorAll(".saves-modal-actions button")).filter(b => b.offsetParent !== null);
+		if (footerBtns.length > 0) rows.push(footerBtns);
+
+		if (rows.length === 0) return;
+
+		let rIdx = -1;
+		let cIdx = -1;
+		for (let r = 0; r < rows.length; r++) {
+			const c = rows[r].indexOf(this.currentFocusedElem);
+			if (c !== -1) {
+				rIdx = r;
+				cIdx = c;
+				break;
+			}
+		}
+		if (rIdx === -1) {
+			rIdx = this.navState.storySavesRow || 0;
+			cIdx = this.navState.storySavesCol || 0;
+		}
+
+		rIdx = Math.max(0, Math.min(rows.length - 1, rIdx));
+		cIdx = Math.max(0, Math.min(rows[rIdx].length - 1, cIdx));
+
+		if (dir === "up") {
+			rIdx = Math.max(0, rIdx - 1);
+			cIdx = Math.min(cIdx, rows[rIdx].length - 1);
+		} else if (dir === "down") {
+			rIdx = Math.min(rows.length - 1, rIdx + 1);
+			cIdx = Math.min(cIdx, rows[rIdx].length - 1);
+		} else if (dir === "left") {
+			cIdx = Math.max(0, cIdx - 1);
+		} else if (dir === "right") {
+			cIdx = Math.min(rows[rIdx].length - 1, cIdx + 1);
+		}
+
+		this.navState.storySavesRow = rIdx;
+		this.navState.storySavesCol = cIdx;
+
+		const target = rows[rIdx][cIdx];
+		if (target) {
+			this.setFocus(target);
+		}
+	},
+
+	// =========================================================================
+	// REGRAS ADICIONAIS MODAL NAVIGATION (RULES_MODAL)
+	// =========================================================================
+	navRulesModal(dir) {
+		const items = [
+			document.querySelector("#rules-modal .witcher-modal-close"),
+			...Array.from(document.querySelectorAll("#rules-modal .rules-preset-btn")),
+			...Array.from(document.querySelectorAll("#rules-modal .rules-checkbox-item")),
+			...Array.from(document.querySelectorAll("#rules-modal .rules-modal-actions button"))
+		].filter(el => el && el.offsetParent !== null);
+
+		if (items.length === 0) return;
+		let idx = items.indexOf(this.currentFocusedElem);
+		if (idx === -1) idx = this.navState.rulesModalIndex || 1;
+
+		if (dir === "up" || dir === "left") {
+			idx = Math.max(0, idx - 1);
+		} else if (dir === "down" || dir === "right") {
+			idx = Math.min(items.length - 1, idx + 1);
+		}
+		this.navState.rulesModalIndex = idx;
+		if (items[idx]) this.setFocus(items[idx]);
+	},
+
+	// =========================================================================
+	// TABULEIRO MODAL NAVIGATION (BOARD_MODAL)
+	// =========================================================================
+	navBoardModal(dir) {
+		const items = [
+			...Array.from(document.querySelectorAll("#board-modal .board-option-card")),
+			document.querySelector("#board-modal .witcher-modal-close"),
+			document.querySelector("#board-modal .opponent-modal-footer button")
+		].filter(el => el && el.offsetParent !== null);
+
+		if (items.length === 0) return;
+		let idx = items.indexOf(this.currentFocusedElem);
+		if (idx === -1) idx = this.navState.boardModalIndex || 0;
+
+		if (dir === "left") idx = Math.max(0, idx - 1);
+		else if (dir === "right") idx = Math.min(items.length - 1, idx + 1);
+		else if (dir === "up") idx = Math.max(0, idx - 2);
+		else if (dir === "down") idx = Math.min(items.length - 1, idx + 2);
+
+		this.navState.boardModalIndex = idx;
+		if (items[idx]) this.setFocus(items[idx]);
+	},
+
+	// =========================================================================
+	// ADVERSÁRIO MODAL NAVIGATION (OPPONENT_MODAL)
+	// =========================================================================
+	navOpponentModal(dir) {
+		const items = [
+			...Array.from(document.querySelectorAll("#opponent-modal .opponent-option-card")),
+			document.querySelector("#opponent-modal .witcher-modal-close"),
+			document.querySelector("#opponent-modal .opponent-modal-footer button")
+		].filter(el => el && el.offsetParent !== null);
+
+		if (items.length === 0) return;
+		let idx = items.indexOf(this.currentFocusedElem);
+		if (idx === -1) idx = this.navState.opponentModalIndex || 0;
+
+		if (dir === "left") idx = Math.max(0, idx - 1);
+		else if (dir === "right") idx = Math.min(items.length - 1, idx + 1);
+		else if (dir === "up") idx = Math.max(0, idx - 2);
+		else if (dir === "down") idx = Math.min(items.length - 1, idx + 2);
+
+		this.navState.opponentModalIndex = idx;
+		if (items[idx]) this.setFocus(items[idx]);
+	},
+
 };
 
 // Auto-initialize when DOM is ready
@@ -1579,6 +2612,9 @@ if (typeof document !== "undefined") {
 	} else {
 		GamepadManager.init();
 	}
+	window.addEventListener("load", () => {
+		if (!GamepadManager.initialized) GamepadManager.init();
+	});
 }
 
 if (typeof module !== "undefined" && module.exports) {

@@ -1137,9 +1137,15 @@ class StoryMode {
 		if (!StoryMode.save) return;
 
 		StoryMode.syncCollectionAndTokens();
+		if (typeof AvatarManager !== "undefined") {
+			AvatarManager.syncAllPlayerAvatarUI();
+		}
 
 		const nameEl = document.getElementById("story-hud-player-name");
-		if (nameEl) nameEl.textContent = StoryMode.save.playerName;
+		if (nameEl) {
+			nameEl.textContent = StoryMode.save.playerName;
+			nameEl.title = StoryMode.save.playerName;
+		}
 
 		const crownsEl = document.getElementById("story-hud-crowns-val");
 		if (crownsEl) crownsEl.textContent = Number(StoryMode.save.crowns || 0).toLocaleString("pt-BR");
@@ -1148,7 +1154,9 @@ class StoryMode {
 		const currentNodeData = STORY_DATA.NODES[StoryMode.save.currentNode] || STORY_DATA.NODES[defaultStart];
 		const locationEl = document.getElementById("story-hud-location-name");
 		if (locationEl && currentNodeData) {
-			locationEl.textContent = `${currentNodeData.region} · ${currentNodeData.name}`;
+			const locStr = `${currentNodeData.region} · ${currentNodeData.name}`;
+			locationEl.textContent = locStr;
+			locationEl.title = locStr;
 		}
 
 		const compendiumEl = document.getElementById("story-hud-compendium-val");
@@ -1636,11 +1644,18 @@ class StoryMode {
 					? `<img src="img/hud-icons/Checked.png" class="round-status-icon-img" alt="Vencida" style="width:16px; height:16px; vertical-align:middle; margin-right:4px;" />`
 					: `<img src="img/hud-icons/Coin.png" class="coin-icon-small" alt="" /> `;
 
+				const rndAvatar = rnd.circleAvatar || ((typeof AvatarManager !== "undefined") ? AvatarManager.resolveOpponentAvatar(rnd.opponentName, { faction: rnd.faction }) : "img/avatars/Aldert-Geert.png");
+				const rndBg = (typeof AvatarManager !== "undefined" && AvatarManager.safeCssUrl)
+					? AvatarManager.safeCssUrl(rndAvatar)
+					: `url('${(rndAvatar || "").replace(/'/g, "\\'")}')`;
 				const roundBox = document.createElement("div");
 				roundBox.className = `story-tourney-round-box ${stageAlreadyCleared ? 'won' : ''}`;
 				roundBox.innerHTML = `
 					<div class="round-num" style="font-weight:bold; color:#ffd700;">Batalha ${idx + 1}/${totalRounds}</div>
-					<div class="round-op-name" style="color:#fff;">${rnd.opponentName} <span style="color:#c5a059; font-size:0.82rem;">(${factionNames[rnd.faction] || rnd.faction})</span></div>
+					<div style="display:flex; align-items:center; gap:8px;">
+						<div class="round-op-thumb" style="width:28px; height:28px; border-radius:50%; background-image:${rndBg}; background-size:cover; background-position:center; border:1px solid #ffd700; flex-shrink:0;"></div>
+						<div class="round-op-name" style="color:#fff;">${rnd.opponentName} <span style="color:#c5a059; font-size:0.82rem;">(${factionNames[rnd.faction] || rnd.faction})</span></div>
+					</div>
 					<div class="round-status" style="font-size:0.82rem; color:${stageAlreadyCleared ? '#aaa' : '#2ecc71'};">
 						${statusIcon}+${stageCrowns} Coroas ${stageAlreadyCleared ? '(2ª+ tentativa)' : '(1ª vitória)'}
 					</div>
@@ -2179,6 +2194,7 @@ class StoryMode {
 	static toggleStatsDrawer(forceState) {
 		const drawer = document.getElementById("story-player-stats-drawer");
 		const chevron = document.getElementById("story-stats-chevron");
+		const badge = document.querySelector(".story-player-badge.clickable");
 		if (!drawer) return;
 
 		const isCurrentlyHidden = drawer.classList.contains("hide");
@@ -2188,12 +2204,14 @@ class StoryMode {
 			StoryMode.updateStatsDrawer();
 			drawer.classList.remove("hide");
 			if (chevron) chevron.classList.add("open");
+			if (badge) badge.classList.add("active");
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 				AudioManager.playSFX("witcher_tab_open");
 			}
 		} else {
 			drawer.classList.add("hide");
 			if (chevron) chevron.classList.remove("open");
+			if (badge) badge.classList.remove("active");
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 				AudioManager.playSFX("witcher_back");
 			}
@@ -2694,8 +2712,27 @@ class StoryMode {
 		if (typeof game !== "undefined") {
 			game.reset();
 		}
-		player_me = new Player(0, StoryMode.save.playerName, meDeckData);
-		player_op = new Player(1, opponentName, opDeck);
+
+		const meAvatar = (typeof AvatarManager !== "undefined") ? AvatarManager.getPlayerAvatar("story") : "img/icons/profile.png";
+		let opAvatar = null;
+		if (node.type === "tournament") {
+			const roundData = (node.rounds && node.rounds[roundIndex]) ? node.rounds[roundIndex] : (node.rounds ? node.rounds[0] : null);
+			if (roundData && roundData.circleAvatar) opAvatar = roundData.circleAvatar;
+		}
+		if (!opAvatar && node && node.opponent && node.opponent.circleAvatar) {
+			opAvatar = node.opponent.circleAvatar;
+		}
+		if (!opAvatar && typeof AvatarManager !== "undefined") {
+			opAvatar = AvatarManager.resolveOpponentAvatar(opponentName, opDeck);
+		}
+		if (!opAvatar) opAvatar = "img/avatars/Aldert-Geert.png";
+
+		player_me = new Player(0, StoryMode.save.playerName, meDeckData, meAvatar);
+		player_op = new Player(1, opponentName, opDeck, opAvatar);
+
+		if (typeof AvatarManager !== "undefined") {
+			AvatarManager.applyBoardAvatars(meAvatar, opAvatar);
+		}
 
 		StoryMode.suspendMapRendering();
 		if (typeof ScreenManager !== "undefined") {

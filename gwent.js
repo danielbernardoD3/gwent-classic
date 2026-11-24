@@ -562,6 +562,10 @@ class ControllerAI {
 		const card = this.discardOrder({holder:this.player})[0];
 		if (card && card.power < 15) {
 			this.player.deck.swap(this.player.hand, card);
+			if (typeof MatchTracker !== "undefined") {
+				const drawnCard = this.player.hand.cards[this.player.hand.cards.length - 1];
+				MatchTracker.onRedraw(this.player, card, drawnCard);
+			}
 		}
 	}
 	
@@ -750,6 +754,9 @@ class ControllerAI {
 			return;
 		}
 		
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onAbility("decoy", card, { swapped: targ.name });
+		}
 		await this.player.playCardAction(card, async () => {
 			await Promise.all([
 				board.toHand(targ, row),
@@ -878,7 +885,7 @@ class ControllerAI {
 		if (card.name === "Clear Weather")
 			rows = Object.values(weather.types).filter(t => t.count > 0).flatMap(t => t.rows);
 		else
-			rows = Object.values(weather.types).filter(t => t.count === 0 && t.name === card.abilities[0]).flatMap(t => t.rows);
+			rows = Object.values(weather.types).filter(t => t.count === 0 && card.abilities && card.abilities.includes(t.name)).flatMap(t => t.rows);
 		if (!rows.length)
 			return 1;
 		let dif = [0,0];
@@ -934,9 +941,12 @@ class ControllerAI {
 	
 	// Calculates the weight for a weather card if played from the deck
 	weightWeatherFromDeck(card, weather_id) {
-		if (card.holder.deck.findCard(c => c.abilities.includes(weather_id)) === undefined)
+		const targetAbilities = Array.isArray(weather_id)
+			? weather_id
+			: (weather_id === "storm" ? ["storm", "rain", "fog"] : [weather_id]);
+		if (card.holder.deck.findCard(c => targetAbilities.some(a => c.abilities.includes(a))) === undefined)
 			return 0;
-		return this.weightCard({abilities:[weather_id], row:"weather"});
+		return this.weightCard({abilities: targetAbilities, row:"weather"});
 	}
 	
 	// Assigns a weights for how likely the controller will play a card from its hand
@@ -1079,8 +1089,9 @@ class ControllerAI {
 
 // Can make actions during turns like playing cards that it owns
 class Player {
-	constructor(id, name, deck) {
+	constructor(id, name, deck, avatar = null) {
 		this.id = id;
+		this.avatar = avatar;
 		this.tag = (id === 0) ? "me" : "op";
 		this.controller = (id === 0) ? new Controller() : new ControllerAI(this);
 		
@@ -1091,7 +1102,10 @@ class Player {
 		
 		this.leader = new Card(deck.leader, this);
 		this.elem_leader = document.getElementById("leader-" + this.tag);
-		this.elem_leader.children[0].appendChild( this.leader.elem );
+		if (this.elem_leader && this.elem_leader.children[0]) {
+			this.elem_leader.children[0].innerHTML = "";
+			this.elem_leader.children[0].appendChild( this.leader.elem );
+		}
 
 		this.reset();
 		
@@ -1111,6 +1125,28 @@ class Player {
 		document.getElementById("stats-" + this.tag).getElementsByClassName("profile-img")[0].children[0].children[0];
 		let x = document.querySelector("#stats-" +this.tag+ " .profile-img > div > div");
 		x.style.backgroundImage = iconURL("deck_shield_" + deck.faction);
+
+		const profileImg = document.querySelector("#stats-" + this.tag + " .profile-img");
+		if (profileImg) {
+			let avatarUrl = this.avatar;
+			if (this.tag === "op") {
+				const isVersus = (typeof VersusMode !== "undefined" && (VersusMode.isActive || (VersusMode.conn && VersusMode.conn.open)));
+				if (!avatarUrl || (!isVersus && typeof AvatarManager !== "undefined" && AvatarManager.isPlayerOnlyAvatar(avatarUrl))) {
+					avatarUrl = (typeof AvatarManager !== "undefined")
+						? AvatarManager.resolveOpponentAvatar(this.name, deck)
+						: "img/avatars/Aldert-Geert.png";
+				}
+			} else {
+				if (!avatarUrl) {
+					avatarUrl = (typeof AvatarManager !== "undefined") ? AvatarManager.getPlayerAvatar() : "img/icons/profile.png";
+				}
+			}
+			profileImg.style.backgroundImage = (typeof AvatarManager !== "undefined" && AvatarManager.safeCssUrl)
+				? AvatarManager.safeCssUrl(avatarUrl)
+				: "url('" + (avatarUrl || "").replace(/'/g, "\\'") + "')";
+			profileImg.style.backgroundSize = "cover";
+			profileImg.style.backgroundPosition = "center";
+		}
 	}
 	
 	// Sets default values
@@ -1143,6 +1179,9 @@ class Player {
 		if (statsElem) statsElem.classList.remove("current-turn");
 		document.getElementById("gem1-" +this.tag).classList.add("gem-on");
 		document.getElementById("gem2-" +this.tag).classList.add("gem-on");
+		if (typeof board !== "undefined" && board && typeof board.updateScoreDiff === "function") {
+			board.updateScoreDiff();
+		}
 	}
 	
 	// Returns the opponent Player
@@ -1221,6 +1260,9 @@ class Player {
 		}
 		ui.enablePlayer(false);
 		this.setPassed(true);
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onPlayerPass(this);
+		}
 		EventManager.roundPassed.dispatch(this, game.roundCount);
 		if (this === player_me && typeof VersusMode !== "undefined" && VersusMode.isActive) {
 			VersusMode.onLocalPass();
@@ -1245,8 +1287,18 @@ class Player {
 	
 	// Shows a preview of the card being played, plays it to the board and ends the turn
 	async playCardAction(card, action){
-		if (typeof game !== "undefined") game.isCardBeingPlayed = true;
+		if (typeof game !== "undefined") {
+			if (game.currPlayer !== this) {
+				if (typeof MatchTracker !== "undefined") {
+					MatchTracker.onAnomaly("Jogada Fora do Turno", `Jogador [${this.tag}] tentou jogar [${card ? card.name : 'N/A'}] enquanto a vez era de [${game.currPlayer ? game.currPlayer.tag : 'Nenhum'}]`, { current: game.currPlayer?.tag, actor: this.tag });
+				}
+			}
+			game.isCardBeingPlayed = true;
+		}
 		if (this === player_me) this.isPlayingCard = true;
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onCardPlayed(this, card);
+		}
 		if (typeof VersusMode !== "undefined" && VersusMode.stopTurnTimer) {
 			VersusMode.stopTurnTimer();
 		}
@@ -1255,6 +1307,9 @@ class Player {
 			await sleep(1000);
 			ui.hidePreview(card);
 			await action();
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onCardPlaced(this, card);
+			}
 			if (this === player_me) {
 				if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
 					VersusMode.onLocalCardPlayed(card);
@@ -1348,6 +1403,9 @@ class Player {
 			ui.showPreviewVisuals(this.leader);
 			await sleep(1500);
 			ui.hidePreview(this.leader);
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("leader", this.leader, { desc: this.leader?.name || "Habilidade Ativa de Líder" });
+			}
 			await this.leader.activated[0](this.leader, this);
 			if (this === player_me) {
 				if (typeof VersusMode !== "undefined" && VersusMode.isActive) {
@@ -1492,9 +1550,14 @@ class CardContainer {
 	// Removes a card from the container along with its associated HTML element.
 	removeCard(card, index){
 		if (this.cards.length === 0)
-			throw "Cannot draw from empty " + this.constructor.name;
-		card = this.cards.splice( isNumber(card)? card : this.cards.indexOf(card) , 1)[0];
-		this.removeCardElement(card, index?index:0);
+			return null;
+		const targetIdx = isNumber(card) ? card : this.cards.indexOf(card);
+		if (targetIdx < 0 || targetIdx >= this.cards.length)
+			return card;
+		card = this.cards.splice(targetIdx, 1)[0];
+		if (card) {
+			this.removeCardElement(card, index ? index : 0);
+		}
 		this.resize();
 		return card;
 	}
@@ -1528,7 +1591,7 @@ class CardContainer {
 	
 	// Removes the HTML elemenet associated with the card from this CardContainer
 	removeCardElement(card, index){
-		if (this.elem)
+		if (this.elem && card && card.elem && card.elem.parentNode === this.elem)
 			this.elem.removeChild(card.elem);
 	}
 	
@@ -1680,10 +1743,19 @@ class Deck extends CardContainer {
 	
 	// Sends the top card to the passed hand
 	async draw(hand){
+		if (this.cards.length === 0) {
+			if (typeof MatchTracker !== "undefined") {
+				const actor = (hand === player_me.hand) ? "Jogador" : "IA";
+				MatchTracker.log("anomaly", "⚠️", actor, "Tentativa de Saque em Baralho Vazio", "O jogador tentou puxar uma carta, mas o baralho não possui mais cartas.", true);
+			}
+			return;
+		}
+		const topCard = this.removeCard(0);
+		if (!topCard) return;
 		if (hand === player_op.hand)
-			hand.addCard(this.removeCard(0));
+			hand.addCard(topCard);
 		else
-			await board.toHand(this.cards[0], this);
+			await board.toHand(topCard, this);
 	}
 	
 	// Draws a card and sends it to the container before adding a card from the
@@ -1709,7 +1781,12 @@ class Deck extends CardContainer {
 	
 	// Override
 	removeCardElement(){
-		this.elem.removeChild(this.elem.children[this.cards.length]).style.left = "";
+		if (this.elem && this.cards.length < this.elem.children.length) {
+			const child = this.elem.children[this.cards.length];
+			if (child && child.parentNode === this.elem) {
+				this.elem.removeChild(child).style.left = "";
+			}
+		}
 	}
 	
 	// Offsets the card element in the deck
@@ -1851,17 +1928,27 @@ class Row extends CardContainer {
 
 	// Override
 	removeCard(card) {
-		card = isNumber(card) ? card === -1 ? this.special : this.cards[card] : card;
-		if (card.isSpecial()) {
+		card = isNumber(card) ? (card === -1 ? this.special : this.cards[card]) : card;
+		if (!card) return null;
+		if (typeof card.isSpecial === "function" && card.isSpecial()) {
 			this.special = null;
-			this.elem_special.removeChild(card.elem);
+			if (this.elem_special && card.elem && card.elem.parentNode === this.elem_special) {
+				this.elem_special.removeChild(card.elem);
+			} else if (card.elem && card.elem.parentElement) {
+				card.elem.parentElement.removeChild(card.elem);
+			}
 		} else {
 			super.removeCard(card);
-			card.resetPower();
+			if (typeof card.resetPower === "function") {
+				card.resetPower();
+			}
 		}
 		this.updateState(card, false);
-		for (let x of card.removed)
-			x(card);
+		if (Array.isArray(card.removed)) {
+			for (let x of card.removed) {
+				if (typeof x === "function") x(card);
+			}
+		}
 		this.updateScore();
 		return card;
 	}
@@ -1918,6 +2005,9 @@ class Row extends CardContainer {
 		for (let card of this.cards) {
 			total += this.cardScore(card);
 		}
+		if (typeof MatchTracker !== "undefined" && (isNaN(total) || total < 0)) {
+			MatchTracker.onAnomaly("Pontuação Anômala na Fileira", `Fileira [${this.type || 'desconhecida'}] calculou total inválido: ${total}`, { total, cards: this.cards.map(c => c.name) });
+		}
 		let player = this.elem_parent.parentElement.id === "field-op" ? player_op : player_me;
 		player.updateTotal(total - this.total);
 		this.total = total;
@@ -1964,9 +2054,20 @@ class Row extends CardContainer {
 	async leaderHorn(){
 		if (this.special !== null)
 			return;
-		let horn = new Card(card_dict[5], null);
+		const rowIdx = (typeof board !== "undefined" && board && board.row) ? board.row.indexOf(this) : -1;
+		const rowPlayer = (rowIdx >= 0 && rowIdx < 3) ? player_op : player_me;
+		let horn = new Card(card_dict[5], rowPlayer);
+		horn.isLeaderHorn = true;
+		horn.noGrave = true;
+		horn.noRemove = true;
 		await this.addCard(horn);
-		game.roundEnd.push( () => this.removeCard(horn) );
+		game.roundEnd.push( () => {
+			if (this.special === horn) {
+				this.removeCard(horn);
+				this.special = null;
+			}
+			return true;
+		});
 	}
 	
 	// Applies a local scorch effect to this row
@@ -1980,9 +2081,16 @@ class Row extends CardContainer {
 	
 	// Removes all cards and effects from this row
 	async clear() {
-		const toGrave  = this.cards.filter(c => !c.noRemove);
-		if (this.special != null)
-			toGrave.push(this.special);
+		const toGrave = this.cards.filter(c => !c.noRemove && !c.noGrave);
+		if (this.special != null) {
+			if (this.special.isLeaderHorn || this.special.noGrave || !this.special.holder) {
+				const sp = this.special;
+				this.removeCard(sp);
+				if (sp.elem && sp.elem.parentElement) sp.elem.parentElement.removeChild(sp.elem);
+			} else {
+				toGrave.push(this.special);
+			}
+		}
 		await Promise.all(toGrave.map(async c => await board.toGrave(c, this)));
 	}
 
@@ -2050,6 +2158,9 @@ class Weather extends CardContainer {
 		super.addCard(card);
 		AudioManager.playSFX(card.audio);
 		card.elem.classList.add("noclick");
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onWeather(card);
+		}
 		if (card.name === "Clear Weather"){
 			if (card.holder === player_me && typeof Achievements !== "undefined") {
 				Achievements.recordClearWeather();
@@ -2088,6 +2199,9 @@ class Weather extends CardContainer {
 	
 	// Removes all weather effects and cards
 	async clearWeather() {
+		if (typeof MatchTracker !== "undefined" && this.cards.length > 0) {
+			MatchTracker.log("ability", "☀️", "Sistema", "Céu Limpo (Clear Weather)", "Todos os efeitos de clima foram removidos do campo.");
+		}
 		await Promise.all(this.cards.map((c,i)=>this.cards[this.cards.length-i-1]).map(async c => await board.toGrave(c, this)));
 	}
 	
@@ -2127,6 +2241,12 @@ class Board {
 	
 	// Sends and translates a card from the source to the Grave of the card's holder
 	async toGrave(card, source){
+		if (!card) return;
+		if (card.isLeaderHorn || card.noGrave || !card.holder) {
+			if (source) source.removeCard(card);
+			if (card.elem && card.elem.parentElement) card.elem.parentElement.removeChild(card.elem);
+			return;
+		}
 		await this.moveTo(card, "grave", source);
 	}
 
@@ -2159,10 +2279,11 @@ class Board {
 	
 	// Sends and translates a card from the source to a specified row name or CardContainer
 	async moveTo(card, dest, source) {
+		if (!card) return;
 		if (isString(dest))
 			dest = this.getRow(card, dest);
 		await translateTo(card, source ? source : null, dest);
-		let movedCard = source ? source.removeCard(card) : card;
+		let movedCard = (source && Array.isArray(source.cards) && source.cards.includes(card)) ? source.removeCard(card) : card;
 		// Seamless handoff: clear in-flight transform and trigger landing punch
 		if (card && card.elem) {
 			card.elem.style.transition = "none";
@@ -2220,15 +2341,15 @@ class Board {
 	
 	// Returns the CardCard associated with the row name that the card would be sent to
 	getRow(card, row_name, player){
-		player = player ? player : card ? card.holder : player_me;
+		player = player || (card && card.holder) || player_me;
 		let isMe = player === player_me;
-		let isSpy = card.abilities.includes("spy");
+		let isSpy = (card && card.abilities) ? card.abilities.includes("spy") : false;
 		switch (row_name) {
 			case "weather": return weather; break;
 			case "close":  return this.row[ isMe^isSpy ? 3 : 2];
 			case "ranged": return this.row[ isMe^isSpy ? 4 : 1];
 			case "siege":  return this.row[ isMe^isSpy ? 5 : 0];
-			case "grave": return player.grave;
+			case "grave": return (player && player.grave) ? player.grave : player_me.grave;
 			case "deck": return player.deck;
 			case "hand": return player.hand;
 			default: console.error( card.name + " sent to incorrect row \"" +row_name+ "\" by " +card.holder.name );
@@ -2240,6 +2361,37 @@ class Board {
 		let dif = player_me.total - player_op.total;
 		player_me.setWinning(dif > 0);
 		player_op.setWinning(dif < 0);
+		this.updateScoreDiff();
+	}
+
+	updateScoreDiff() {
+		const badge = document.getElementById("score-diff-badge");
+		if (!badge) return;
+		const showDiff = (typeof Settings !== "undefined" && Settings.showScoreDiff)
+			? Settings.showScoreDiff.isEnabled()
+			: (localStorage.getItem("gc-score-diff") === "true");
+
+		if (!showDiff) {
+			badge.classList.add("hide");
+			return;
+		}
+
+		badge.classList.remove("hide");
+		const scoreMe = (typeof player_me !== "undefined" && player_me) ? (player_me.total || 0) : 0;
+		const scoreOp = (typeof player_op !== "undefined" && player_op) ? (player_op.total || 0) : 0;
+		const diff = scoreMe - scoreOp;
+
+		badge.classList.remove("diff-lead", "diff-deficit", "diff-tie");
+		if (diff > 0) {
+			badge.textContent = "+" + diff;
+			badge.classList.add("diff-lead");
+		} else if (diff < 0) {
+			badge.textContent = diff.toString();
+			badge.classList.add("diff-deficit");
+		} else {
+			badge.textContent = "0";
+			badge.classList.add("diff-tie");
+		}
 	}
 
 	async clearRound()
@@ -2248,6 +2400,7 @@ class Board {
 			await weather.clearWeather(),
 			...board.row.map(async row => await row.clear())
 		]);
+		this.updateScoreDiff();
 	}
 }
 
@@ -2364,14 +2517,21 @@ class Game {
 		}
 		AudioManager.playSFX('game_opening');
 		await this.runEffects(this.gameStart);
+		if (this.state !== GameState.PLAYING) return;
 		await this.coinToss();
+		if (this.state !== GameState.PLAYING) return;
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onGameStart(player_me, player_op, this.firstPlayer);
+		}
 		AudioManager.playSFX('redraw');
 		await Promise.all([...Array(10).keys()].map( async () => {
 			await player_me.deck.draw(player_me.hand);
 			await player_op.deck.draw(player_op.hand);
 		}));
+		if (this.state !== GameState.PLAYING) return;
 		AudioManager.playSFX("game_start");
 		await this.initialRedraw();
+		if (this.state !== GameState.PLAYING || !this.firstPlayer) return;
 		this.currPlayer = this.firstPlayer;
 		this.startRound();
 	}
@@ -2394,7 +2554,12 @@ class Game {
 			VersusMode.startMulliganTimer();
 			await ui.queueCarousel(player_me.hand, 2, async (c, i) => { 
 				AudioManager.playSFX('redraw');
-				await player_me.deck.swap(c, c.cards[i]);
+				const oldCard = c.cards[i];
+				await player_me.deck.swap(c, oldCard);
+				if (typeof MatchTracker !== "undefined") {
+					const newCard = player_me.hand.cards[i] || player_me.hand.cards[player_me.hand.cards.length - 1];
+					MatchTracker.onRedraw(player_me, oldCard, newCard);
+				}
 			}, c => true, false, true, (typeof I18N !== "undefined") ? I18N.t("redraw_title") : "Choose up to 2 cards to redraw.");
 			VersusMode.stopMulliganTimer();
 			ui.enablePlayer(false);
@@ -2408,7 +2573,12 @@ class Game {
 			}
 			await ui.queueCarousel(player_me.hand, 2, async (c, i) => { 
 				AudioManager.playSFX('redraw');
-				await player_me.deck.swap(c, c.cards[i]);
+				const oldCard = c.cards[i];
+				await player_me.deck.swap(c, oldCard);
+				if (typeof MatchTracker !== "undefined") {
+					const newCard = player_me.hand.cards[i] || player_me.hand.cards[player_me.hand.cards.length - 1];
+					MatchTracker.onRedraw(player_me, oldCard, newCard);
+				}
 			}, c => true, false, true, (typeof I18N !== "undefined") ? I18N.t("redraw_title") : "Choose up to 2 cards to redraw.");
 			if (typeof VersusMode !== "undefined") {
 				VersusMode.stopMulliganTimer();
@@ -2420,7 +2590,7 @@ class Game {
 	
 	// Initiates a new round of the game
 	async startRound(){
-		if (this.state !== GameState.PLAYING) return;
+		if (this.state !== GameState.PLAYING || !this.currPlayer) return;
 		const myTransitionToken = (this._transitionToken = (this._transitionToken || 0) + 1);
 		this.isTurnTransitioning = true;
 		this.isActionInProgress = true;
@@ -2432,11 +2602,14 @@ class Game {
 			this.playerMeHornsInRound = 0;
 			this.firstPlayer = this.currPlayer;
 			this.roundCount++;
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onRoundStart(this.roundCount, this.currPlayer);
+			}
 			EventManager.roundStarted.dispatch(this.roundCount, this.currPlayer);
 			if (this.roundCount === 1)
 				AudioManager.playSFX("round1_start");
 			await this.runEffects(this.roundStart);
-			if (this.state !== GameState.PLAYING) return;
+			if (this.state !== GameState.PLAYING || !this.currPlayer) return;
 			
 			if ( !player_me.canPlay() )
 				player_me.setPassed(true);
@@ -2450,10 +2623,10 @@ class Game {
 				this.currPlayer = this.currPlayer.opponent();
 			
 			await ui.notification("round-start", 1200);
-			if (this.state !== GameState.PLAYING) return;
+			if (this.state !== GameState.PLAYING || !this.currPlayer) return;
 			AudioManager.playSFX(this.currPlayer === player_me ? "turn_me" : "turn_op");
 			await ui.notification(this.currPlayer.tag + "-turn", 1200);
-			if (this.state !== GameState.PLAYING) return;
+			if (this.state !== GameState.PLAYING || !this.currPlayer) return;
 			await this.startTurn();
 		} finally {
 			if (this._transitionToken === myTransitionToken) {
@@ -2466,12 +2639,12 @@ class Game {
 	
 	// Starts a new turn. Enables client interraction in client's turn.
 	async startTurn() {
-		if (this.state !== GameState.PLAYING) return;
+		if (this.state !== GameState.PLAYING || !this.currPlayer) return;
 		this.turnId = (this.turnId || 0) + 1;
 		const thisTurnId = this.turnId;
 
 		await this.runEffects(this.turnStart);
-		if (this.turnId !== thisTurnId || this.state !== GameState.PLAYING) return;
+		if (this.turnId !== thisTurnId || this.state !== GameState.PLAYING || !this.currPlayer) return;
 
 		this._transitionToken = (this._transitionToken || 0) + 1;
 		this.isTurnTransitioning = false;
@@ -2594,6 +2767,9 @@ class Game {
 		let winner = dif > 0 ? player_me : dif < 0 ? player_op : null;
 		let verdict = {winner: winner, score_me: player_me.total, score_op: player_op.total}
 		this.roundHistory.push(verdict);
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onRoundEnd(this.roundCount, winner, player_me.total, player_op.total, dif);
+		}
 		
 		await this.runEffects(this.roundEnd);
 		
@@ -2671,6 +2847,9 @@ class Game {
 		if (typeof VersusMode !== "undefined") {
 			VersusMode.stopAllTimers();
 			VersusMode.hideTurnHUD();
+		}
+		if (typeof MatchTracker !== "undefined") {
+			MatchTracker.onGameEnd(player_me, player_op, this.roundHistory);
 		}
 		let endScreen = document.getElementById("end-screen");
 		let rows = endScreen.getElementsByTagName("tr");
@@ -2915,6 +3094,7 @@ class Game {
 			restoreBoardInteraction,
 			(typeof I18N !== "undefined") ? I18N.t("btn_main_menu") || "Menu Principal" : "Menu Principal",
 			() => {
+				this.setState(GameState.CUSTOMIZE);
 				if (typeof VersusMode !== "undefined") {
 					VersusMode.stopAllTimers();
 					VersusMode.hideTurnHUD();
@@ -2985,7 +3165,24 @@ class Game {
 		}
 		this.reset();
 		player_me.reset();
-		player_op = new Player('op', (typeof I18N !== "undefined") ? I18N.t("opponent_name") : 'Player 2', dm.constructOpponentDeck(false));
+		const op_deck = dm.constructOpponentDeck(false);
+		const meAvatar = (typeof AvatarManager !== "undefined") ? AvatarManager.getPlayerAvatar("battle") : "img/icons/profile.png";
+		let opName = (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Adversário";
+		let opAvatar = "img/avatars/Aldert-Geert.png";
+		if (dm && dm.opponentData && dm.opponentData.name) {
+			opName = dm.opponentData.name;
+			opAvatar = (typeof AvatarManager !== "undefined")
+				? AvatarManager.resolveOpponentAvatar(opName, op_deck)
+				: "img/avatars/Aldert-Geert.png";
+		} else if (typeof AvatarManager !== "undefined") {
+			const picked = AvatarManager.pickQuickMatchOpponent(op_deck.faction, op_deck.leader);
+			opName = picked.name;
+			opAvatar = picked.avatar;
+		}
+		player_op = new Player(1, opName, op_deck, opAvatar);
+		if (typeof AvatarManager !== "undefined") {
+			AvatarManager.applyBoardAvatars(meAvatar, opAvatar);
+		}
 		this.endScreen.classList.add("hide");
 		this.startGame();
 	}
@@ -3099,6 +3296,9 @@ class Card {
 	setPower(n){
 		if (this.name === "Decoy")
 			return;
+		if (typeof MatchTracker !== "undefined" && (isNaN(n) || n < 0)) {
+			MatchTracker.onAnomaly("Poder Anômalo de Carta", `A carta [${this.name}] recebeu valor de poder inválido: ${n}`, { card: this.name, n });
+		}
 		let elem = this.elem.children[0].children[0];
 		if (n !== this.power) {
 			this.power = n;
@@ -3668,6 +3868,7 @@ class UI {
 			'.deck-options',
 			'#pass-button',
 			'#forfeit-button',
+			'#match-rules-indicator',
 			'#end-screen>button',
 			'#op-preview-leader',
 			'#opponent-preview button'
@@ -3782,6 +3983,10 @@ class UI {
 			game.isActionInProgress = true;
 			game.isCardBeingPlayed = true;
 			player_me.isPlayingCard = true;
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onCardPlayed(player_me, pCard, row.type);
+				MatchTracker.onAbility("decoy", pCard, { swapped: card.name });
+			}
 			if (typeof VersusMode !== "undefined") {
 				VersusMode.stopTurnTimer();
 				VersusMode.isActionExecuting = true;
@@ -3804,6 +4009,9 @@ class UI {
 					board.toHand(card, row),
 					board.moveTo(pCard, row, pCard.holder.hand)
 				]);
+				if (typeof MatchTracker !== "undefined") {
+					MatchTracker.onCardPlaced(player_me, pCard, row);
+				}
 				pCard.holder.endTurn();
 			} finally {
 				game.isCardBeingPlayed = false;
@@ -4239,7 +4447,8 @@ class Carousel {
 	
 	// Called by the client to cycle cards displayed by n
 	shift(event, n){
-		(event || window.event).stopPropagation();
+		const ev = event || (typeof window !== "undefined" ? window.event : null);
+		if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
 		this.index = Math.max(0, Math.min(this.indices.length-1, this.index+n));
 		AudioManager.playSFX('ui_card');
 		this.update();
@@ -4264,16 +4473,24 @@ class Carousel {
 	
 	// Called by client to perform action on the middle card in focus
 	async select(event) {
-		(event || window.event).stopPropagation();
+		const ev = event || (typeof window !== "undefined" ? window.event : null);
+		if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+		if (this.exited || this.isSelecting) return;
 		--this.count;
 		if (this.isLastSelection())
 			this.elem.classList.add("hide");
 		if (this.count <= 0)
 			ui.enablePlayer(false);
-		await this.action(this.container, this.indices[this.index]);
+		this.isSelecting = true;
+		try {
+			await this.action(this.container, this.indices[this.index]);
+		} finally {
+			this.isSelecting = false;
+		}
 		if (this.isLastSelection() && !this.cancelled)
 			return this.exit();
-		this.update();
+		if (!this.exited)
+			this.update();
 	}
 	
 	// Called by client to exit out of the current Carousel if allowed. Enables player interraction.
@@ -4318,10 +4535,14 @@ class Carousel {
 	
 	// Clears and quits the current carousel
 	exit() {
+		if (this.exited) return;
+		this.exited = true;
 		for (let x of this.previews)
 			x.style.backgroundImage = "";
 		this.elem.classList.add("hide");
-		Carousel.clearCurrent();
+		if (Carousel.curr === this) {
+			Carousel.clearCurrent();
+		}
 		ui.quitCarousel();
 	}
 	
@@ -5284,20 +5505,36 @@ class DeckMaker {
 		};
 		const op_deck = this.constructOpponentDeck(true);
 		
-		player_me = new Player(0, (typeof I18N !== "undefined") ? I18N.t("player_name") : "Geralt", me_deck);
-		player_op = new Player(1, (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Opponent", op_deck);
+		const meAvatar = (typeof AvatarManager !== "undefined") ? AvatarManager.getPlayerAvatar("battle") : "img/icons/profile.png";
 		
-		// Atualiza indicador de regras ativas na tela do tabuleiro
+		let opName = (typeof I18N !== "undefined") ? I18N.t("opponent_name") : "Adversário";
+		let opAvatar = "img/avatars/Aldert-Geert.png";
+
+		if (this.opponentData && this.opponentData.name) {
+			opName = this.opponentData.name;
+			opAvatar = (typeof AvatarManager !== "undefined")
+				? AvatarManager.resolveOpponentAvatar(opName, op_deck)
+				: "img/avatars/Aldert-Geert.png";
+		} else if (typeof AvatarManager !== "undefined") {
+			const picked = AvatarManager.pickQuickMatchOpponent(op_deck.faction, op_deck.leader);
+			opName = picked.name;
+			opAvatar = picked.avatar;
+		}
+
+		player_me = new Player(0, (typeof I18N !== "undefined") ? I18N.t("player_name") : "Geralt", me_deck, meAvatar);
+		player_op = new Player(1, opName, op_deck, opAvatar);
+		
+		if (typeof AvatarManager !== "undefined") {
+			AvatarManager.applyBoardAvatars(meAvatar, opAvatar);
+		}
+		
+		// Atualiza botão de regras da partida na tela do tabuleiro
 		const rulesIndicator = document.getElementById("match-rules-indicator");
-		const rulesText = document.getElementById("match-rules-indicator-text");
-		if (rulesIndicator && rulesText && typeof GameRules !== "undefined") {
+		if (rulesIndicator && typeof GameRules !== "undefined") {
+			rulesIndicator.classList.remove("hide");
 			const count = GameRules.getActiveCount();
-			if (count > 0) {
-				rulesIndicator.classList.remove("hide");
-				rulesText.textContent = `Regras (${count})`;
-			} else {
-				rulesIndicator.classList.add("hide");
-			}
+			rulesIndicator.textContent = "Regras";
+			rulesIndicator.setAttribute("data-title", count > 0 ? `Regras da Partida (${count} ativas)` : "Regras da Partida");
 		}
 		
 		this.elem.classList.add("hide");
@@ -5815,6 +6052,12 @@ class Settings
 	static displayMode = new SavedString("gc-display-mode", "window");
 	static resolution = new SavedString("gc-resolution", "1366x768");
 	static jukeboxTrack = new SavedString("gc-jukebox-track", "all");
+	static gameSpeed = new SavedString("gc-game-speed", "1.0");
+	static showScoreDiff = new ToggleOption("gc-score-diff", false, () => {
+		if (typeof board !== "undefined" && board && typeof board.updateScoreDiff === "function") {
+			board.updateScoreDiff();
+		}
+	});
 
 	// Armazenamento exclusivo: Partida Rápida de Gwent
 	static lastFaction = new SavedString("gc-qm-last-faction", "realms"); 
@@ -5990,6 +6233,23 @@ async function translateTo(card, container_source, container_dest){
 	}
 }
 
+// Global GameSpeed manager for animation and pacing fast forward
+window.GameSpeed = {
+	getMultiplier() {
+		const val = parseFloat(localStorage.getItem("gc-game-speed") || "1.0");
+		if (isNaN(val) || val < 1.0) return 1.0;
+		if (val > 2.0) return 2.0;
+		return val;
+	},
+	setMultiplier(val) {
+		const num = Math.min(2.0, Math.max(1.0, parseFloat(val) || 1.0));
+		localStorage.setItem("gc-game-speed", num.toFixed(1));
+		if (typeof Settings !== "undefined" && Settings.gameSpeed) {
+			Settings.gameSpeed.set(num.toFixed(1));
+		}
+	}
+};
+
 // Translates an element by x from the left and y from the top with smooth bezier easing
 async function translate(elem, x, y){
 	if (!elem) return;
@@ -5998,15 +6258,21 @@ async function translate(elem, x, y){
 	x *= vw100;
 	y *= vw100;
 
+	const speed = (typeof GameSpeed !== "undefined" && typeof GameSpeed.getMultiplier === "function")
+		? GameSpeed.getMultiplier()
+		: (parseFloat(localStorage.getItem("gc-game-speed") || "1.0") || 1.0);
+	const durSec = Math.max(0.12, 0.38 / speed).toFixed(2);
+	const sleepMs = Math.max(100, Math.round(380 / speed));
+
 	// In-flight styling: elevated z-index, realistic table shadow and subtle scale
 	elem.style.zIndex = "9999";
 	elem.style.pointerEvents = "none";
-	elem.style.transition = "transform 0.38s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.38s ease, filter 0.38s ease";
+	elem.style.transition = `transform ${durSec}s cubic-bezier(0.22, 1, 0.36, 1), box-shadow ${durSec}s ease, filter ${durSec}s ease`;
 	elem.style.boxShadow = "0 16px 32px rgba(0, 0, 0, 0.8), 0 0 16px rgba(242, 201, 107, 0.6)";
 	elem.style.filter = "brightness(1.1) drop-shadow(0 12px 24px rgba(0,0,0,0.7))";
 	elem.style.transform = "translate(" + x + "vw, " + y + "vw) scale(1.05)";
 
-	await sleep(380);
+	await sleep(sleepMs);
 
 	// Safety fallback in case caller doesn't clean up
 	setTimeout(() => {
@@ -6018,7 +6284,7 @@ async function translate(elem, x, y){
 			elem.style.filter = "";
 			elem.style.pointerEvents = "";
 		}
-	}, 400);
+	}, Math.max(100, Math.round(300 / speed)));
 }
 
 // Fades out an element until hidden over the duration
@@ -6035,6 +6301,10 @@ async function fadeIn(elem, duration){
 async function fade(fadeIn, elem, dur){
 	if (!elem)
 		return;
+	const speed = (typeof GameSpeed !== "undefined" && typeof GameSpeed.getMultiplier === "function")
+		? GameSpeed.getMultiplier()
+		: 1.0;
+	dur = Math.max(40, Math.round(dur / speed));
 	return new Promise(res => {
 		const startingOpacity = toInteger(elem.style.opacity);
 		const endOpacity = fadeIn ? 1 : 0;
@@ -6212,8 +6482,11 @@ function asyncAudio(audio)
 
 // Pauses execution until the passed number of milliseconds as expired
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-  //return new Promise(resolve => setTimeout(() => {if (func) func(); return resolve();}, ms));
+	const speed = (typeof GameSpeed !== "undefined" && typeof GameSpeed.getMultiplier === "function")
+		? GameSpeed.getMultiplier()
+		: (parseFloat(localStorage.getItem("gc-game-speed") || "1.0") || 1.0);
+	const scaledMs = Math.max(10, Math.round(ms / speed));
+	return new Promise(resolve => setTimeout(resolve, scaledMs));
 }
 
 // Suspends execution until the predicate condition is met, checking every ms milliseconds

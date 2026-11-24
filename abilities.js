@@ -40,6 +40,9 @@ var ability_dict = {
 		description: "Doubles the strength of all unit cards in that row. Limited to 1 per row. ",
 		audio: "horn",
 		placed: async card => {
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("horn", card, {});
+			}
 			if (card.holder === player_me && typeof Achievements !== "undefined") {
 				Achievements.recordHorn();
 			}
@@ -51,6 +54,9 @@ var ability_dict = {
 		description: "Triggers transformation of all Berserker cards on the same row. ",
 		placed: async (card, row) => {
 			const berserkers = row.findCards(c => c.abilities.includes("berserker"));
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("mardroeme", card, { count: berserkers.length, desc: `Transformou ${berserkers.length} Berserkers em Ursos Vildkaarl` });
+			}
 			await Promise.all(berserkers.map(async c => await ability_dict["berserker"].placed(c, row)));
 		}
 	},
@@ -121,6 +127,9 @@ var ability_dict = {
 			let scorched = maxUnits.filter( p => p[1][0].power === maxPower);
 			let cards = scorched.reduce( (a,p) => a.concat( p[1].map(u => [p[0], u])), []);
 			
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("scorch", card, { count: cards.length, killed: cards.map(u => u[1].name) });
+			}
 			if (cards.length)
 			{
 				if (card.holder === player_me && typeof Achievements !== "undefined") {
@@ -140,6 +149,10 @@ var ability_dict = {
 		placed: async (card) => {
 			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const row = board.getRow(card, "close", card.holder.opponent());
+			const killed = row.total >= 10 ? row.maxUnits().map(u => u.name) : [];
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("scorch_c", card, { count: killed.length, killed: killed });
+			}
 			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
 				Achievements.recordScorchKill();
 			}
@@ -152,6 +165,10 @@ var ability_dict = {
 		placed: async (card) => {
 			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const row = board.getRow(card, "ranged", card.holder.opponent());
+			const killed = row.total >= 10 ? row.maxUnits().map(u => u.name) : [];
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("scorch_r", card, { count: killed.length, killed: killed });
+			}
 			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
 				Achievements.recordScorchKill();
 			}
@@ -164,6 +181,10 @@ var ability_dict = {
 		placed: async (card) => {
 			if (typeof GameRules !== "undefined" && GameRules.isActive("noScorch")) return;
 			const row = board.getRow(card, "siege", card.holder.opponent());
+			const killed = row.total >= 10 ? row.maxUnits().map(u => u.name) : [];
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("scorch_s", card, { count: killed.length, killed: killed });
+			}
 			if (card.holder === player_me && row.total >= 10 && row.maxUnits().length > 0 && typeof Achievements !== "undefined") {
 				Achievements.recordScorchKill();
 			}
@@ -215,6 +236,9 @@ var ability_dict = {
 			}
 			let units = card.holder.hand.getCards(pred).map(x => [card.holder.hand, x])
 			.concat(card.holder.deck.getCards(pred).map( x => [card.holder.deck, x] ) );
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("muster", card, { count: units.length, summoned: units.map(p => p[1].name) });
+			}
 			if (units.length === 0)
 				return;
 			await card.animate("muster");
@@ -236,6 +260,9 @@ var ability_dict = {
 		placed: async (card) => {
 			await card.animate("spy");
 			const drawCount = (typeof GameRules !== "undefined" && GameRules.isActive("tacticalSpies")) ? 1 : 2;
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("spy", card, { drawCount });
+			}
 			for (let i=0; i<drawCount; i++) {
 				if (card.holder.deck.cards.length > 0)
 					await card.holder.deck.draw(card.holder.hand);
@@ -305,6 +332,9 @@ var ability_dict = {
 			}
 			if (wrapper.card)
 			{
+				if (typeof MatchTracker !== "undefined") {
+					MatchTracker.onAbility("medic", card, { revived: wrapper.card.name });
+				}
 				if (card.holder === player_me && typeof Achievements !== "undefined") {
 					Achievements.recordMedic();
 				}
@@ -373,6 +403,9 @@ var ability_dict = {
 		description: "Adds +1 to all units in the row (excluding itself). ",
 		audio: "morale",
 		placed: async card => {
+			if (typeof MatchTracker !== "undefined") {
+				MatchTracker.onAbility("morale", card, { desc: "+1 de moral concedido às unidades da fileira" });
+			}
 			await card.animate("morale");
 		}
 	},
@@ -384,8 +417,12 @@ var ability_dict = {
 			let targetRow = row || board.getRow(card, card.row === "agile" ? "close" : card.row, card.holder);
 			if (!targetRow) return;
 			let bonds = targetRow.findCards(c => c.name === card.name);
-			if (bonds.length > 1)
+			if (bonds.length > 1) {
+				if (typeof MatchTracker !== "undefined") {
+					MatchTracker.onAbility("bond", card, { desc: `Elo Estreito ativado entre ${bonds.length} cartas [${card.name}] dobrando suas forças` });
+				}
 				await Promise.all( bonds.map(c => c.animate("bond")) );
+			}
 		}
 	},
 	avenger: {
@@ -505,7 +542,7 @@ var ability_dict = {
 				}
 				newCard.holder = card.holder;
 				await board.toHand(newCard, grave);
-			}, c => c.isUnit(), true);
+			}, c => c.isUnit(), true, false);
 		},
 		weight: (card, ai, max, data) => ai.weightMedic(data, 0, card.holder.opponent())
 	},
@@ -572,6 +609,8 @@ var ability_dict = {
 				}
 				const drawn = lData.drawnName ? deck.cards.find(c => c.name === lData.drawnName) : deck.cards[0];
 				if (drawn) await board.toHand(drawn, deck);
+				hand.resize();
+				deck.resize();
 				return;
 			}
 			Carousel.curr?.exit();
@@ -582,14 +621,16 @@ var ability_dict = {
 				await ui.queueCarousel(hand, discardCount, async (c,i) => {
 					if (c.cards[i]) discardedNames.push(c.cards[i].name);
 					await board.toGrave(c.cards[i], c);
-				}, () => true);
+				}, () => true, false, false);
 			}
 			if (deck.cards.length > 0) {
 				await ui.queueCarousel(deck, 1, async (c,i) => {
 					if (c.cards[i]) drawnName = c.cards[i].name;
 					await board.toHand(c.cards[i], deck);
-				}, () => true, true);
+				}, () => true, true, false);
 			}
+			hand.resize();
+			deck.resize();
 			if (typeof VersusMode !== "undefined" && VersusMode.isActive && card.holder === player_me) {
 				VersusMode.pendingLeaderData = { discardedNames, drawnName };
 			}
@@ -623,16 +664,16 @@ var ability_dict = {
 						VersusMode.pendingLeaderData = { weatherName: c.cards[i].name };
 					}
 					await board.toWeather(c.cards[i], deck);
-				}, c => c.faction === "weather", true);
+				}, c => c.faction === "weather" || c.row === "weather", true, false);
 			}
 		},
 		weight: (card, ai, max) => Math.max(0, ability_dict["eredin_king"].helper(card)?.weight || 0),
 		helper: card => {
-			let weather = card.holder.deck.cards.filter(c => c.row === "weather").reduce((a,c) =>a.map(c => c.name).includes(c.name) ? a : a.concat([c]), [] );
+			let weather = card.holder.deck.cards.filter(c => c.row === "weather" || c.faction === "weather").reduce((a,c) =>a.map(c => c.name).includes(c.name) ? a : a.concat([c]), [] );
 			
 			let out, weight = 0;
 			weather.forEach( c => {
-				let w = card.holder.controller.weightWeatherFromDeck(c, c.abilities[0]);
+				let w = card.holder.controller.weightWeatherFromDeck(c, c.abilities);
 				if (w > weight) {
 					weight = w;
 					out = c;

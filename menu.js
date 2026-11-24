@@ -76,6 +76,9 @@ class MenuController {
 			StoryMode.init();
 		}
 
+		// Initialize Subtle Main Menu Particles (Embers & Golden Dust)
+		MenuController.initMenuParticles();
+
 		// Override native browser alert() so all notifications render in-game
 		window.showInGameAlert = (msg, title, icon, onOk) => MenuController.showAlert(msg, title, icon, onOk);
 		window.showInGameConfirm = (msg, title, onConfirm, onCancel, confirmText, cancelText, icon) =>
@@ -285,6 +288,10 @@ class MenuController {
 			VersusMode.isActive = false;
 		}
 
+		if (typeof AvatarManager !== "undefined") {
+			AvatarManager.syncAllPlayerAvatarUI();
+		}
+
 		// Hide Story map if it was open and restore full sandbox collection in DeckMaker
 		const storyMap = document.getElementById("story-map-screen");
 		if (storyMap) storyMap.classList.add("hide");
@@ -356,6 +363,9 @@ class MenuController {
 	}
 
 	static returnToMainMenu() {
+		if (typeof game !== "undefined" && game && typeof GameState !== "undefined" && typeof game.setState === "function") {
+			game.setState(GameState.CUSTOMIZE);
+		}
 		if (typeof ScreenManager !== "undefined") {
 			ScreenManager.setScreen("menu");
 		} else if (document.body) {
@@ -556,6 +566,65 @@ class MenuController {
 		// Jukebox Track
 		const savedTrack = localStorage.getItem("gc-jukebox-track") || "all";
 		syncVal(["setting-jukebox-track", "setting-jukebox-track-overlay"], savedTrack);
+
+		// Game Speed (Fast Forward) Slider
+		const savedGameSpeed = localStorage.getItem("gc-game-speed") || "1.0";
+		["setting-game-speed", "setting-game-speed-overlay"].forEach((id, idx) => {
+			const slider = document.getElementById(id);
+			const dispId = idx === 0 ? "game-speed-display" : "game-speed-display-overlay";
+			const display = document.getElementById(dispId);
+			if (slider) {
+				slider.value = savedGameSpeed;
+				if (display) display.textContent = parseFloat(savedGameSpeed).toFixed(1) + "x";
+				slider.oninput = function() {
+					const val = parseFloat(this.value).toFixed(1);
+					const disp1 = document.getElementById("game-speed-display");
+					const disp2 = document.getElementById("game-speed-display-overlay");
+					if (disp1) disp1.textContent = val + "x";
+					if (disp2) disp2.textContent = val + "x";
+					const s1 = document.getElementById("setting-game-speed");
+					const s2 = document.getElementById("setting-game-speed-overlay");
+					if (s1) s1.value = val;
+					if (s2) s2.value = val;
+					if (typeof GameSpeed !== "undefined" && GameSpeed.setMultiplier) {
+						GameSpeed.setMultiplier(val);
+					} else {
+						localStorage.setItem("gc-game-speed", val);
+					}
+				};
+				slider.onchange = function() {
+					if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+						AudioManager.playSFX("witcher_click");
+					}
+				};
+			}
+		});
+
+		// Score Diff Checkbox
+		const scoreDiffEnabled = (typeof Settings !== "undefined" && Settings.showScoreDiff) 
+			? Settings.showScoreDiff.isEnabled() 
+			: (localStorage.getItem("gc-score-diff") === "true");
+		["setting-score-diff", "setting-score-diff-overlay"].forEach(id => {
+			const chk = document.getElementById(id);
+			if (chk) {
+				chk.checked = scoreDiffEnabled;
+				chk.onchange = function() {
+					const isChecked = this.checked;
+					["setting-score-diff", "setting-score-diff-overlay"].forEach(otherId => {
+						const otherChk = document.getElementById(otherId);
+						if (otherChk) otherChk.checked = isChecked;
+					});
+					if (typeof Settings !== "undefined" && Settings.showScoreDiff) {
+						Settings.showScoreDiff.setEnabled(isChecked);
+					} else {
+						localStorage.setItem("gc-score-diff", isChecked ? "true" : "false");
+					}
+					if (typeof board !== "undefined" && board && typeof board.updateScoreDiff === "function") {
+						board.updateScoreDiff();
+					}
+				};
+			}
+		});
 	}
 
 	static saveSettings(fromOverlay = false) {
@@ -631,6 +700,31 @@ class MenuController {
 			}
 		}
 
+		// Game Speed
+		const speedSlider = document.getElementById("setting-game-speed" + suffix) || document.getElementById("setting-game-speed");
+		if (speedSlider) {
+			const spd = parseFloat(speedSlider.value).toFixed(1);
+			if (typeof GameSpeed !== "undefined" && GameSpeed.setMultiplier) {
+				GameSpeed.setMultiplier(spd);
+			} else {
+				localStorage.setItem("gc-game-speed", spd);
+			}
+		}
+
+		// Score Diff
+		const scoreDiffCheck = document.getElementById("setting-score-diff" + suffix) || document.getElementById("setting-score-diff");
+		if (scoreDiffCheck) {
+			const diffEnabled = scoreDiffCheck.checked;
+			if (typeof Settings !== "undefined" && Settings.showScoreDiff) {
+				Settings.showScoreDiff.setEnabled(diffEnabled);
+			} else {
+				localStorage.setItem("gc-score-diff", diffEnabled ? "true" : "false");
+			}
+			if (typeof board !== "undefined" && board && typeof board.updateScoreDiff === "function") {
+				board.updateScoreDiff();
+			}
+		}
+
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 			AudioManager.playSFX("witcher_confirm");
 		}
@@ -661,6 +755,180 @@ class MenuController {
 				window.close();
 			}
 		}, 300);
+	}
+
+	static versionClickCount = 0;
+	static versionClickTimer = null;
+	static singleClickTimer = null;
+
+	static handleVersionBadgeClick(event) {
+		if (event) {
+			try { event.preventDefault(); } catch (_) { }
+		}
+
+		MenuController.versionClickCount = (MenuController.versionClickCount || 0) + 1;
+
+		if (MenuController.versionClickTimer) clearTimeout(MenuController.versionClickTimer);
+		MenuController.versionClickTimer = setTimeout(() => {
+			MenuController.versionClickCount = 0;
+		}, 2000);
+
+		// Single click check: If it was just a single casual click, trigger update check after a short delay
+		if (MenuController.versionClickCount === 1) {
+			if (MenuController.singleClickTimer) clearTimeout(MenuController.singleClickTimer);
+			MenuController.singleClickTimer = setTimeout(() => {
+				if (MenuController.versionClickCount < 3 && typeof InGameUpdater !== "undefined" && InGameUpdater.checkForUpdates) {
+					InGameUpdater.checkForUpdates(true);
+				}
+			}, 400);
+		} else {
+			if (MenuController.singleClickTimer) {
+				clearTimeout(MenuController.singleClickTimer);
+				MenuController.singleClickTimer = null;
+			}
+		}
+
+		// Android-style developer unlock countdown toasts
+		if (MenuController.versionClickCount >= 4 && MenuController.versionClickCount < 7) {
+			const remaining = 7 - MenuController.versionClickCount;
+			if (typeof GwentDebugger !== "undefined" && GwentDebugger.showToast) {
+				GwentDebugger.showToast(`Você está a ${remaining} toque${remaining > 1 ? 's' : ''} de se tornar um desenvolvedor.`);
+			}
+		} else if (MenuController.versionClickCount >= 7) {
+			MenuController.versionClickCount = 0;
+			if (MenuController.versionClickTimer) clearTimeout(MenuController.versionClickTimer);
+
+			if (typeof GwentDebugger !== "undefined") {
+				GwentDebugger.toggleDebugMode();
+			}
+		}
+	}
+
+	// =========================================================================
+	// SUBTLE MAIN MENU PARTICLES (EMBERS & GOLDEN GLOW DUST)
+	// Layered strictly inside #main-menu (z-index: 10000), above the background
+	// and behind the Logo (10001) and Menu Buttons (10002).
+	// Automatically pauses when #main-menu is hidden.
+	// =========================================================================
+	static initMenuParticles() {
+		const canvas = document.getElementById("main-menu-particles");
+		const mainMenu = document.getElementById("main-menu");
+		if (!canvas || !mainMenu) return;
+
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+
+		let width = 0;
+		let height = 0;
+		let particles = [];
+		const PARTICLE_COUNT = 58;
+
+		// Paleta sutil de brasas quentes e poeira dourada (The Witcher 3 Tavern / Hearth)
+		const PALETTES = [
+			{ core: "255, 244, 200", mid: "255, 195, 75", outer: "230, 105, 20" },  // Brasa âmbar dourada
+			{ core: "255, 232, 180", mid: "245, 150, 45", outer: "205, 65, 15" },   // Brasa viva alaranjada
+			{ core: "255, 250, 225", mid: "218, 175, 85", outer: "160, 115, 35" }   // Brilho dourado suave
+		];
+
+		function createParticle(randomY = false) {
+			const isEmber = Math.random() < 0.62; // 62% brasas ascendentes suaves, 38% poeira de luz flutuante
+			const palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+			const radius = isEmber
+				? (1.1 + Math.random() * 2.2)
+				: (0.7 + Math.random() * 1.4);
+
+			return {
+				x: Math.random() * (width || window.innerWidth),
+				y: randomY
+					? Math.random() * (height || window.innerHeight)
+					: (height || window.innerHeight) + 10 + Math.random() * 40,
+				radius,
+				isEmber,
+				palette,
+				// Movimento lento, orgânico e sutil
+				vy: isEmber
+					? -(0.22 + Math.random() * 0.52)
+					: -(0.08 + Math.random() * 0.24),
+				vx: (Math.random() - 0.42) * 0.28,
+				swayAmp: 0.15 + Math.random() * 0.42,
+				swayFreq: 0.006 + Math.random() * 0.014,
+				swayPhase: Math.random() * Math.PI * 2,
+				// Cintilação / respiração suave da brasa
+				baseAlpha: isEmber
+					? (0.22 + Math.random() * 0.42)
+					: (0.14 + Math.random() * 0.28),
+				pulseSpeed: 0.015 + Math.random() * 0.03,
+				pulsePhase: Math.random() * Math.PI * 2
+			};
+		}
+
+		function resizeCanvas() {
+			width = window.innerWidth || document.documentElement.clientWidth || 1280;
+			height = window.innerHeight || document.documentElement.clientHeight || 720;
+			canvas.width = width;
+			canvas.height = height;
+		}
+
+		resizeCanvas();
+		window.addEventListener("resize", resizeCanvas);
+
+		for (let i = 0; i < PARTICLE_COUNT; i++) {
+			particles.push(createParticle(true));
+		}
+
+		function renderFrame() {
+			// Executa apenas quando a tela do Menu Principal está visível
+			const isMenuVisible = !mainMenu.classList.contains("hide") &&
+				(!document.body.getAttribute("data-screen") || document.body.getAttribute("data-screen") === "menu");
+
+			if (isMenuVisible && width > 0 && height > 0) {
+				ctx.clearRect(0, 0, width, height);
+				ctx.save();
+				ctx.globalCompositeOperation = "lighter";
+
+				for (let i = 0; i < particles.length; i++) {
+					const p = particles[i];
+					p.swayPhase += p.swayFreq;
+					p.pulsePhase += p.pulseSpeed;
+
+					p.x += p.vx + Math.sin(p.swayPhase) * p.swayAmp;
+					p.y += p.vy;
+
+					// Recicla partícula quando sai da tela
+					if (p.y < -25 || p.x < -40 || p.x > width + 40) {
+						particles[i] = createParticle(false);
+						continue;
+					}
+
+					// Fade suave nas bordas superior e inferior da tela
+					const verticalRatio = Math.max(0, Math.min(1, p.y / height));
+					const edgeFade = Math.sin(verticalRatio * Math.PI);
+					const pulse = 0.72 + 0.28 * Math.sin(p.pulsePhase);
+					const alpha = Math.max(0, Math.min(0.85, p.baseAlpha * pulse * edgeFade));
+
+					if (alpha <= 0.01) continue;
+
+					// Halo / brilho externo difuso da brasa
+					const glowRadius = p.radius * (p.isEmber ? 4.2 : 3.0);
+					const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowRadius);
+					grad.addColorStop(0, `rgba(${p.palette.core}, ${alpha})`);
+					grad.addColorStop(0.32, `rgba(${p.palette.mid}, ${(alpha * 0.65).toFixed(3)})`);
+					grad.addColorStop(0.7, `rgba(${p.palette.outer}, ${(alpha * 0.22).toFixed(3)})`);
+					grad.addColorStop(1, `rgba(${p.palette.outer}, 0)`);
+
+					ctx.fillStyle = grad;
+					ctx.beginPath();
+					ctx.arc(p.x, p.y, glowRadius, 0, Math.PI * 2);
+					ctx.fill();
+				}
+
+				ctx.restore();
+			}
+
+			requestAnimationFrame(renderFrame);
+		}
+
+		requestAnimationFrame(renderFrame);
 	}
 }
 

@@ -247,6 +247,27 @@ class VersusMode {
 	static remoteReady = false;
 	static remoteDeckData = null;
 	static remoteDeckCards = null;
+	static remoteAvatar = "img/icons/profile.png";
+	static localAvatar = null;
+
+	static getLocalAvatar() {
+		if (VersusMode.localAvatar) return VersusMode.localAvatar;
+		if (typeof AvatarManager !== "undefined") {
+			return AvatarManager.getPlayerAvatar("battle");
+		}
+		return "img/icons/profile.png";
+	}
+
+	static setLocalAvatar(file) {
+		if (!file) return;
+		const cleanFile = file.replace("Avallac'h.png", "Avallach.png");
+		const fullPath = cleanFile.startsWith("img/") ? cleanFile : `img/avatars/${cleanFile}`;
+		VersusMode.localAvatar = fullPath;
+		VersusMode.updatePreMatchUI();
+		if (VersusMode.conn && VersusMode.conn.open) {
+			VersusMode.sendLobbySync();
+		}
+	}
 
 	static hostDeckOrder = null;
 	static guestDeckOrder = null;
@@ -298,6 +319,12 @@ class VersusMode {
 			VersusMode.localPlayerName = savedName;
 		}
 
+		if (!VersusMode.localAvatar) {
+			VersusMode.localAvatar = (typeof AvatarManager !== "undefined")
+				? AvatarManager.getPlayerAvatar("battle")
+				: "img/icons/profile.png";
+		}
+
 		// Vincula campo de Nickname do jogador
 		const nameInput = document.getElementById("versus-input-player-name");
 		if (nameInput) {
@@ -332,7 +359,8 @@ class VersusMode {
 						deck: localDeck,
 						deckCards: localDeck.cards,
 						selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
-						selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
+						selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined,
+						avatar: VersusMode.getLocalAvatar()
 					});
 				}
 			};
@@ -436,6 +464,11 @@ class VersusMode {
 		// Carrega nome do jogador
 		const savedName = (localStorage.getItem("gc-player-name") || "Geralt").trim() || "Geralt";
 		VersusMode.localPlayerName = savedName;
+		if (!VersusMode.localAvatar) {
+			VersusMode.localAvatar = (typeof AvatarManager !== "undefined")
+				? AvatarManager.getPlayerAvatar("battle")
+				: "img/icons/profile.png";
+		}
 		const nameInput = document.getElementById("versus-input-player-name");
 		if (nameInput) {
 			nameInput.value = savedName;
@@ -541,6 +574,7 @@ class VersusMode {
 		VersusMode.roomCode = "";
 		VersusMode.localReady = false;
 		VersusMode.remoteReady = false;
+		VersusMode.remoteAvatar = "img/icons/profile.png";
 		VersusMode.isHost = false;
 		VersusMode.pendingRoundResults = {};
 		VersusMode.resetEmotesUI();
@@ -574,7 +608,8 @@ class VersusMode {
 				deck: localDeck,
 				deckCards: localDeck.cards,
 				selectedBoard: VersusMode.selectedBoard,
-				selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined
+				selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined,
+				avatar: VersusMode.getLocalAvatar()
 			});
 		}
 	}
@@ -618,11 +653,24 @@ class VersusMode {
 
 	static openRulesConfig() {
 		if (!VersusMode.isHost) return;
+		const modal = document.getElementById("rules-modal");
+		if (modal) {
+			modal.classList.remove("hide");
+		}
 		if (typeof DeckMaker !== "undefined" && typeof DeckMaker.openRulesModal === "function") {
 			DeckMaker.openRulesModal();
-		} else {
-			const modal = document.getElementById("rules-modal");
-			if (modal) modal.classList.remove("hide");
+		} else if (typeof window.dm !== "undefined" && typeof window.dm.openRulesModal === "function") {
+			window.dm.openRulesModal();
+		} else if (typeof window.dm !== "undefined" && typeof window.dm.updateRulesModalUI === "function") {
+			window.dm.updateRulesModalUI();
+		} else if (typeof GameRules !== "undefined") {
+			for (const key in GameRules.current) {
+				const cb = document.getElementById("rule-check-" + key);
+				if (cb) cb.checked = Boolean(GameRules.current[key]);
+			}
+		}
+		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
+			AudioManager.playSFX("witcher_tab_open");
 		}
 	}
 
@@ -679,7 +727,24 @@ class VersusMode {
 			deck: localDeck,
 			deckCards: localDeck.cards,
 			selectedBoard: VersusMode.selectedBoard,
-			selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined
+			selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined,
+			avatar: VersusMode.getLocalAvatar()
+		});
+	}
+
+	static sendLobbySync() {
+		if (!VersusMode.conn || !VersusMode.conn.open || VersusMode.isActive) return;
+		const localDeck = VersusMode.constructLocalDeck();
+		VersusMode.sendPacket("LOBBY_SYNC", {
+			name: VersusMode.localPlayerName,
+			faction: VersusMode.localFaction,
+			leaderIndex: VersusMode.localLeaderIndex,
+			ready: VersusMode.localReady,
+			deck: localDeck,
+			deckCards: localDeck.cards,
+			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
+			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined,
+			avatar: VersusMode.getLocalAvatar()
 		});
 	}
 
@@ -736,10 +801,12 @@ class VersusMode {
 		}
 	}
 
-	// Copia o código da sala para a área de transferência
+	// Copia o código da sala para a área de transferência com suporte universal
 	static copyRoomCode() {
 		if (!VersusMode.roomCode) return;
-		navigator.clipboard.writeText(VersusMode.roomCode).then(() => {
+		const code = VersusMode.roomCode;
+
+		const showSuccess = () => {
 			const btn = document.getElementById("btn-versus-copy");
 			if (btn) {
 				btn.classList.add("copied");
@@ -752,9 +819,40 @@ class VersusMode {
 			if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
 				AudioManager.playSFX("witcher_click");
 			}
-		}).catch(err => {
-			console.error("Erro ao copiar:", err);
-		});
+		};
+
+		if (typeof copyToClipboard === "function") {
+			copyToClipboard(code).then(ok => {
+				if (ok) {
+					showSuccess();
+				} else {
+					prompt("Copie o código da sala abaixo:", code);
+				}
+			});
+		} else if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+			navigator.clipboard.writeText(code).then(showSuccess).catch(() => {
+				prompt("Copie o código da sala abaixo:", code);
+			});
+		} else {
+			const ta = document.createElement("textarea");
+			ta.value = code;
+			ta.setAttribute("readonly", "");
+			ta.style.position = "fixed";
+			ta.style.top = "0";
+			ta.style.left = "0";
+			ta.style.opacity = "0";
+			ta.style.pointerEvents = "none";
+			document.body.appendChild(ta);
+			ta.focus();
+			ta.select();
+			try {
+				document.execCommand("copy");
+				showSuccess();
+			} catch (err) {
+				prompt("Copie o código da sala abaixo:", code);
+			}
+			document.body.removeChild(ta);
+		}
 	}
 
 	// -------------------------------------------------------------
@@ -844,7 +942,8 @@ class VersusMode {
 				deck: localDeck,
 				deckCards: localDeck.cards,
 				selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
-				selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
+				selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined,
+				avatar: VersusMode.getLocalAvatar()
 			});
 		};
 
@@ -908,7 +1007,12 @@ class VersusMode {
 		const meFaction = document.getElementById("versus-p1-faction");
 		const meStatus = document.getElementById("versus-p1-status");
 		const meCard = document.getElementById("versus-p1-card");
+		const meAvatar = document.getElementById("versus-p1-avatar");
 
+		if (meAvatar) {
+			const curAvatar = VersusMode.getLocalAvatar();
+			meAvatar.style.backgroundImage = (typeof AvatarManager !== "undefined" && AvatarManager.safeCssUrl) ? AvatarManager.safeCssUrl(curAvatar) : `url('${curAvatar}')`;
+		}
 		if (meName) meName.innerText = VersusMode.localPlayerName;
 		if (meFaction && factions[VersusMode.localFaction]) {
 			meFaction.innerText = factions[VersusMode.localFaction].name;
@@ -930,6 +1034,12 @@ class VersusMode {
 		const opFaction = document.getElementById("versus-p2-faction");
 		const opStatus = document.getElementById("versus-p2-status");
 		const opCard = document.getElementById("versus-p2-card");
+		const opAvatar = document.getElementById("versus-p2-avatar");
+
+		if (opAvatar) {
+			const remoteAvatar = VersusMode.remoteAvatar || "img/icons/profile.png";
+			opAvatar.style.backgroundImage = (typeof AvatarManager !== "undefined" && AvatarManager.safeCssUrl) ? AvatarManager.safeCssUrl(remoteAvatar) : `url('${remoteAvatar}')`;
+		}
 
 		if (opName) opName.innerText = VersusMode.remotePlayerName;
 		if (opFaction && factions[VersusMode.remoteFaction]) {
@@ -1011,7 +1121,8 @@ class VersusMode {
 			deck: localDeck,
 			deckCards: localDeck.cards,
 			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
-			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
+			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined,
+			avatar: VersusMode.getLocalAvatar()
 		});
 
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -1184,7 +1295,8 @@ class VersusMode {
 			deck: localDeck,
 			deckCards: localDeck.cards,
 			selectedBoard: VersusMode.isHost ? VersusMode.selectedBoard : undefined,
-			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined
+			selectedRules: (VersusMode.isHost && typeof GameRules !== "undefined") ? GameRules.current : undefined,
+			avatar: VersusMode.getLocalAvatar()
 		});
 
 		if (typeof AudioManager !== "undefined" && AudioManager.playSFX) {
@@ -1291,6 +1403,7 @@ class VersusMode {
 			hostDeck: hostDeckData,
 			hostDeckOrder: hostDeckOrder,
 			guestDeckOrder: guestDeckOrder,
+			hostAvatar: VersusMode.getLocalAvatar(),
 			selectedBoard: VersusMode.selectedBoard || "classic",
 			selectedRules: (typeof GameRules !== "undefined") ? GameRules.current : undefined
 		});
@@ -1377,9 +1490,16 @@ class VersusMode {
 			};
 		}
 
-		// Configura jogadores com seus nicknames personalizados
-		player_me = new Player(0, VersusMode.localPlayerName || "Geralt", meDeck);
-		player_op = new Player(1, VersusMode.remotePlayerName || "Adversário", opDeckData);
+		// Configura jogadores com seus nicknames personalizados e avatares
+		const meAvatar = VersusMode.getLocalAvatar();
+		const opAvatar = VersusMode.remoteAvatar || "img/icons/profile.png";
+
+		player_me = new Player(0, VersusMode.localPlayerName || "Geralt", meDeck, meAvatar);
+		player_op = new Player(1, VersusMode.remotePlayerName || "Adversário", opDeckData, opAvatar);
+
+		if (typeof AvatarManager !== "undefined") {
+			AvatarManager.applyBoardAvatars(meAvatar, opAvatar);
+		}
 
 		// Aplica reordenação determinística nos baralhos para sincronizar o draw inicial
 		if (VersusMode.isHost) {
@@ -1408,17 +1528,13 @@ class VersusMode {
 		if (emoteBtn) emoteBtn.classList.remove("hide");
 		VersusMode.initEmotes();
 
-		// Atualiza indicador de regras ativas na tela do tabuleiro
+		// Atualiza botão de regras da partida na tela do tabuleiro
 		const rulesIndicator = document.getElementById("match-rules-indicator");
-		const rulesText = document.getElementById("match-rules-indicator-text");
-		if (rulesIndicator && rulesText && typeof GameRules !== "undefined") {
+		if (rulesIndicator && typeof GameRules !== "undefined") {
+			rulesIndicator.classList.remove("hide");
 			const count = GameRules.getActiveCount();
-			if (count > 0) {
-				rulesIndicator.classList.remove("hide");
-				rulesText.textContent = `Regras (${count})`;
-			} else {
-				rulesIndicator.classList.add("hide");
-			}
+			rulesIndicator.textContent = "Regras";
+			rulesIndicator.setAttribute("data-title", count > 0 ? `Regras da Partida (${count} ativas)` : "Regras da Partida");
 		}
 
 		// Inicia o jogo
@@ -1440,6 +1556,7 @@ class VersusMode {
 			VersusMode.remoteFaction = payload.faction || "nilfgaard";
 			VersusMode.remoteLeaderIndex = payload.leaderIndex || 0;
 			VersusMode.remoteReady = !!payload.ready;
+			if (payload.avatar) VersusMode.remoteAvatar = payload.avatar;
 			if (payload.deck) VersusMode.remoteDeckData = payload.deck;
 			if (payload.deckCards && Array.isArray(payload.deckCards)) VersusMode.remoteDeckCards = payload.deckCards;
 			if (!VersusMode.isHost && payload.selectedBoard && (typeof BoardManager === "undefined" || BoardManager.isValidBoard(payload.selectedBoard))) {
@@ -1456,6 +1573,9 @@ class VersusMode {
 
 		if (msg.type === "MATCH_START") {
 			const iStartFirst = payload.firstTurn === "guest_me";
+			if (payload.hostAvatar) {
+				VersusMode.remoteAvatar = payload.hostAvatar;
+			}
 			if (payload.selectedBoard && (typeof BoardManager === "undefined" || BoardManager.isValidBoard(payload.selectedBoard))) {
 				VersusMode.selectedBoard = payload.selectedBoard;
 			}
@@ -1984,19 +2104,34 @@ class VersusMode {
 				// Caso 3: Carta Especial de Fileira (Corneta do Comandante / Mardroeme)
 				if (card.isSpecial && card.isSpecial()) {
 					let specialRow = null;
+					// Prefere fileiras que já tenham unidades aliadas não-heróis
 					for (let r = 3; r < 6; r++) {
-						if (board.row[r].special === null) {
+						if (board.row[r].special === null && board.row[r].cards.some(c => c.isUnit() && !c.isHero())) {
 							specialRow = board.row[r];
 							break;
 						}
 					}
+					if (!specialRow) {
+						for (let r = 3; r < 6; r++) {
+							if (board.row[r].special === null) {
+								specialRow = board.row[r];
+								break;
+							}
+						}
+					}
 					if (specialRow) {
+						const rowType = VersusMode.getRowTypeFromRow(specialRow);
+						if (typeof MatchTracker !== "undefined") {
+							MatchTracker.onCardPlayed(player_me, card, rowType);
+						}
 						ui.showPreviewVisuals(card);
 						await sleep(700);
 						ui.hidePreview(card);
 						await board.moveTo(card, specialRow, player_me.hand);
+						if (typeof MatchTracker !== "undefined") {
+							MatchTracker.onCardPlaced(player_me, card, specialRow);
+						}
 						if (VersusMode.isActive) {
-							const rowType = VersusMode.getRowTypeFromRow(specialRow);
 							VersusMode.onLocalCardPlayed(card, { rowType: rowType });
 						}
 						player_me.endTurn();
@@ -2715,8 +2850,16 @@ class VersusMode {
 		if (modal) modal.classList.add("hide");
 
 		VersusMode.isActive = true;
+		const isMyTurn = (typeof game !== "undefined" && game && game.currPlayer === player_me);
 		VersusMode.showTurnHUD();
-		VersusMode.updateTurnHUD(game.currPlayer === player_me);
+		VersusMode.updateTurnHUD(isMyTurn);
+		VersusMode.startTurnTimer(isMyTurn);
+		VersusMode.startWatchdog();
+		if (VersusMode.isHost) {
+			VersusMode.broadcastTurnSync();
+		} else {
+			VersusMode.sendPacket("REQ_TURN_SYNC");
+		}
 		if (typeof triggerHaptic === "function") triggerHaptic("medium");
 		console.log("[VersusMode] Conexão P2P restabelecida com sucesso!");
 	}
@@ -2845,7 +2988,9 @@ class VersusMode {
 
 		// Keyboard shortcut 'E' and number keys 1-8
 		window.addEventListener("keydown", (e) => {
-			if (!VersusMode.isActive) return;
+			const boardScreen = document.getElementById("board-screen");
+			const onBoard = boardScreen && !boardScreen.classList.contains("hide");
+			if (!VersusMode.isActive && !onBoard) return;
 			// Ignore if user is typing in an input
 			const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
 			if (tag === "input" || tag === "textarea") return;
@@ -2884,7 +3029,9 @@ class VersusMode {
 	}
 
 	static openEmoteWheel() {
-		if (!VersusMode.isActive) return;
+		const boardScreen = document.getElementById("board-screen");
+		const onBoard = boardScreen && !boardScreen.classList.contains("hide");
+		if (!VersusMode.isActive && !onBoard) return;
 		const wheelModal = document.getElementById("versus-emote-wheel-container");
 		if (!wheelModal) return;
 
@@ -2958,7 +3105,9 @@ class VersusMode {
 	}
 
 	static sendEmote(emoteId) {
-		if (!VersusMode.isActive) return;
+		const boardScreen = document.getElementById("board-screen");
+		const onBoard = boardScreen && !boardScreen.classList.contains("hide");
+		if (!VersusMode.isActive && !onBoard) return;
 		const now = Date.now();
 		if (now - VersusMode.lastEmoteSentTime < 1200) {
 			// Anti-spam protection
@@ -2969,12 +3118,14 @@ class VersusMode {
 		const emote = VersusMode.VERSUS_EMOTES.find(e => e.id === emoteId);
 		if (!emote) return;
 
-		// Transmit via PeerJS packet
-		VersusMode.sendPacket("EMOTE", {
-			emoteId: emote.id,
-			text: emote.text,
-			icon: emote.icon
-		});
+		// Transmit via PeerJS packet when in Versus P2P mode
+		if (VersusMode.isActive) {
+			VersusMode.sendPacket("EMOTE", {
+				emoteId: emote.id,
+				text: emote.text,
+				icon: emote.icon
+			});
+		}
 
 		// Render bubble for local player
 		VersusMode.displaySpeechBubble("me", emote);
@@ -3024,9 +3175,6 @@ class VersusMode {
 	}
 
 	static resetEmotesUI() {
-		const triggerBtn = document.getElementById("btn-versus-emote-trigger");
-		if (triggerBtn) triggerBtn.classList.add("hide");
-
 		VersusMode.closeEmoteWheel();
 
 		const bMe = document.getElementById("versus-speech-bubble-me");
@@ -3053,8 +3201,12 @@ window.VersusMode = VersusMode;
 // Inicializa quando o documento estiver pronto (ou imediatamente se já carregado)
 if (typeof document !== "undefined") {
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", () => VersusMode.init());
+		document.addEventListener("DOMContentLoaded", () => {
+			VersusMode.init();
+			VersusMode.initEmotes();
+		});
 	} else {
 		VersusMode.init();
+		VersusMode.initEmotes();
 	}
 }
