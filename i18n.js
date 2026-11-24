@@ -1092,8 +1092,20 @@ const I18N = {
 	},
 
 	init() {
-		const saved = (typeof localStorage !== "undefined") ? (localStorage.getItem("gc-language") || "en") : "en";
-		this.setLanguage(saved);
+		let lang = (typeof localStorage !== "undefined") ? localStorage.getItem("gc-language") : null;
+		if (!lang) {
+			const navLang = (typeof navigator !== "undefined" && (navigator.language || navigator.userLanguage)) ? (navigator.language || navigator.userLanguage).toLowerCase() : "en";
+			if (navLang.startsWith("pt")) {
+				lang = "pt-BR";
+			} else if (navLang.startsWith("es")) {
+				lang = "es";
+			} else if (navLang.startsWith("pl")) {
+				lang = "pl";
+			} else {
+				lang = "en";
+			}
+		}
+		this.setLanguage(lang);
 	},
 
 	t(key) {

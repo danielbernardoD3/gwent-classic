@@ -1,20 +1,26 @@
 # ⚔️ Gwent Classic
 
 <p align="center">
-  <img src="docs/screenshots/Main-menu.png" alt="Gwent Classic Menu Principal" width="850">
+  <b>Languages / Idiomas:</b>
+  <br>
+  <b>🇺🇸 English (Current)</b> • <a href="README.pt-BR.md">🇧🇷 Leia em Português</a>
 </p>
 
 <p align="center">
-  <b>A experiência definitiva e autêntica de Gwent de The Witcher 3: Wild Hunt diretamente no seu PC, Android ou Navegador!</b>
+  <img src="docs/screenshots/Main-menu.png" alt="Gwent Classic Main Menu" width="850">
+</p>
+
+<p align="center">
+  <b>The definitive, authentic Gwent card game experience from The Witcher 3: Wild Hunt right on your PC, Android, or Web Browser!</b>
   <br>
-  <i>Com Campanha narrativa pelo Continente (Modo Exploração), Duelos vs IA com Fast-Forward (Partida Rápida de Gwent), Multiplayer Online P2P (Modo Versus), Conquistas, Suporte a Gamepad e Launcher Nativo.</i>
+  <i>Featuring Continent Campaign (Exploration Mode), Quick Match vs Tactical AI with Fast-Forward, Online P2P Multiplayer (Versus Mode), Achievements, Full Gamepad Support, and Standalone Native Launcher.</i>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Release-v1.0.0-gold.svg" alt="Release v1.0.0">
   <img src="https://img.shields.io/badge/Platform-Windows%20PC%20%7C%20Android%20%7C%20Web-blue.svg" alt="Platform">
   <img src="https://img.shields.io/badge/Multiplayer-WebRTC%20P2P-orange.svg" alt="Multiplayer">
-  <a href="https://ko-fi.com/d3studios" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Apoiar%20D3%20Studios-F16061?logo=ko-fi&logoColor=white" alt="Apoiar no Ko-fi"></a>
+  <a href="https://ko-fi.com/d3studios" target="_blank"><img src="https://img.shields.io/badge/Ko--fi-Support%20D3%20Studios-F16061?logo=ko-fi&logoColor=white" alt="Support on Ko-fi"></a>
   <img src="https://img.shields.io/badge/DLCs-Hearts%20of%20Stone%20%2B%20Blood%20%26%20Wine-darkred.svg" alt="DLCs">
   <img src="https://img.shields.io/badge/Faction-5%20Factions%20Included-green.svg" alt="Factions">
   <img src="https://img.shields.io/badge/Gamepad-Full%20Support-purple.svg" alt="Gamepad">
@@ -23,167 +29,167 @@
 
 ---
 
-## 📜 Sobre o Projeto
+## 📜 About the Project
 
-**Gwent Classic** é uma recriação fiel, polida e expandida do consagrado jogo de cartas de *The Witcher 3: Wild Hunt*. O projeto foi construído para entregar a sensação autêntica das mesas de taverna do Continente, unindo uma campanha para um jogador com progressão geográfica, inteligência artificial com velocidade personalizável, modo multijogador em tempo real sem intermediários e suporte completo para múltiplos dispositivos.
+**Gwent Classic** is an authentic, highly polished, and expanded recreation of the acclaimed card minigame from *The Witcher 3: Wild Hunt*. Designed from the ground up to deliver the true tavern atmosphere of the Continent, the project integrates a geographic single-player story campaign, tactical AI with customizable match speeds, real-time peer-to-peer multiplayer without dedicated servers, and full cross-platform support.
 
 ---
 
-## 📸 Galeria de Capturas de Tela
+## 📸 Screenshot Gallery
 
-| Menu Principal | Duelo no Tabuleiro |
+| Main Menu | In-Game Board Duel |
 | :---: | :---: |
-| <img src="docs/screenshots/Main-menu.png" width="460" alt="Menu Principal"> | <img src="docs/screenshots/In-game.png" width="460" alt="Duelo no Tabuleiro"> |
+| <img src="docs/screenshots/Main-menu.png" width="460" alt="Main Menu"> | <img src="docs/screenshots/In-game.png" width="460" alt="In-Game Board Duel"> |
 
-| Modo Exploração (Mapa 4K) | Estatísticas e Compêndio |
+| Exploration Mode (4K Continent Map) | Collection Statistics & Compendium |
 | :---: | :---: |
-| <img src="docs/screenshots/Exploration-mode-map.png" width="460" alt="Mapa do Continente"> | <img src="docs/screenshots/Exploration-mode-estatistics.png" width="460" alt="Estatísticas e Compêndio"> |
+| <img src="docs/screenshots/Exploration-mode-map.png" width="460" alt="Continent Map"> | <img src="docs/screenshots/Exploration-mode-estatistics.png" width="460" alt="Collection Statistics"> |
 
-| Encontro com Personagens | Montador de Baralhos (Deck Builder) |
+| Character Encounters & Dialogue | Full Deck Builder |
 | :---: | :---: |
-| <img src="docs/screenshots/Duel-Exploration-preview.png" width="460" alt="Prévia de Duelo e Diálogo"> | <img src="docs/screenshots/Deck.png" width="460" alt="Montador de Baralhos"> |
+| <img src="docs/screenshots/Duel-Exploration-preview.png" width="460" alt="Character Duel Preview"> | <img src="docs/screenshots/Deck.png" width="460" alt="Deck Builder"> |
 
-| Lobby do Modo Versus (PvP) | Partida Multiplayer Online P2P |
+| Versus Mode Lobby (Ready) | Online P2P Multiplayer Match |
 | :---: | :---: |
-| <img src="docs/screenshots/Modo-versus-lobby-ready.png" width="460" alt="Lobby Versus"> | <img src="docs/screenshots/Modo-versus-ingame.png" width="460" alt="Duelo Online"> |
+| <img src="docs/screenshots/Modo-versus-lobby-ready.png" width="460" alt="Versus Lobby"> | <img src="docs/screenshots/Modo-versus-ingame.png" width="460" alt="Online Match"> |
 
 <p align="center">
-  <img src="docs/screenshots/Victory.png" width="600" alt="Tela de Vitória e Placar Final">
+  <img src="docs/screenshots/Victory.png" width="600" alt="Victory Screen and Final Score">
   <br>
-  <i>Tela de Vitória e Placar Final do Duelo</i>
+  <i>Round Victory Screen & Final Score Summary</i>
 </p>
 
 ---
 
-## 🌟 Principais Recursos da Versão 1.0.0 Release
+## 🌟 Key Features in v1.0.0 Release
 
-### 🗺️ 1. Modo Exploração (Campanha do Continente)
-* **Mapa 4K Interativo do Continente:** Viaje por regiões icônicas: *Pomar Branco, Velen, Novigrad, Ilhas Skellige, Kaer Morhen e Toussaint*.
-* **Progressão com Duelos Canônicos:** Enfrente personagens marcantes da saga (Barão Sanguinário, Dijkstra, Soothsayer, Madame Sasha, Ermion e muitos outros).
-* **Economia de Taverna & Compêndio:** Ganhe minérios e ouro, compre e desbloqueie cartas lendárias e consulte seu progresso de coleção por região.
-* **Diálogos e Encontros Temáticos:** Narrativa imersiva antes de cada embate.
+### 🗺️ 1. Exploration Mode (Continent Campaign)
+* **Interactive 4K Continent Map:** Travel across canonical Witcher regions: *White Orchard, Velen, Novigrad, Skellige Islands, Kaer Morhen, and Toussaint*.
+* **Lore-Accurate Duels:** Challenge legendary characters (Bloody Baron, Dijkstra, Soothsayer, Madame Sasha, Ermion, and many more).
+* **Tavern Economy & Card Compendium:** Earn ores and gold, purchase and unlock rare cards, and inspect your regional card collection completion.
+* **Thematic Dialogues:** Immersive storytelling before each confrontation.
 
 <p align="center">
-  <img src="docs/screenshots/Exploration-mode-map.png" width="800" alt="Mapa do Modo Exploração">
+  <img src="docs/screenshots/Exploration-mode-map.png" width="800" alt="Exploration Mode Map">
 </p>
 
 ---
 
-### 🤖 2. Partida Rápida de Gwent (Duelos vs IA Aprimorada)
-* **Inteligência Artificial Tática:** Tomada de decisão ponderada em 3 níveis de dificuldade (*Fácil, Médio e Difícil*), gerenciando espiões, iscas, queima (*Scorch*), climas e habilidades de líder.
-* **⏩ Modo Fast-Forward (1.0x a 2.0x):** Controle nas configurações a velocidade das pausas da IA, delays de visualização e animações de voo das cartas.
-* **🔢 Indicador de Diferença no Placar:** Ative nas configurações a exibição em tempo real da margem de pontos (verde para vantagem, vermelho para desvantagem e dourado para empate).
-* **4 Tabuleiros Personalizados:** Alterne entre os estilos *Clássico*, *Madeira*, *Pedra* e *Real*.
-* **Botão Regras:** Consulta rápida na mesa com o resumo das regras de cada uma das 5 facções.
+### 🤖 2. Quick Gwent Match (Duels vs Enhanced AI)
+* **Tactical Decision-Making AI:** Sophisticated heuristic decision-making across 3 difficulty tiers (*Easy, Medium, and Hard*), smartly balancing spy cards, decoys, Scorch tactics, weather modifiers, and leader abilities.
+* **⏩ Fast-Forward Match Pacing (1.0x to 2.0x):** Adjust AI delay pauses, card inspection times, and table flight transitions from the settings menu.
+* **🔢 Live Score Difference Indicator:** Optional in-game toggle displaying dynamic point margins (green badge for lead, red for deficit, gold for tie).
+* **4 Distinct Boards:** Switch anytime between *Classic*, *Wood*, *Stone*, and *Royal* board styles.
+* **In-Game Rules Summary:** Dedicated button on the table summarizing all 5 faction perks.
 
 <p align="center">
-  <img src="docs/screenshots/In-game.png" width="800" alt="Partida Rápida vs IA">
+  <img src="docs/screenshots/In-game.png" width="800" alt="Quick Gwent Match">
 </p>
 
 ---
 
-### ⚔️ 3. Modo Versus (PvP Multiplayer Online P2P)
-* **Conexão Direta WebRTC (PeerJS):** Duelos ponto a ponto entre jogadores à distância, sem necessidade de servidores dedicados de partida.
-* **Código de Sala de 5 Dígitos:** Crie ou entre em salas em segundos.
-* **Temporizadores Competitivos:**
-  * ⏱️ **30 Segundos de Troca Inicial (Mulligan):** Até 2 cartas trocadas estrategicamente.
-  * ⏱️ **1 Minuto por Turno:** Relógio regressivo com HUD visual.
-  * 🤖 **Proteção Anti-AFK:** Auto-play inteligente caso o tempo se esgote, evitando partidas travadas.
-* **Árbitro Autoritário (`TURN_SYNC`):** Sincronização garantida entre anfitrião e convidado.
-* **Emotes de Taverna:** Botão de reações rápidas com efeito luminoso e balões de fala temáticos.
+### ⚔️ 3. Versus Mode (Online P2P Multiplayer)
+* **Direct WebRTC Connection (PeerJS):** Real-time point-to-point duels between friends across the globe — no central server hosting costs.
+* **5-Digit Room Codes:** Host or join private lobbies in seconds.
+* **Competitive Match Clocks:**
+  * ⏱️ **30-Second Initial Mulligan:** Swap up to 2 starting hand cards.
+  * ⏱️ **1-Minute Turn Timer:** Smooth circular HUD countdown.
+  * 🤖 **Anti-AFK Protection:** Intelligent auto-play triggers automatically if time expires, preventing soft-locks.
+* **Authoritative Turn Synchronization (`TURN_SYNC`):** Guaranteed parity between host and guest.
+* **Tavern Emotes & Reactions:** Expressive reactions with pulsing golden aura and in-game Witcher speech bubbles.
 
 <p align="center">
-  <img src="docs/screenshots/Modo-versus-ingame.png" width="800" alt="Modo Versus Multiplayer Online">
+  <img src="docs/screenshots/Modo-versus-ingame.png" width="800" alt="Versus Mode Online Match">
 </p>
 
 ---
 
-### 🃏 4. Montador de Baralhos Completo (Deck Builder)
-* **Todas as 5 Facções:** *Reinos do Norte*, *Nilfgaard*, *Monstros*, *Scoia'tael* e *Skellige*.
-* **Expansões Incluídas:** Cartas de *Hearts of Stone*, *Blood and Wine* e a carta *Carpeado (Roach)*.
-* **Importação e Exportação JSON:** Salve, copie e compartilhe seus baralhos facilmente.
+### 🃏 4. Complete Deck Builder
+* **All 5 Playable Factions:** *Northern Realms*, *Nilfgaard*, *Monsters*, *Scoia'tael*, and *Skellige*.
+* **Full Expansions Included:** Cards from *Hearts of Stone*, *Blood and Wine*, and the *Next-Gen Roach* card.
+* **Deck Import & Export:** Save, copy, and share customized deck JSON strings effortlessly.
 
 <p align="center">
-  <img src="docs/screenshots/Deck.png" width="800" alt="Montador de Baralhos">
+  <img src="docs/screenshots/Deck.png" width="800" alt="Deck Builder">
 </p>
 
 ---
 
-### 🎮 5. Suporte Completo a Controles (Gamepad)
-* Navegação 100% mapeada para controles de **Xbox**, **PlayStation** e joysticks genéricos (DirectInput/XInput) em todas as telas, no tabuleiro e nos menus.
+### 🎮 5. Full Gamepad Support
+* Seamless native navigation mapped for **Xbox**, **PlayStation**, and generic gamepads (DirectInput/XInput) across all menus, the interactive map, and in-game duels.
 
 ---
 
-### 🎭 6. Personalização de Avatar
-* Dezenas de retratos icônicos para você escolher seu visual de taverneiro ou bruxo (Geralt, Yennefer, Ciri, Triss, Regis, Dandelion, etc.).
+### 🎭 6. Player Avatar Customization
+* Choose your favorite tavern identity from dozens of iconic portraits (Geralt, Yennefer, Ciri, Triss, Regis, Dandelion, Olgierd, etc.).
 
 ---
 
-### 🌐 7. Internacionalização Completa (i18n)
-* Jogo totalmente traduzido em 4 idiomas: **Português (Brasil)**, **English**, **Español** e **Polski**.
+### 🌐 7. Full Internationalization (i18n)
+* Fully translated with instant runtime switching: **English**, **Português (Brasil)**, **Español**, and **Polski**.
 
 ---
 
-## 📦 Como Jogar e Onde Baixar
+## 📦 How to Play & Downloads
 
-Acesse os links diretos na [Página de Releases do GitHub](https://github.com/danielbernardoD3/gwent-classic/releases/latest):
+Grab the direct binaries from the [Official GitHub Releases Page](https://github.com/danielbernardoD3/gwent-classic/releases/latest):
 
-### 💻 Windows PC (Portátil)
-1. Baixe o arquivo **`GwentClassic-PC.zip`** na release oficial.
-2. Descompacte em qualquer pasta.
-3. Dê dois cliques em **`GwentClassic.exe`**.
-4. Pressione `F11` para jogar em Tela Cheia a qualquer momento.
+### 💻 Windows PC (Portable Package)
+1. Download **`GwentClassic-PC.zip`** from the latest release.
+2. Extract into any folder.
+3. Double-click **`GwentClassic.exe`**.
+4. Press `F11` anytime to toggle **Borderless Fullscreen**.
 
 ### 📱 Android
-1. Baixe o arquivo **`GwentClassic.apk`** diretamente no seu dispositivo Android.
-2. Permita a instalação de fontes desconhecidas e instale o jogo.
-3. Jogue nativamente com suporte a toques e salvamento local.
+1. Download **`GwentClassic.apk`** directly to your Android device.
+2. Allow installation from unknown sources and install.
+3. Enjoy native touch-optimized Gwent on the go with local offline save persistence.
 
-### 🌐 No Navegador / GitHub Pages
-* Jogue diretamente pelo seu navegador sem precisar baixar nada:  
+### 🌐 In-Browser (GitHub Pages)
+* Play instantly in your web browser with zero installation:  
   👉 **[https://danielbernardoD3.github.io/gwent-classic/](https://danielbernardoD3.github.io/gwent-classic/)**
-* Ou execute localmente via terminal:
+* Or run a local HTTP server from your terminal:
   ```bash
   npx serve -l 8080 .
   ```
-  Abra `http://localhost:8080` no seu navegador favorito.
+  Open `http://localhost:8080` in your favorite browser.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Repository Structure
 
 ```text
 gwent-classic/
-├── GwentClassic.exe               # Launcher executável standalone (Windows WebView2)
-├── index.html                     # Interface e marcação principal do jogo
-├── style.css                      # Estilos do tabuleiro e cartas
-├── menu.css                       # Interface do Menu Principal
-├── versus.css                     # Interface do Modo Versus e HUD de duelo
-├── story.css                      # Estilização do Modo Exploração e Mapa
-├── debugger.css                   # Inspetor e painel de depuração in-game (F2)
-├── avatars.css                    # Estilização de retratos de personagens
-├── gwent.js                       # Motor central das regras do Gwent
-├── versus.js                      # Sistema WebRTC P2P e árbitro de PvP
-├── story.js                       # Progressão e nós do Modo Exploração
-├── story_data.js                  # Dados de missões, diálogos e cartas no mapa
-├── abilities.js                   # Implementação de habilidades de cartas
-├── cards.js                       # Catálogo completo de cartas e atributos
-├── factions.js                    # Habilidades passivas e líderes de facção
-├── gamepad.js                     # Controlador completo de joystick/gamepad
-├── achievements.js                # Sistema de conquistas in-game
-├── common.js                      # Utilitários globais, áudio e atualizador
-├── i18n.js                        # Traduções (PT-BR, EN, ES, PL)
-├── docs/screenshots/              # Capturas de tela demonstrativas
-├── img/                           # Imagens, tabuleiros, avatares e cartas
-├── music/                         # Trilhas sonoras originais locais
-└── sfx/                           # Efeitos sonoros temáticos
+├── GwentClassic.exe               # Standalone Windows launcher (Microsoft WebView2)
+├── index.html                     # Core markup and UI entry point
+├── style.css                      # Board, card styles, and animations
+├── menu.css                       # Main Menu interface
+├── versus.css                     # Versus Mode HUD, timers, and utility controls
+├── story.css                      # Exploration Mode Continent Map styling
+├── debugger.css                   # In-game inspector and debug tool (F2)
+├── avatars.css                    # Character avatar styles
+├── gwent.js                       # Primary Gwent game engine rules & state
+├── versus.js                      # WebRTC P2P multiplayer network referee
+├── story.js                       # Exploration Mode campaign progression
+├── story_data.js                  # Region nodes, NPC dialogues, and rewards
+├── abilities.js                   # Card abilities, weather, and scoring effects
+├── cards.js                       # Complete card catalog database
+├── factions.js                    # Faction passives and leader powers
+├── gamepad.js                     # Complete gamepad input controller
+├── achievements.js                # In-game achievement tracking system
+├── common.js                      # Global audio, utilities, and auto-updater
+├── i18n.js                        # Localization engine (EN, PT-BR, ES, PL)
+├── docs/screenshots/              # In-game showcase screenshots
+├── img/                           # Card artwork, board textures, and avatars
+├── music/                         # Original tavern background soundtrack
+└── sfx/                           # Atmospheric Witcher sound effects
 ```
 
 ---
 
-## ☕ Apoie o Projeto (Support D3 Studios)
+## ☕ Support the Project (D3 Studios)
 
-O **Gwent Classic** é um projeto 100% gratuito e de código aberto desenvolvido com paixão para a comunidade. Se você se divertiu jogando nas tavernas do Continente, apreciou o trabalho de desenvolvimento e deseja apoiar a manutenção do jogo, atualizações e futuros projetos da **D3 Studios**, você pode pagar um cafézinho ao taverneiro!
+**Gwent Classic** is a 100% free, open-source fan project created with genuine passion for The Witcher universe. If you enjoyed playing rounds of Gwent at the tavern, appreciated the technical craftsmanship, and wish to support ongoing maintenance and future indie game projects from **D3 Studios**, consider buying the innkeeper a coffee!
 
 <p align="center">
   <a href="https://ko-fi.com/d3studios" target="_blank">
@@ -191,20 +197,20 @@ O **Gwent Classic** é um projeto 100% gratuito e de código aberto desenvolvido
   </a>
 </p>
 
-### 💳 Formas de Apoio:
-* ☕ **Ko-fi (Internacional / Cartão / PayPal):**  
+### 💳 Ways to Support:
+* ☕ **Ko-fi (International / Credit Card / PayPal):**  
   👉 **[https://ko-fi.com/d3studios](https://ko-fi.com/d3studios)**
 
-* 🇧🇷 **Pix (Brasil):**  
-  * **Chave Pix (E-mail):** `d3studios.contato@gmail.com`
-  * **Identificação / Beneficiário:** D3 Studios
+* 🇧🇷 **Pix (Brazil):**  
+  * **Pix Key (Email):** `d3studios.contato@gmail.com`
+  * **Beneficiary:** D3 Studios
 
-*Toda contribuição é voluntária e ajuda diretamente nos custos de manutenção e novos projetos de jogos independentes. Muito obrigado pelo apoio!* 🐺⚔️
+*All contributions are completely voluntary and help support development time, hardware testing, and future gaming projects. Thank you so much for your support!* 🐺⚔️
 
 ---
 
-## 📜 Licença e Créditos Legais
+## 📜 License & Legal Disclaimer
 
-* **The Witcher**, **Gwent** e todos os personagens, termos, ilustrações, cartas e trilhas sonoras associadas são marcas registradas e propriedade intelectual da **CD PROJEKT S.A.** (CD PROJEKT RED) e Andrzej Sapkowski.
-* **Gwent Classic** é um projeto de fãs independente, sem fins lucrativos, desenvolvido estritamente para entretenimento e aprendizado sob as diretrizes de conteúdo de fãs da CD PROJEKT RED.
-* Código-fonte licenciado sob a **MIT License** combinada com a condição **Commons Clause Condition v1.0** (proibida a comercialização do software).
+* **The Witcher**, **Gwent**, and all associated characters, names, lore, artwork, card designs, and audio tracks are registered trademarks and intellectual property of **CD PROJEKT S.A.** (CD PROJEKT RED) and Andrzej Sapkowski.
+* **Gwent Classic** is an independent, non-commercial fan creation developed purely for entertainment and educational purposes under CD PROJEKT RED's Fan Content Guidelines.
+* Codebase licensed under the **MIT License** with the **Commons Clause Condition v1.0** (commercial sale of the software is strictly prohibited).

@@ -1,7 +1,7 @@
 {
   "name": "gwent-classic",
   "version": "1.0.0",
-  "description": "The Witcher 3 Gwent Classic - Web & Mobile Edition",
+  "description": "Authentic and enhanced Gwent card game from The Witcher 3: Wild Hunt - Web, PC & Mobile Edition",
   "main": "gwent.js",
   "scripts": {
     "build": "node scripts/build-mobile.js",
