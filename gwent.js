@@ -1884,6 +1884,7 @@ class Row extends CardContainer {
 			await this.playPlacementAudio(card);
 		}
 		this.updateState(card, true);
+		this.recalculateEffects();
 		game.placedEffectsActive = true;
 		for (let x of card.placed) 
 			await x(card, this);
@@ -1949,6 +1950,7 @@ class Row extends CardContainer {
 				if (typeof x === "function") x(card);
 			}
 		}
+		this.recalculateEffects();
 		this.updateScore();
 		return card;
 	}
@@ -2079,6 +2081,37 @@ class Row extends CardContainer {
 			}));
 	}
 	
+	// Recalculates all persistent row modifiers from current cards and special slot
+	recalculateEffects() {
+		const newEffects = {
+			weather: !!this.effects?.weather,
+			halfWeather: !!this.effects?.halfWeather,
+			bond: {},
+			morale: 0,
+			horn: 0,
+			mardroeme: 0
+		};
+		if (this.special && Array.isArray(this.special.abilities)) {
+			for (let ab of this.special.abilities) {
+				if (ab === "horn" || ab === "morale" || ab === "mardroeme") {
+					newEffects[ab] = (newEffects[ab] || 0) + 1;
+				}
+			}
+		}
+		for (let card of this.cards) {
+			if (!card || !Array.isArray(card.abilities)) continue;
+			for (let ab of card.abilities) {
+				if (ab === "horn" || ab === "morale" || ab === "mardroeme") {
+					newEffects[ab] = (newEffects[ab] || 0) + 1;
+				} else if (ab === "bond") {
+					const id = (typeof card.id === "function") ? card.id() : card.id;
+					newEffects.bond[id] = (newEffects.bond[id] || 0) + 1;
+				}
+			}
+		}
+		this.effects = newEffects;
+	}
+
 	// Removes all cards and effects from this row
 	async clear() {
 		const toGrave = this.cards.filter(c => !c.noRemove && !c.noGrave);
@@ -2092,6 +2125,20 @@ class Row extends CardContainer {
 			}
 		}
 		await Promise.all(toGrave.map(async c => await board.toGrave(c, this)));
+
+		// Safety cleanup: ensure special slot is fully cleared if not marked to keep
+		if (this.special != null && !this.special.noRemove) {
+			const sp = this.special;
+			this.removeCard(sp);
+			if (sp.elem && sp.elem.parentElement) sp.elem.parentElement.removeChild(sp.elem);
+		}
+		if (this.elem_special && !this.special) {
+			while (this.elem_special.firstChild) {
+				this.elem_special.removeChild(this.elem_special.firstChild);
+			}
+		}
+		this.recalculateEffects();
+		this.updateScore();
 	}
 
 	// Returns all regular unit cards with the heighest power
@@ -2283,7 +2330,11 @@ class Board {
 		if (isString(dest))
 			dest = this.getRow(card, dest);
 		await translateTo(card, source ? source : null, dest);
-		let movedCard = (source && Array.isArray(source.cards) && source.cards.includes(card)) ? source.removeCard(card) : card;
+		let isSourceCard = source && (
+			(Array.isArray(source.cards) && source.cards.includes(card)) ||
+			(source.special === card)
+		);
+		let movedCard = isSourceCard ? source.removeCard(card) : card;
 		// Seamless handoff: clear in-flight transform and trigger landing punch
 		if (card && card.elem) {
 			card.elem.style.transition = "none";
@@ -2397,9 +2448,13 @@ class Board {
 	async clearRound()
 	{
 		await Promise.all([
-			await weather.clearWeather(),
+			weather.clearWeather(),
 			...board.row.map(async row => await row.clear())
 		]);
+		board.row.forEach(r => {
+			r.recalculateEffects();
+			r.updateScore();
+		});
 		this.updateScoreDiff();
 	}
 }

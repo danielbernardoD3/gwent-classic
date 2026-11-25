@@ -1,16 +1,12 @@
 {
-  "version": "1.0.0",
-  "versionCode": 16,
+  "version": "1.0.1",
+  "versionCode": 17,
   "releaseDate": "2026-11-24",
   "title": "Gwent Classic",
   "changelog": [
-    "Lançamento Oficial: Gwent Classic 1.0.0 Release!",
-    "Fast-Forward: Controle de velocidade do jogo (1.0x a 2.0x com pausas da IA e animações aceleradas)",
-    "Indicador opcional de diferença de pontos em tempo real no placar",
-    "Interface de duelo otimizada: botão 'Regras' estilizado abaixo de Desistir e botões utilitários empilhados",
-    "Botão com efeito de brilho pulsante e ícone exclusivo para reações e emotes de taverna",
-    "Suporte completo e refinado para controles e gamepads (Xbox, PlayStation, etc.) em todas as telas",
-    "Melhorias e sincronização em todas as plataformas (Windows PC Portátil e Android Mobile)"
+    "Correção crítica da Corneta do Comandante: o bônus de dobro de poder e status de slot ocupado agora são devidamente removidos da fileira ao final da rodada quando a carta vai para o cemitério",
+    "Recálculo estrito e sincronizado de modificadores de fileira (Corneta, Moral, Elo Íntimo, Mardroeme) eliminando qualquer retenção indevida de efeitos entre rounds",
+    "Limpeza e reset aprimorados no descarte entre rounds no tabuleiro"
   ],
   "apkUrl": "https://github.com/danielbernardoD3/gwent-classic/releases/latest/download/GwentClassic.apk",
   "apkSize": "395 MB",
